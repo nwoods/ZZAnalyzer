@@ -96,15 +96,13 @@ class ZZAnalyzer(object):
             #     which one is the right one
             wrongRows = self.getRedundantRows(ntuple, channel)
 
-            nRow = 0
-
             for row in ntuple:
                 self.cutsPassed[channel]["total"] += 1
 
                 # Ignore wrong version of event
-#                 if nRow in wrongRows:
-#                     continue
-#                 self.cutsPassed[channel]["combinatorics"] += 1
+                if self.cutsPassed[channel]['total'] in wrongRows:
+                    continue
+                self.cutsPassed[channel]["combinatorics"] += 1
                     
                 objects = self.getOSSF(row, channel, objectTemplate)
 
@@ -234,13 +232,14 @@ class ZZAnalyzer(object):
         objectTemplate = self.mapObjects(channel)
 
         for row in ntuple:
+            nRow += 1
             objects = self.getOSSF(row, channel, objectTemplate)
 
             # Keep track of events within this function by run, lumi block, and event number
             run = getVar(row, 'run')
             lumi = getVar(row, 'lumi')
             evt = getVar(row,'evt')
-            sameEvent = evt == prevEvt and lumi == prevLumi and run == prevRun
+            sameEvent = (evt == prevEvt and lumi == prevLumi and run == prevRun)
 
             # The best row for the event is actually the best one *that passes ID cuts*
             # so we have to treat a row that fails them as automatically bad. But, we can
@@ -258,6 +257,13 @@ class ZZAnalyzer(object):
                 allGood = len(objects) == 4
             if not allGood:
                 if sameEvent:
+#                     print prevRow
+#                     print prevRun
+#                     print prevLumi
+#                     print prevEvt
+#                     print prevZ
+#                     print prevPtSum
+#                     print "------------------------"
                     redundantRows.append(nRow)
                 else:
                     prevRun = run
@@ -283,6 +289,13 @@ class ZZAnalyzer(object):
                 continue
             else:
                 if abs(Zmass - Z_MASS) < abs(prevZ - Z_MASS):
+#                     print prevRow
+#                     print prevRun
+#                     print prevLumi
+#                     print prevEvt
+#                     print prevZ
+#                     print prevPtSum
+#                     print "------------------------"
                     redundantRows.append(prevRow)
                     prevRun = run
                     prevLumi = lumi
@@ -292,6 +305,13 @@ class ZZAnalyzer(object):
                     prevRow = nRow
                 elif abs(Zmass - Z_MASS) == abs(prevZ - Z_MASS):
                     if ptSum > prevPtSum:
+#                         print prevRow
+#                         print prevRun
+#                         print prevLumi
+#                         print prevEvt
+#                         print prevZ
+#                         print prevPtSum
+#                         print "------------------------"
                         redundantRows.append(prevRow)
                         prevRun = run
                         prevLumi = lumi
@@ -301,10 +321,16 @@ class ZZAnalyzer(object):
                         prevRow = nRow
                 else:
                     # if this is a duplicate but the previous one is better, this one is redundant
+#                     print nRow
+#                     print run
+#                     print lumi
+#                     print evt
+#                     print Zmass
+#                     print ptSum
+                    
                     redundantRows.append(nRow)
-
-            nRow += 1
-
+                    
+        print len(redundantRows)
         return redundantRows
        
  
