@@ -42,6 +42,8 @@ class ZZAnalyzer(object):
         self.cuts = Cutter.Cutter(self.cutSet)
 
         self.inFile = infile
+
+        self.sample = self.inFile.split('/')[-1].replace('.root','')
         
         self.outFile = outfile
 
@@ -97,6 +99,10 @@ class ZZAnalyzer(object):
             wrongRows = self.getRedundantRows(ntuple, channel)
 
             for row in ntuple:
+                # Report progress every 5000 events
+                if self.cutsPassed[channel]['total'] % 5000 == 0:
+                    print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["total"])
+                
                 self.cutsPassed[channel]["total"] += 1
 
                 # Ignore wrong version of event
