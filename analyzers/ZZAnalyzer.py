@@ -257,13 +257,6 @@ class ZZAnalyzer(object):
                 allGood = len(objects) == 4
             if not allGood:
                 if sameEvent:
-#                     print prevRow
-#                     print prevRun
-#                     print prevLumi
-#                     print prevEvt
-#                     print prevZ
-#                     print prevPtSum
-#                     print "------------------------"
                     redundantRows.append(nRow)
                 else:
                     prevRun = run
@@ -289,13 +282,6 @@ class ZZAnalyzer(object):
                 continue
             else:
                 if abs(Zmass - Z_MASS) < abs(prevZ - Z_MASS):
-#                     print prevRow
-#                     print prevRun
-#                     print prevLumi
-#                     print prevEvt
-#                     print prevZ
-#                     print prevPtSum
-#                     print "------------------------"
                     redundantRows.append(prevRow)
                     prevRun = run
                     prevLumi = lumi
@@ -305,13 +291,6 @@ class ZZAnalyzer(object):
                     prevRow = nRow
                 elif abs(Zmass - Z_MASS) == abs(prevZ - Z_MASS):
                     if ptSum > prevPtSum:
-#                         print prevRow
-#                         print prevRun
-#                         print prevLumi
-#                         print prevEvt
-#                         print prevZ
-#                         print prevPtSum
-#                         print "------------------------"
                         redundantRows.append(prevRow)
                         prevRun = run
                         prevLumi = lumi
@@ -320,17 +299,8 @@ class ZZAnalyzer(object):
                         prevPtSum = ptSum
                         prevRow = nRow
                 else:
-                    # if this is a duplicate but the previous one is better, this one is redundant
-#                     print nRow
-#                     print run
-#                     print lumi
-#                     print evt
-#                     print Zmass
-#                     print ptSum
-                    
                     redundantRows.append(nRow)
                     
-        print len(redundantRows)
         return redundantRows
        
  
