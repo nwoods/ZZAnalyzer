@@ -122,17 +122,10 @@ class ZZAnalyzer(object):
                     continue
                 self.cutsPassed[channel]["ID"] += 1
                 
-#                 for obj in objects:
-#                     print obj + ":"
-#                     self.cuts.dumpCutValues(row, obj[0]+'Selection', obj)
-
                 # Pass selection cuts
                 if not self.cutOnAll(row, 'Selection', objects):
                     continue
                 self.cutsPassed[channel]["selection"] += 1
-
-#                 if self.cutsPassed[channel]['total'] >= 15:
-#                     exit()
 
                 # Pass isolation cuts
                 if not self.cutOnAll(row, 'Iso', objects):
@@ -189,6 +182,8 @@ class ZZAnalyzer(object):
                 self.fillHistos(row, channel, objects)
             
         self.saveAllHistos()
+
+        self.cutReport()
                 
 
     def mapObjects(self, channel):
@@ -389,8 +384,6 @@ class ZZAnalyzer(object):
         Z2Mom = momenta[2] + momenta[3]
         totalMom = Z1Mom + Z2Mom
         
-#         nPrinted = 0
-
         for title in [channel, 'Total']:
             # Single objects
             if title != 'Total':
@@ -421,11 +414,6 @@ class ZZAnalyzer(object):
         Save all histograms to self.outFile, in directories by channel (+Total)
         '''
         f = ROOT.TFile(self.outFile, 'RECREATE')
-        for channel in self.channels:
-            print "\n" + channel + ":"
-            for cut in self.cutOrder:
-                print cut + ": " + str(self.cutsPassed[channel][cut])
-
 
         dirs = []
         for channel, hDict in self.histos.iteritems():
@@ -461,6 +449,26 @@ class ZZAnalyzer(object):
                 return False
         return True
 
+
+    def cutReport(self):
+        '''
+        Save a text file with cut information. 
+        Same name as outfile but .txt instead of .root.
+        '''
+        totals = {}
+        for cut in self.cutOrder:
+            totals[cut] = 0
+        with open(self.outFile.replace('.root','.txt'), 'w') as f:
+            for channel in self.channels:
+                f.write("\n" + channel + ":\n")
+                for cut in self.cutOrder:
+                    f.write(cut + ": " + str(self.cutsPassed[channel][cut]) + "\n")
+                    totals[cut] += self.cutsPassed[channel][cut]
+
+            f.write("\nTotal:\n")
+            for cut in self.cutOrder:
+                f.write(cut + ": " + str(totals[cut]) + "\n")
+    
 
 def getVar(row, var, *objects):
     '''
