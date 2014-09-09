@@ -31,11 +31,11 @@ class ZZAnalyzer(object):
             if channels == '4l' or channels == 'zz' or channels == 'ZZ':
                 self.channels = ['eeee', 'eemm', 'mmmm']
             else:
-                assert all(letter in ['e','m','t','g','j'] for letter in channels) and len(channel <= 4), 'Invalid channel'
+                assert all(letter in ['e','m','t','g','j'] for letter in channels) and len(channels) <= 4, 'Invalid channel ' + channels
                 self.channels = [channels]
         else:
             assert type(channels)==list, 'Channels must be a list or a string'
-            assert all (all(letter in ['e','m','t','g','j'] for letter in channel) and len(channel <= 4) for channel in channels), 'Invalid channel in list'
+            assert all ((all(letter in ['e','m','t','g','j'] for letter in channel) and len(channel) <= 4) for channel in channels), 'Invalid channel in ['+','.join(channels)+']'
             self.channels = channels
 
         self.cutSet = cutSet
@@ -503,8 +503,6 @@ def getInputs(indir):
     return fileNames
 
 
-a = ZZAnalyzer('4l', 'HZZ4l2012', '../ntuples/make_ntuples_cfg-02553CB8-DD18-E411-B763-848F69FD44B1.root', 'testout.root')
-a.analyze()
 
 
 
