@@ -42,8 +42,8 @@ cuts = {
             'Pt' : (7., False),
             'AbsEta' : (2.5, True),
             'SIP3D' : (4., True),
-#             'PVDXY' : (0.5, False),    # Add back in for next round of ntuples   
-            'DZ' : (1., True),        # Change back to PVDZ for next round of ntuples
+            'PVDXY' : (0.5, False),
+            'PVDZ' : (1., True),
             },
         'mode' : 'and',
         'options' : 'absDZ',
@@ -53,8 +53,8 @@ cuts = {
             'Pt' : (5., False),
             'AbsEta' : (2.5, True),
             'SIP3D' : (4., True),
-#             'PVDXY' : (0.5, False),    # Add back in for next round of ntuples
-            'DZ' : (1., True),          # Change back to PVDZ for next round of ntuples
+            'PVDXY' : (0.5, False),
+            'PVDZ' : (1., True),
         },
         'mode' : 'and',
         'options' : 'absDZ',
