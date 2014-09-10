@@ -53,11 +53,11 @@ cuts = {
             'Pt' : (5., False),
             'AbsEta' : (2.5, True),
             'SIP3D' : (4., True),
-            'PVDXY' : (0.5, False),
+            'PVDXY' : (0.5, True),
             'PVDZ' : (1., True),
         },
         'mode' : 'and',
-        'options' : 'absDZ',
+        'options' : 'absPVDZabsPVDXY',
     },
     'mID' : { 
         'cuts' : { 
