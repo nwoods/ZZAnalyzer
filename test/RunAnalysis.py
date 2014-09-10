@@ -11,7 +11,7 @@ import glob
 import multiprocessing
 import argparse
 import ZZAnalyzer
-
+import os
 
 def runSomeAnalyzers(channels, cutSet, infiles, outdir):
     '''
@@ -19,7 +19,7 @@ def runSomeAnalyzers(channels, cutSet, infiles, outdir):
     Intended for use in treads, such that several processes each do this once.
     '''
     for infile in infiles:
-        outfile = outdir+(infile.split('/')[-1])
+        outfile = outdir+'/'+(infile.split('/')[-1])
         analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile)
         analyzer.analyze()
 
@@ -34,8 +34,8 @@ parser.add_argument('cutSet', nargs='?', type=str, default='HZZ4l2012',
                     help='Name of cut template.')
 parser.add_argument('nThreads', nargs='?', type=int, default=2,
                     help='Maximum number of threads for simultaneous processing.')
-parser.add_argument('outdir', type=str, nargs='?', default='.',
-                    help='Directory to place output (defaults to PWD).')
+parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
+                    help='Directory to place output (defaults to $zza/results).')
 
 args = parser.parse_args()
 
@@ -52,13 +52,24 @@ for path in args.input[0].split(','):
 # Remove duplicates from input files, just in case
 infiles = list(set(infiles))
 
+if args.outdir == "ZZA_NORMAL":
+    outdir = os.environ["zza"] + "/results"
+else:
+    outdir = args.outdir
+
+if not os.path.isdir(outdir):
+    os.makedirs(outdir)
+
 if args.channels == 'zz':
     channels = ['eeee', 'eemm', 'mmmm']
 else:
     print channels + '?'
     channels = args.channels.split(',')
 
-nThreads = max(len(infiles), args.nThreads)
+if len(infiles) < args.nThreads:
+    nThreads = len(infiles)
+else:
+    nThreads = args.nThreads
 
 filesPerThread = len(infiles) / nThreads
 extraFiles = len(infiles) % nThreads
@@ -68,7 +79,7 @@ for f in infiles:
     fileSets[i].append(f)
     i = (i+1)%nThreads
 
-threads = [multiprocessing.Process(target=runSomeAnalyzers, args=(channels, args.cutSet, ifs, args.outdir)) for ifs in fileSets]
+threads = [multiprocessing.Process(target=runSomeAnalyzers, args=(channels, args.cutSet, ifs, outdir)) for ifs in fileSets]
 
 for t in threads:
     t.start()
