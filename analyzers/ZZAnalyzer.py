@@ -84,7 +84,10 @@ class ZZAnalyzer(object):
         For a given file, do the whole analysis and output the results to 
         self.outFile
         '''
-        
+
+        evPass = {}
+        badEvents = set()
+
         # Sample name is file name without path or '.root'
         sampleName = self.inFile.split('/')[-1].replace('.root', '')
 
@@ -116,6 +119,11 @@ class ZZAnalyzer(object):
                 if self.cutsPassed[channel]['total'] in wrongRows:
                     continue
                 self.cutsPassed[channel]["combinatorics"] += 1
+                if row.evt in evPass:
+                    badEvents.add(row.evt)
+                    evPass[row.evt].append(self.cutsPassed[channel]['total']-1)
+                else:
+                    evPass[row.evt] = [self.cutsPassed[channel]['total']-1]
                     
                 objects = self.getOSSF(row, channel, objectTemplate)
 
@@ -190,6 +198,11 @@ class ZZAnalyzer(object):
             else:
                 print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['total'])
                 
+        for e in badEvents:
+            print "Event %d has multiple passing rows:"%e
+            for r in evPass[e]:
+                print "     %d"%r
+            
         print "%s: Done with all channels, saving results"%self.sample
 
         self.saveAllHistos()
@@ -232,7 +245,7 @@ class ZZAnalyzer(object):
         '''
         nRow = 0
         checkedEvents = {}
-        redundantRows = []
+        redundantRows = set()
 
         prevRun = -1
         prevLumi = -1
@@ -272,7 +285,7 @@ class ZZAnalyzer(object):
                 allGood = len(objects) == 4
             if not allGood:
                 if sameEvent:
-                    redundantRows.append(nRow)
+                    redundantRows.add(nRow)
                 else:
                     prevRun = run
                     prevLumi = lumi
@@ -297,7 +310,7 @@ class ZZAnalyzer(object):
                 continue
             else:
                 if abs(Zmass - Z_MASS) < abs(prevZ - Z_MASS):
-                    redundantRows.append(prevRow)
+                    redundantRows.add(prevRow)
                     prevRun = run
                     prevLumi = lumi
                     prevEvt = evt
@@ -306,7 +319,7 @@ class ZZAnalyzer(object):
                     prevRow = nRow
                 elif abs(Zmass - Z_MASS) == abs(prevZ - Z_MASS):
                     if ptSum > prevPtSum:
-                        redundantRows.append(prevRow)
+                        redundantRows.add(prevRow)
                         prevRun = run
                         prevLumi = lumi
                         prevEvt = evt
@@ -314,7 +327,7 @@ class ZZAnalyzer(object):
                         prevPtSum = ptSum
                         prevRow = nRow
                 else:
-                    redundantRows.append(nRow)
+                    redundantRows.add(nRow)
                     
         return redundantRows
        
