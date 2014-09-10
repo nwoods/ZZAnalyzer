@@ -38,6 +38,7 @@ Optionally,
     may be used to pass in a special operator. The only one currently
     supported is absVARIABLE, which will place the cut on the absolute
     value of VARIABLE. E.G., 'absEta' will cut on absolute value of eta.
+    'absVAR1absVAR2' will use absolute values for VAR1 and VAR2.
 
 Once a set of cuts is entered, the user shouldn't need to know anything
     but the name of the analysis, the name of the cut, and the object
