@@ -66,10 +66,8 @@ else:
     print channels + '?'
     channels = args.channels.split(',')
 
-if len(infiles) < args.nThreads:
-    nThreads = len(infiles)
-else:
-    nThreads = args.nThreads
+# Don't need more than 1 thread/input
+nThreads = min(args.nThreads, len(infiles))
 
 filesPerThread = len(infiles) / nThreads
 extraFiles = len(infiles) % nThreads
