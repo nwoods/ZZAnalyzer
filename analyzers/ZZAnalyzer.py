@@ -84,10 +84,6 @@ class ZZAnalyzer(object):
         For a given file, do the whole analysis and output the results to 
         self.outFile
         '''
-
-        evPass = {}
-        badEvents = set()
-
         # Sample name is file name without path or '.root'
         sampleName = self.inFile.split('/')[-1].replace('.root', '')
 
@@ -119,11 +115,6 @@ class ZZAnalyzer(object):
                 if self.cutsPassed[channel]['total'] in wrongRows:
                     continue
                 self.cutsPassed[channel]["combinatorics"] += 1
-                if row.evt in evPass:
-                    badEvents.add(row.evt)
-                    evPass[row.evt].append(self.cutsPassed[channel]['total']-1)
-                else:
-                    evPass[row.evt] = [self.cutsPassed[channel]['total']-1]
                     
                 objects = self.getOSSF(row, channel, objectTemplate)
 
@@ -198,11 +189,6 @@ class ZZAnalyzer(object):
             else:
                 print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['total'])
                 
-        for e in badEvents:
-            print "Event %d has multiple passing rows:"%e
-            for r in evPass[e]:
-                print "     %d"%r
-            
         print "%s: Done with all channels, saving results"%self.sample
 
         self.saveAllHistos()
@@ -244,7 +230,6 @@ class ZZAnalyzer(object):
         tiebreaker
         '''
         nRow = 0
-        checkedEvents = {}
         redundantRows = set()
 
         prevRun = -1
@@ -326,6 +311,8 @@ class ZZAnalyzer(object):
                         prevZ = Zmass
                         prevPtSum = ptSum
                         prevRow = nRow
+                    else:
+                        redundantRows.add(nRow)
                 else:
                     redundantRows.add(nRow)
                     
