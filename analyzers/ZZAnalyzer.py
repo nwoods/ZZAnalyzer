@@ -25,7 +25,7 @@ Z_MASS = 91.1876
 
 
 class ZZAnalyzer(object):
-    def __init__(self, channels, cutSet, infile, outfile='./results/output.root'):
+    def __init__(self, channels, cutSet, infile, outfile='./results/output.root', maxEvents=float("inf")):
 
         if type(channels) == str:
             if channels == '4l' or channels == 'zz' or channels == 'ZZ':
@@ -46,6 +46,8 @@ class ZZAnalyzer(object):
         self.sample = self.inFile.split('/')[-1].replace('.root','')
         
         self.outFile = outfile
+
+        self.maxEvents = maxEvents
 
         # Too lazy to go look up Python's version of an ordered hash table, keeping the order separately
         self.cutOrder = [
@@ -99,6 +101,11 @@ class ZZAnalyzer(object):
             wrongRows = self.getRedundantRows(ntuple, channel)
 
             for row in ntuple:
+                # If we've hit maxEvents, we're done
+                if self.cutsPassed[channel]['total'] == self.maxEvents:
+                    print "%s: Reached %d %s events, ending"%(self.sample, self.maxEvents, channel)
+                    break
+
                 # Report progress every 5000 events
                 if self.cutsPassed[channel]['total'] % 5000 == 0:
                     print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["total"])
@@ -180,7 +187,11 @@ class ZZAnalyzer(object):
                 self.cutsPassed[channel]["4lMass"] += 1
 
                 self.fillHistos(row, channel, objects)
-            
+            else:
+                print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['total'])
+                
+        print "%s: Done with all channels, saving results"%self.sample
+
         self.saveAllHistos()
 
         self.cutReport()
@@ -233,6 +244,9 @@ class ZZAnalyzer(object):
         objectTemplate = self.mapObjects(channel)
 
         for row in ntuple:
+            if nRow == self.maxEvents:
+                break
+
             nRow += 1
             objects = self.getOSSF(row, channel, objectTemplate)
 

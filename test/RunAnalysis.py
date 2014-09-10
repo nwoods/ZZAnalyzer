@@ -13,14 +13,14 @@ import argparse
 import ZZAnalyzer
 import os
 
-def runSomeAnalyzers(channels, cutSet, infiles, outdir):
+def runSomeAnalyzers(channels, cutSet, infiles, outdir, maxEvents):
     '''
     Run one or more ZZAnalyzers serially.
     Intended for use in treads, such that several processes each do this once.
     '''
     for infile in infiles:
         outfile = outdir+'/'+(infile.split('/')[-1])
-        analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile)
+        analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, maxEvents)
         analyzer.analyze()
 
 
@@ -36,6 +36,8 @@ parser.add_argument('nThreads', nargs='?', type=int, default=2,
                     help='Maximum number of threads for simultaneous processing.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
                     help='Directory to place output (defaults to $zza/results).')
+parser.add_argument('--maxEvents', nargs='?', type=int,
+                    help='Maximum number of events to run for each sample in each channel.')
 
 args = parser.parse_args()
 
@@ -76,7 +78,12 @@ for f in infiles:
     fileSets[i].append(f)
     i = (i+1)%nThreads
 
-threads = [multiprocessing.Process(target=runSomeAnalyzers, args=(channels, args.cutSet, ifs, outdir)) for ifs in fileSets]
+if args.maxEvents:
+    maxEvents = args.maxEvents
+else:
+    maxEvents = float("inf")
+
+threads = [multiprocessing.Process(target=runSomeAnalyzers, args=(channels, args.cutSet, ifs, outdir, maxEvents)) for ifs in fileSets]
 
 for t in threads:
     t.start()
