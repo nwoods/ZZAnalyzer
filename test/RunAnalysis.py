@@ -63,7 +63,6 @@ if not os.path.isdir(outdir):
 if args.channels == 'zz':
     channels = ['eeee', 'eemm', 'mmmm']
 else:
-    print channels + '?'
     channels = args.channels.split(',')
 
 # Don't need more than 1 thread/input
