@@ -283,11 +283,12 @@ class PlotZZ(object):
 
 
 plotter = PlotZZ("zz")
-plotter.makePlots("Total", "4lMass", [], True)
-plotter.makePlots("Total", "4lMt", [], True)
-plotter.makePlots("Total", "4lPt", [], True)
-plotter.makePlots("Total", "4lEta", [])
-plotter.makePlots("Total", "4lPhi", [])
+for channel in ["eeee","eemm","mmmm","Total"]:
+    plotter.makePlots(channel, "4lMass", [], True)
+    plotter.makePlots(channel, "4lMt", [], True)
+    plotter.makePlots(channel, "4lPt", [], True)
+    plotter.makePlots(channel, "4lEta", [])
+    plotter.makePlots(channel, "4lPhi", [])
 
 
 
