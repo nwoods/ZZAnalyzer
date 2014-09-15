@@ -132,14 +132,21 @@ class PlotZZ(object):
         '''
         Make a stack plot of a variable for all MC samples in a channel
         Assumes histograms are already made and in the samples dictionary
+        Places background at the bottom of the stack, signal at the top. Within that,
+        sorts by max value, so the smallest samples are on the bottom (desirable for
+        log scales)
         '''
+        # Make a list of samples and sort my maximum
+        allSamples = [s for s in self.samples]
+        allSamples.sort(key=lambda s: self.samples[s][channel]["histos"][variable].GetMaximum())
+
         stack = ROOT.THStack('foo', variable)
-        # Plot backgrounds first, then signals
+        # Now plot in that order, but
         for signal in [False, True]:
-            for sample, sDict in self.samples.iteritems():
+            for sample in allSamples:
                 if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
                     continue
-                stack.Add(sDict[channel]["histos"][variable])
+                stack.Add(self.samples[sample][channel]["histos"][variable])
 
         return stack
 
@@ -202,7 +209,7 @@ class PlotZZ(object):
         return minWidth
 
         
-    def makeLegend(self, channel, variable, bounds=[0.38, 0.5, 0.9, 0.8]):
+    def makeLegend(self, channel, variable, bounds=[0.6, 0.5, 0.9, 0.8]):
         '''
         Returns a legend for all samples in this channel for variable. 
         The label on the sample is sampleInfo[sample]["shortName"]
@@ -239,20 +246,26 @@ class PlotZZ(object):
 
         if rebin:
             minWidth = self.rebinAll(channel, variable, rebin)
-            xAxisSuffix = " / " + str(minWidth) + " GeV"
+            yAxisSuffix = " / " + str(minWidth) + " GeV"
         else:
-            xAxisSuffix = ''
+            yAxisSuffix = ''
 
         stack = self.makeStack(channel, variable)
 
-        legend = self.makeLegend(channel, variable)
+        # Legend needs to be placed differently depending on the quantity plotted
+        kinDims = [0.65, 0.2, 0.9, 0.5]
+        
+        if "Eta" in variable or "Phi" in variable:
+            legend = self.makeLegend(channel, variable, kinDims)
+        else:
+            legend = self.makeLegend(channel, variable)
 
         # Have to call draw on stack before we can access its axis
         stack.Draw()
 
         stack.SetTitle("ZZ->4l " + variable)
-        stack.GetXaxis().SetTitle("Events" + xAxisSuffix)
-        stack.GetYaxis().SetTitle(variable)
+        stack.GetXaxis().SetTitle(variable)
+        stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
 
         stack.Draw()
 
@@ -273,8 +286,8 @@ plotter = PlotZZ("zz")
 plotter.makePlots("Total", "4lMass", [], True)
 plotter.makePlots("Total", "4lMt", [], True)
 plotter.makePlots("Total", "4lPt", [], True)
-plotter.makePlots("Total", "4lEta", [], True)
-plotter.makePlots("Total", "4lPhi", [], True)
+plotter.makePlots("Total", "4lEta", [])
+plotter.makePlots("Total", "4lPhi", [])
 
 
 
