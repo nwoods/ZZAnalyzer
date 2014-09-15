@@ -354,6 +354,10 @@ class ZZAnalyzer(object):
     def getHistoDict(self, channels):
         '''
         Return a dictionary of empty TH1Fs organized as hists[channel][quantity] = hist
+        
+        The (ROOT internal) name of the histo will the the sensible obvious thing, with ":~:"+channel
+        appended to the end so that ROOT doesn't get mad (ROOT TSMASH!). The weird ":~:" is so that we
+        can easily remove the channel before we put it into a file.
         '''
         self.histos = {}
 
@@ -363,19 +367,19 @@ class ZZAnalyzer(object):
             if channel != 'Total':
                 objects = self.mapObjects(channel)
                 for obj in objects:
-                    self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt', obj+'Pt', 60, 0., 120.)
-                    self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta', obj+' Eta', 12, -3., 3.)
-                    self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi', obj+' Phi', 32, -3.2, 3.2)
+                    self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+'Pt', 60, 0., 120.)
+                    self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 12, -3., 3.)
+                    self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 32, -3.2, 3.2)
             for obj in ['Z1', 'Z2']:
-                self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt', obj+' Pt', 60, 0., 120.)
-                self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta', obj+' Eta', 12, -3., 3.)
-                self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi', obj+' Phi', 32, -3.2, 3.2)
-                self.histos[channel][obj+'Mass'] = ROOT.TH1F(obj+'Mass', obj+' Mass', 60, 5., 125.)
-            self.histos[channel]['4lPt'] = ROOT.TH1F('4lPt', '4l Pt', 60, 0., 300.)
-            self.histos[channel]['4lEta'] = ROOT.TH1F('4lEta', '4l Eta', 12, -3., 3.)
-            self.histos[channel]['4lPhi'] = ROOT.TH1F('4lPhi', '4l Phi', 32, -3.2, 3.2)
-            self.histos[channel]['4lMass'] = ROOT.TH1F('4lMass', '4l Mass', 60, 70., 2010.)
-            self.histos[channel]['4lMt'] = ROOT.TH1F('4lMt', '4l Mt', 60, 30., 2000.)
+                self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+' Pt', 60, 0., 120.)
+                self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 12, -3., 3.)
+                self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 32, -3.2, 3.2)
+                self.histos[channel][obj+'Mass'] = ROOT.TH1F(obj+'Mass'+":~:"+channel, obj+' Mass', 60, 5., 125.)
+            self.histos[channel]['4lPt'] = ROOT.TH1F('4lPt'+":~:"+channel, '4l Pt', 60, 0., 300.)
+            self.histos[channel]['4lEta'] = ROOT.TH1F('4lEta'+":~:"+channel, '4l Eta', 12, -3., 3.)
+            self.histos[channel]['4lPhi'] = ROOT.TH1F('4lPhi'+":~:"+channel, '4l Phi', 32, -3.2, 3.2)
+            self.histos[channel]['4lMass'] = ROOT.TH1F('4lMass'+":~:"+channel, '4l Mass', 60, 70., 2010.)
+            self.histos[channel]['4lMt'] = ROOT.TH1F('4lMt'+":~:"+channel, '4l Mt', 60, 30., 2000.)
 
 
     def fillHistos(self, row, channel, objects):
@@ -433,7 +437,11 @@ class ZZAnalyzer(object):
         dirs = []
         for channel, hDict in self.histos.iteritems():
             dirs.append(ROOT.TDirectoryFile(channel, channel+" histograms"))
-            for name, hist in hDict.iteritems():
+            for foo, hist in hDict.iteritems():
+                # Change name to be consistent
+                name = hist.GetName()
+                name = name.split(":~:")[0]
+                hist.SetName(name)
                 dirs[-1].Append(hist)
 
         for dir in dirs:
