@@ -115,6 +115,7 @@ class PlotZZ(object):
             self.samples[sample][channel]["histos"][variable].Scale(sampleInfo[sample]["xsec"] * self.intLumi / sampleInfo[sample]["n"])
             self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
             self.samples[sample][channel]["histos"][variable].SetFillColor(self.colors[sample])
+            self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
         else:
             self.samples[sample][channel]["histos"][variable].SetMarkerStyle(20)
 
@@ -270,6 +271,10 @@ class PlotZZ(object):
 
 plotter = PlotZZ("zz")
 plotter.makePlots("Total", "4lMass", [], True)
+plotter.makePlots("Total", "4lMt", [], True)
+plotter.makePlots("Total", "4lPt", [], True)
+plotter.makePlots("Total", "4lEta", [], True)
+plotter.makePlots("Total", "4lPhi", [], True)
 
 
 
