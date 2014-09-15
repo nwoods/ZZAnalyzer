@@ -23,7 +23,7 @@ def runSomeAnalyzers(channels, cutSet, infiles, outdir, maxEvents):
         analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, maxEvents)
         analyzer.analyze()
 
-
+assert os.environ["zza"], "Run setup.sh before running analysis"
 
 parser = argparse.ArgumentParser(description='Run the ZZ4l analyzer on multiple samples.')
 parser.add_argument('input', type=str, nargs=1, 
