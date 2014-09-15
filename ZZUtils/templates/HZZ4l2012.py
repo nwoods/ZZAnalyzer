@@ -66,40 +66,39 @@ cuts = {
         },
         'mode' : 'or',
     },
-### Old eID not available, use CSA14 ID for now
-#     'eID' : { 
-#         'cuts' : {
-#             '5<pt<10' : {
-#                 'eta<0.8' : {
-#                     'MVANonTrig' : (0.47, False),
-#                 },
-#                 '0.8<eta<1.479' : {
-#                     'MVANonTrig' : (0.004, False),
-#                 },
-#                 'eta>1.479' : {
-#                     'MVANonTrig' : (0.47, False),
-#                 },
-#             },
-#             'pt>10' : {
-#                 'eta<0.8' : {
-#                     'MVANonTrig' : (-0.34, False),
-#                 },
-#                 '0.8<eta<1.479' : {
-#                     'MVANonTrig' : (-0.65, False),
-#                 },
-#                 'eta>1.479' : {
-#                     'MVANonTrig' : (0.6, False),
-#                 },
-#             },
-#         },
-#         'mode' : 'other',
-#     },
-    'eID' : {
+    'eID' : { 
         'cuts' : {
-            'CBIDTight_25ns' : (1, False),
+            '5<pt<10' : {
+                'eta<0.8' : {
+                    'MVANonTrig' : (0.47, False),
+                },
+                '0.8<eta<1.479' : {
+                    'MVANonTrig' : (0.004, False),
+                },
+                'eta>1.479' : {
+                    'MVANonTrig' : (0.47, False),
+                },
+            },
+            'pt>10' : {
+                'eta<0.8' : {
+                    'MVANonTrig' : (-0.34, False),
+                },
+                '0.8<eta<1.479' : {
+                    'MVANonTrig' : (-0.65, False),
+                },
+                'eta>1.479' : {
+                    'MVANonTrig' : (0.6, False),
+                },
+            },
         },
-        'mode' : 'and',
+        'mode' : 'other',
     },
+#     'eID' : {
+#         'cuts' : {
+#             'CBIDTight_25ns' : (1, False),
+#         },
+#         'mode' : 'and',
+#     },
     'Z1Mass' : {
         'cuts' : { 
             'Mass#lower' : (40., False),
