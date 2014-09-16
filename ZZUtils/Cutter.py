@@ -89,8 +89,8 @@ class Cutter():
                 passList = [((getattr(row, getVar2(obj, obj2, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
                             self.cuts[cutName]['cuts'].iteritems()]
             elif self.cuts[cutName]['mode'] == 'other':
-#            if cutName == 'eID' and self.cutSet == 'HZZ4l2012':
-#                return self.eIDTight2012(row, obj)
+                if cutName == 'eID' and self.cutSet == 'HZZ4l2012':
+                    return self.eIDTight2012(row, obj)
                 raise NameError('Special cut %s is not yet defined for cutSet %s'%(cutName,self.cutSet))
             else:
                 passList = [((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
@@ -112,30 +112,30 @@ class Cutter():
                 return any(passList)
             return all(passList)
 
-#     def eIDTight2012(self, row, obj):
-#         BDTName = 'MVANonTrig'
-#         pt = getattr(row, getVar(obj, 'Pt'))
-#         eta = getattr(row, getVar(obj, 'SCEta'))
-#         bdt = getattr(row, getVar(obj, BDTName))
-#         if pt > 5. and pt < 10.:
-#             ptName = '5<pt<10'
-#         else:
-#             ptName = 'pt>10'
-# 
-#         if abs(eta) < 0.8:
-#             etaName = 'eta<0.8'
-#         elif abs(eta) < 1.479:
-#             etaName = '0.8<eta<1.479'
-#         else:
-#             etaName = 'eta>1.479'
-# 
-#         cut = self.cuts['eID']['cuts'][ptName][etaName][BDTName][0]
-# 
+    def eIDTight2012(self, row, obj):
+        BDTName = 'MVANonTrigCSA14'
+        pt = getattr(row, getVar(obj, 'Pt'))
+        eta = getattr(row, getVar(obj, 'SCEta'))
+        bdt = getattr(row, getVar(obj, BDTName))
+        if pt > 5. and pt < 10.:
+            ptName = '5<pt<10'
+        else:
+            ptName = 'pt>10'
+
+        if abs(eta) < 0.8:
+            etaName = 'eta<0.8'
+        elif abs(eta) < 1.479:
+            etaName = '0.8<eta<1.479'
+        else:
+            etaName = 'eta>1.479'
+
+        cut = self.cuts['eID']['cuts'][ptName][etaName][BDTName][0]
+
 #         print ptName + ", " + etaName
 #         print "want > " + str(cut)
 #         print "got" + str(getattr(row, getVar(obj, BDTName)))
-# 
-#         return getattr(row, getVar(obj, BDTName)) > cut
+
+        return getattr(row, getVar(obj, BDTName)) > cut
 
     
     def getCutDict(self, cutSet, path='./ZZUtils/templates'):

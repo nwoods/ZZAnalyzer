@@ -70,24 +70,24 @@ cuts = {
         'cuts' : {
             '5<pt<10' : {
                 'eta<0.8' : {
-                    'MVANonTrig' : (0.47, False),
+                    'MVANonTrigCSA14' : (0.47, False),
                 },
                 '0.8<eta<1.479' : {
-                    'MVANonTrig' : (0.004, False),
+                    'MVANonTrigCSA14' : (0.004, False),
                 },
                 'eta>1.479' : {
-                    'MVANonTrig' : (0.47, False),
+                    'MVANonTrigCSA14' : (0.47, False),
                 },
             },
             'pt>10' : {
                 'eta<0.8' : {
-                    'MVANonTrig' : (-0.34, False),
+                    'MVANonTrigCSA14' : (-0.34, False),
                 },
                 '0.8<eta<1.479' : {
-                    'MVANonTrig' : (-0.65, False),
+                    'MVANonTrigCSA14' : (-0.65, False),
                 },
                 'eta>1.479' : {
-                    'MVANonTrig' : (0.6, False),
+                    'MVANonTrigCSA14' : (0.6, False),
                 },
             },
         },
