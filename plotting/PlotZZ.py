@@ -258,13 +258,13 @@ class PlotZZ(object):
         stack = self.makeStack(channel, variable)
 
         # Legend needs to be placed differently depending on the quantity plotted
-        kinDims = [0.375, 0.18, 0.625, 0.43]
-        if channel == "mmmm" and "Eta" in variable:
-            kinDims[0] = 0.575
-            kinDims[2] = 0.825
+        etaDims = [0.375, 0.65, 0.625, 0.9]
+        phiDims = [0.375, 0.35, 0.625, 0.6]
         
-        if "Eta" in variable or "Phi" in variable:
-            legend = self.makeLegend(channel, variable, kinDims)
+        if "Eta" in variable:
+            legend = self.makeLegend(channel, variable, etaDims)
+        elif "Phi" in variable:
+            legend = self.makeLegend(channel, variable, phiDims)
         else:
             legend = self.makeLegend(channel, variable)
 
