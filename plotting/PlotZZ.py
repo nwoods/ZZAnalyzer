@@ -109,15 +109,6 @@ class PlotZZ(object):
         h = self.samples[sample][channel]["ntuple"].Get(variable)
         assert h, "Histgram %s does not exist for sample %s, channel %s"%(variable, sample, channel)
         self.samples[sample][channel]["histos"][variable] = h.Clone()
-        self.samples[sample][channel]["histos"][variable].SetMarkerColor(self.colors[sample])
-        self.samples[sample][channel]["histos"][variable].SetLineColor(self.colors[sample])
-        if not sampleInfo[sample]["isData"]:
-            self.samples[sample][channel]["histos"][variable].Scale(sampleInfo[sample]["xsec"] * self.intLumi / sampleInfo[sample]["n"])
-            self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
-            self.samples[sample][channel]["histos"][variable].SetFillColor(self.colors[sample])
-            self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
-        else:
-            self.samples[sample][channel]["histos"][variable].SetMarkerStyle(20)
 
 
     def makeAllHists(self, channel, variable):
@@ -162,7 +153,7 @@ class PlotZZ(object):
         Returns the width of the smallest bin unless reportSmallest is set False
         '''
         if len(rebin) == 1:
-            self.samples[sample][channel]["histos"][variable].Rebin(rebin[0])
+            self.samples[sample][channel]["histos"][variable] = self.samples[sample][channel]["histos"][variable].Rebin(rebin[0])
             if reportSmallest:
                 widths = [self.samples[sample][channel]["histos"][variable].GetBinWidth(i) for i in xrange(self.samples[sample][channel]["histos"][variable].GetNbinsX()+1)]
                 return min(widths)
@@ -170,7 +161,7 @@ class PlotZZ(object):
                 return -1.
 
         bins = array.array("d", rebin)
-        self.samples[sample][channel]["histos"][variable].Rebin(len(bins)-1, bins)
+        self.samples[sample][channel]["histos"][variable] = self.samples[sample][channel]["histos"][variable].Rebin(len(bins)-1, "", bins)
         # Now we have to fix the bin widths for the fact that we added them together
         widths = [self.samples[sample][channel]["histos"][variable].GetBinWidth(i) for i in xrange(self.samples[sample][channel]["histos"][variable].GetNbinsX()+1)]
         minWidth = min(widths)
@@ -246,14 +237,31 @@ class PlotZZ(object):
 
         if rebin:
             minWidth = self.rebinAll(channel, variable, rebin)
+
+        if len(rebin) > 1:
             yAxisSuffix = " / " + str(minWidth) + " GeV"
         else:
             yAxisSuffix = ''
 
+        # Have to format after rebinning
+        for sample in self.samples:
+            self.samples[sample][channel]["histos"][variable].SetMarkerColor(self.colors[sample])
+            self.samples[sample][channel]["histos"][variable].SetLineColor(self.colors[sample])
+            if not sampleInfo[sample]["isData"]:
+                self.samples[sample][channel]["histos"][variable].Scale(sampleInfo[sample]["xsec"] * self.intLumi / sampleInfo[sample]["n"])
+                self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
+                self.samples[sample][channel]["histos"][variable].SetFillColor(self.colors[sample])
+                self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
+            else:
+                self.samples[sample][channel]["histos"][variable].SetMarkerStyle(20)
+
         stack = self.makeStack(channel, variable)
 
         # Legend needs to be placed differently depending on the quantity plotted
-        kinDims = [0.65, 0.2, 0.9, 0.5]
+        kinDims = [0.375, 0.18, 0.625, 0.43]
+        if channel == "mmmm" and "Eta" in variable:
+            kinDims[0] = 0.575
+            kinDims[2] = 0.825
         
         if "Eta" in variable or "Phi" in variable:
             legend = self.makeLegend(channel, variable, kinDims)
@@ -267,7 +275,7 @@ class PlotZZ(object):
         stack.GetXaxis().SetTitle(variable)
         stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
 
-        stack.Draw()
+        stack.Draw("hist")
 
         ### Draw data here when it exists
 
@@ -282,13 +290,16 @@ class PlotZZ(object):
 
 
 
+massBins = [30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
+print massBins
+ptBins = [i*20. for i in xrange(14)] + [300.+i*40. for i in xrange(3)] + [460., 600.]
 plotter = PlotZZ("zz")
 for channel in ["eeee","eemm","mmmm","Total"]:
-    plotter.makePlots(channel, "4lMass", [], True)
-    plotter.makePlots(channel, "4lMt", [], True)
-    plotter.makePlots(channel, "4lPt", [], True)
+    plotter.makePlots(channel, "4lMass", massBins, True)
+    plotter.makePlots(channel, "4lMt", massBins, True)
+    plotter.makePlots(channel, "4lPt", ptBins, True)
     plotter.makePlots(channel, "4lEta", [])
-    plotter.makePlots(channel, "4lPhi", [])
+    plotter.makePlots(channel, "4lPhi", [2])
 
 
 
