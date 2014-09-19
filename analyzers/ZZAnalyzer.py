@@ -5,8 +5,6 @@ with a bunch of histograms of interesting quantities as output.
 By default, runs on all root files in a folder. I'll probably add
 an option to change that later. It keeps the outputs separate.
 
-Usage: 
-
 Author: Nate Woods
 
 '''
