@@ -42,7 +42,7 @@ class PlotZZ(object):
     '''
     A plotter for ZZ->4l results
     '''
-    def __init__(self, channels, intLumi=20., outdir='./plots'):
+    def __init__(self, channels, intLumi=20000., outdir='./plots', infiles='ZZA_NORMAL'):
         '''
         Setup
         If outdir starts with '.' you are presumed to be giving the path relative to $zza
@@ -61,9 +61,13 @@ class PlotZZ(object):
 
         # Setup samples (which are just all ROOT files in the results directory)
         # Makes a dictionary with an entry for each sample, to hold the ntuples (now) and various histograms (later)
-        infiles = glob.glob("%s/results/*.root"%os.environ["zza"])
+        if infiles == 'ZZA_NORMAL':
+            self.infiles = "%s/results/SMPZZ4l2012/*.root"%os.environ["zza"]
+        else:
+            self.infiles = infiles
+        self.infiles = glob.glob(self.infiles)
         self.samples = {}
-        for fileName in infiles:
+        for fileName in self.infiles:
             sample = fileName.split('/')[-1].replace('.root','')
             self.samples[sample] = {}
             self.samples[sample]["file"] = ROOT.TFile(fileName)
@@ -295,9 +299,9 @@ print massBins
 ptBins = [i*20. for i in xrange(14)] + [300.+i*40. for i in xrange(3)] + [460., 600.]
 plotter = PlotZZ("zz")
 for channel in ["eeee","eemm","mmmm","Total"]:
-    plotter.makePlots(channel, "4lMass", massBins, True)
-    plotter.makePlots(channel, "4lMt", massBins, True)
-    plotter.makePlots(channel, "4lPt", ptBins, True)
+    plotter.makePlots(channel, "4lMass", massBins, False) #True)
+    plotter.makePlots(channel, "4lMt", massBins, False) #True)
+    plotter.makePlots(channel, "4lPt", ptBins, False) #True)
     plotter.makePlots(channel, "4lEta", [])
     plotter.makePlots(channel, "4lPhi", [2])
 
