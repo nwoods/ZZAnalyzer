@@ -55,6 +55,7 @@ Author: Nate Woods, U. Wisconsin
 '''
 
 import imp
+#import CutController
 
 def getVar(obj, var):
     return obj+var
@@ -67,6 +68,9 @@ class Cutter():
         self.cutSet = cutSet
 
         self.cuts = self.getCutDict(self.cutSet)
+
+        # Only do cut flow / control stuff if explicitly told to
+        self.doCutFlow = False
 
 
     def doCut(self, row, cutName, obj='', obj2=''):
@@ -169,9 +173,6 @@ class Cutter():
             print "Failed"
             
         
-
-
-
 
 
 

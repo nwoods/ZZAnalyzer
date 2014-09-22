@@ -10,7 +10,7 @@ Author: Nate Woods
 '''
 
 import ROOT
-from ZZUtils import Cutter
+import Cutter
 import os
 import glob
 from itertools import combinations
@@ -49,32 +49,38 @@ class ZZAnalyzer(object):
 
         # Too lazy to go look up Python's version of an ordered hash table, keeping the order separately
         self.cutOrder = [
-            "total",
-            "combinatorics",
-            "trigger",
+            "Total",
+            "Combinatorics",
+            "Trigger",
             "ID",
-            "selection",
-            "isolation",
-            "overlap",
+            "Selection",
+            "Isolation",
+            "Overlap",
             "OSSF1",
             "Z1Mass",
             "OSSF2",
             "Z2Mass",
-            "lepton1Pt",
-            "lepton2Pt",
-            "leptonPairMass",
+            "Lepton1Pt",
+            "Lepton2Pt",
+            "LeptonPairMass",
             "4lMass"
             ]
         
-        # Dictionary with number of events passing each cut for each channel
+        self.prepareCutSummary()
+
+        self.getHistoDict(self.channels)
+
+
+
+    def prepareCutSummary(self):
+        '''
+        Prepare dictionary with number of events passing each cut for each channel
+        '''
         self.cutsPassed = {}
         for channel in self.channels:
             self.cutsPassed[channel] = {}
             for cut in self.cutOrder:
                 self.cutsPassed[channel][cut] = 0
-
-        self.getHistoDict(self.channels)
-
 
 
     def analyze(self):
@@ -99,93 +105,107 @@ class ZZAnalyzer(object):
 
             for row in ntuple:
                 # If we've hit maxEvents, we're done
-                if self.cutsPassed[channel]['total'] == self.maxEvents:
+                if self.cutsPassed[channel]['Total'] == self.maxEvents:
                     print "%s: Reached %d %s events, ending"%(self.sample, self.maxEvents, channel)
                     break
 
                 # Report progress every 5000 events
-                if self.cutsPassed[channel]['total'] % 5000 == 0:
-                    print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["total"])
+                if self.cutsPassed[channel]['Total'] % 5000 == 0:
+                    print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["Total"])
                 
-                self.cutsPassed[channel]["total"] += 1
+                # Always pass "Total"
+                self.passCut(row, channel, "Total")
 
                 # Ignore wrong version of event
-                if self.cutsPassed[channel]['total'] in wrongRows:
+                if self.cutsPassed[channel]['Total'] in wrongRows:
                     continue
-                self.cutsPassed[channel]["combinatorics"] += 1
+                self.passCut(row, channel, "Combinatorics")
                     
                 objects = self.getOSSF(row, channel, objectTemplate)
 
                 # Pass HLT
-                if not self.cuts.doCut(row, 'trigger'):
+                if not self.cuts.doCut(row, 'Trigger'):
+                    self.preCut(row, channel, 'Trigger')
                     continue
-                self.cutsPassed[channel]["trigger"] += 1
+                self.passCut(row, channel, "Trigger")
 
                 # Pass ID cuts
+                self.preCut(row, channel, 'ID')
                 if not self.cutOnAll(row, 'ID', objects):
                     continue
-                self.cutsPassed[channel]["ID"] += 1
+                self.passCut(row, channel, "ID")
                 
                 # Pass selection cuts
+                self.preCut(row, channel, 'Selection')
                 if not self.cutOnAll(row, 'Selection', objects):
                     continue
-                self.cutsPassed[channel]["selection"] += 1
+                self.passCut(row, channel, "Selection")
 
                 # Pass isolation cuts
+                self.preCut(row, channel, 'Isolation')
                 if not self.cutOnAll(row, 'Iso', objects):
                     continue
-                self.cutsPassed[channel]["isolation"] += 1
+                self.passCut(row, channel, "Isolation")
 
                 # Pass overlap cuts
+                self.preCut(row, channel, 'Overlap')
                 if not self.checkOverlaps(row, objects):
                     continue
-                self.cutsPassed[channel]["overlap"] += 1
+                self.passCut(row, channel, "Overlap")
 
                 # Make sure we have one good Z candidate (pair of OSSF leptons)
+                self.preCut(row, channel, 'OSSF1')
                 if len(objects) < 2:
                     continue
-                self.cutsPassed[channel]["OSSF1"] += 1
+                self.passCut(row, channel, "OSSF1")
 
                 # Make sure it's a good Z
+                self.preCut(row, channel, 'Z1Mass')
                 if not self.cuts.doCut(row, 'Z1Mass', objects[0], objects[1]):
                     continue
-                self.cutsPassed[channel]["Z1Mass"] += 1
+                self.passCut(row, channel, "Z1Mass")
                 
                 # Make sure there's a second good Z candidate
+                self.preCut(row, channel, 'OSSF2')
                 if len(objects) < 4:
                     continue
-                self.cutsPassed[channel]["OSSF2"] += 1
+                self.passCut(row, channel, "OSSF2")
 
                 # Make sure it's a good-ish Z
+                self.preCut(row, channel, 'Z2Mass')
                 if not self.cuts.doCut(row, 'Z2Mass', objects[2], objects[3]):
                     continue
-                self.cutsPassed[channel]["Z2Mass"] += 1
+                self.passCut(row, channel, "Z2Mass")
                 
                 # Make sure at least one lepton has pt>20
-                if not any(self.cuts.doCut(row, 'lepton1Pt', obj) for obj in objects):
+                self.preCut(row, channel, 'Lepton1Pt')
+                if not any(self.cuts.doCut(row, 'Lepton1Pt', obj) for obj in objects):
                     continue
-                self.cutsPassed[channel]["lepton1Pt"] += 1
+                self.passCut(row, channel, "Lepton1Pt")
 
                 # Make sure another has pt>10
-                if not any(self.cuts.doCut(row, 'lepton2Pt', pair[0]) and self.cuts.doCut(row, 'lepton2Pt', pair[1]) \
+                self.preCut(row, channel, 'Lepton2Pt')
+                if not any(self.cuts.doCut(row, 'Lepton2Pt', pair[0]) and self.cuts.doCut(row, 'Lepton2Pt', pair[1]) \
                            for pair in combinations(objects,2)):
                     continue
-                self.cutsPassed[channel]["lepton2Pt"] += 1
+                self.passCut(row, channel, "Lepton2Pt")
 
                 # All opposite-sign pairs of leptons must have an invariant mass > 4GeV (regardless of flavor)
-                if not all(getVar(row, 'SS', pair[0], pair[1]) or self.cuts.doCut(row, 'leptonPairMass', pair[0], pair[1]) \
+                self.preCut(row, channel, 'LeptonPairMass')
+                if not all(getVar(row, 'SS', pair[0], pair[1]) or self.cuts.doCut(row, 'LeptonPairMass', pair[0], pair[1]) \
                            for pair in combinations(objectTemplate, 2)): # use template to maintain alphanumeric order
                     continue
-                self.cutsPassed[channel]["leptonPairMass"] += 1
+                self.passCut(row, channel, "LeptonPairMass")
 
                 # 4l inv. mass window
+                self.preCut(row, channel, '4lMass')
                 if not self.cuts.doCut(row, '4lMass'):
                     continue
-                self.cutsPassed[channel]["4lMass"] += 1
+                self.passCut(row, channel, "4lMass")
 
                 self.fillHistos(row, channel, objects)
             else:
-                print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['total'])
+                print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['Total'])
                 
         print "%s: Done with all channels, saving results"%self.sample
 
@@ -193,6 +213,23 @@ class ZZAnalyzer(object):
 
         self.cutReport()
                 
+
+    def passCut(self, row, channel, cut):
+        '''
+        Function to run after cut is passed. Here, just updates the cut summary. In
+        derived classes, may be overwritten to do other things like fill cut flow
+        histograms.
+        '''
+        self.cutsPassed[channel][cut] += 1
+        
+        
+    def preCut(self, row, channel, cut):
+        '''
+        Here, does nothing. In derived classes, may be used to do things like make 
+        control plots.
+        '''
+        pass
+
 
     def mapObjects(self, channel):
         '''
@@ -317,17 +354,19 @@ class ZZAnalyzer(object):
         return redundantRows
        
  
-    def getOSSF(self, row, channel, objects):
+    def getOSSF(self, row, channel, objects=[]):
         '''
         Will return a list of same flavor, opposite sign leptons ordered by closeness
         to nominal Z mass. Will only return as many pairs as are in the row, so length<4
         means there are not two Z candidates in the event. Assumes 4 objects which are all
-        leptons. Don't use otherwise.
+        leptons. If objects list is given, uses that. Otherwise figures it out from channel.
 
         Takes advantage of the fact that FSA ntuples place best Z candidate first in
         eeee and mmmm cases.
         '''
         ossfs = []
+        if not objects:
+            objects = self.MapObjects(channel)
         
         # only include pairs that are OSSF
         if objects[0][0] == objects[1][0] and not getVar(row, 'SS', objects[0], objects[1]):
@@ -364,19 +403,19 @@ class ZZAnalyzer(object):
             if channel != 'Total':
                 objects = self.mapObjects(channel)
                 for obj in objects:
-                    self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+'Pt', 60, 0., 120.)
+                    self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+'Pt', 120, 0., 120.)
                     self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 12, -5., 5.)
                     self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 32, -math.pi, math.pi)
             for obj in ['Z1', 'Z2']:
-                self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+' Pt', 60, 0., 120.)
+                self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+' Pt', 120, 0., 120.)
                 self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 12, -5., 5.)
                 self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 32, -math.pi, math.pi)
-                self.histos[channel][obj+'Mass'] = ROOT.TH1F(obj+'Mass'+":~:"+channel, obj+' Mass', 60, 5., 125.)
-            self.histos[channel]['4lPt'] = ROOT.TH1F('4lPt'+":~:"+channel, '4l Pt', 60, 0., 600.)
+                self.histos[channel][obj+'Mass'] = ROOT.TH1F(obj+'Mass'+":~:"+channel, obj+' Mass', 120, 5., 125.)
+            self.histos[channel]['4lPt'] = ROOT.TH1F('4lPt'+":~:"+channel, '4l Pt', 120, 0., 600.)
             self.histos[channel]['4lEta'] = ROOT.TH1F('4lEta'+":~:"+channel, '4l Eta', 12, -5., 5.)
             self.histos[channel]['4lPhi'] = ROOT.TH1F('4lPhi'+":~:"+channel, '4l Phi', 32, -math.pi, math.pi)
-            self.histos[channel]['4lMass'] = ROOT.TH1F('4lMass'+":~:"+channel, '4l Mass', 60, 30., 1500.)
-            self.histos[channel]['4lMt'] = ROOT.TH1F('4lMt'+":~:"+channel, '4l Mt', 60, 30., 1500.)
+            self.histos[channel]['4lMass'] = ROOT.TH1F('4lMass'+":~:"+channel, '4l Mass', 120, 30., 1500.)
+            self.histos[channel]['4lMt'] = ROOT.TH1F('4lMt'+":~:"+channel, '4l Mt', 120, 30., 1500.)
 
 
     def fillHistos(self, row, channel, objects):
@@ -465,7 +504,7 @@ class ZZAnalyzer(object):
             # order correctly to make sure the variable will exist
             if pair[1] < pair[0]:
                 pair = [pair[1], pair[0]]
-            if not self.cuts.doCut(row, 'overlap', *pair):
+            if not self.cuts.doCut(row, 'Overlap', *pair):
                 return False
         return True
 

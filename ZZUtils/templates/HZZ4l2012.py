@@ -7,7 +7,7 @@ Author: Nate Woods
 '''
 
 cuts = {
-    'trigger' : {
+    'Trigger' : {
         'cuts' : {
             'doubleMuPass' : (1, False),
             'doubleMuTrkPass' : (1, False),
@@ -17,7 +17,7 @@ cuts = {
         },
         'mode' : 'or',
     },
-    'overlap' : { 
+    'Overlap' : { 
         'cuts' : { 'DR' : (0.1, False), },
         'mode' : '2obj',
     },
@@ -61,8 +61,8 @@ cuts = {
     },
     'mID' : { 
         'cuts' : { 
-            'IsGlobal' : (1, False) ,  # actually boolean 0s, written as 0.1 to
-            'IsTracker' : (1, False),  # because False makes the comparison >=
+            'IsGlobal' : (1, False),
+            'IsTracker' : (1, False),
         },
         'mode' : 'or',
     },
@@ -76,7 +76,7 @@ cuts = {
                     'MVANonTrigCSA14' : (0.004, False),
                 },
                 'eta>1.479' : {
-                    'MVANonTrigCSA14' : (0.47, False),
+                    'MVANonTrigCSA14' : (0.295, False),
                 },
             },
             'pt>10' : {
@@ -113,20 +113,20 @@ cuts = {
         },
         'mode' : '2obj',
     },
-    'leptonPairMass' : {
+    'LeptonPairMass' : {
         'cuts' : {
             'Mass' : (4., False),
             'SS' : (1, True), # Must be opposite sign, same flavor not required
         },
         'mode' : '2obj',
     },
-    'lepton1Pt' : {
+    'Lepton1Pt' : {
         'cuts' : {
             'Pt' : (20., False),
         },
         'mode' : 'and',
     },                    
-    'lepton2Pt' : {
+    'Lepton2Pt' : {
         'cuts' : {
             'Pt' : (10., False),
         },
