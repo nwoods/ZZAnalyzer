@@ -35,7 +35,7 @@ parser.add_argument('cutSet', nargs='?', type=str, default='HZZ4l2012',
 parser.add_argument('nThreads', nargs='?', type=int, default=2,
                     help='Maximum number of threads for simultaneous processing.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
-                    help='Directory to place output (defaults to $zza/results).')
+                    help='Directory to place output (defaults to $zza/results/<cutSet>/cutflow).')
 parser.add_argument('--maxEvents', nargs='?', type=int,
                     help='Maximum number of events to run for each sample in each channel.')
 
@@ -55,7 +55,7 @@ for path in args.input[0].split(','):
 infiles = list(set(infiles))
 
 if args.outdir == "ZZA_NORMAL":
-    outdir = os.environ["zza"] + "/results"
+    outdir = "%s/results/%s/cutflow"%(os.environ["zza"], args.cutSet)
 else:
     outdir = args.outdir
 
