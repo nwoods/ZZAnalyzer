@@ -239,16 +239,13 @@ class PlotZZ(object):
         
         self.makeAllHists(channel, variable)
 
+        minWidth = -1
         if rebin:
             minWidth = self.rebinAll(channel, variable, rebin)
-
-        if len(rebin) > 1:
-            yAxisSuffix = " / " + str(minWidth) + " GeV"
-        else:
-            yAxisSuffix = ''
-
-        # Have to format after rebinning
+        
+        # Format
         for sample in self.samples:
+            yAxisSuffix = ''
             self.samples[sample][channel]["histos"][variable].SetMarkerColor(self.colors[sample])
             self.samples[sample][channel]["histos"][variable].SetLineColor(self.colors[sample])
             if not sampleInfo[sample]["isData"]:
@@ -258,6 +255,11 @@ class PlotZZ(object):
                 self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
             else:
                 self.samples[sample][channel]["histos"][variable].SetMarkerStyle(20)
+            if not rebin:
+                # Assume saved histograms have constant bin size
+                minWidth = self.samples[sample][channel]["histos"][variable].GetBinWidth(1)
+            if "Mass" in variable or "Mt" in variable or "Pt" in variable:
+                yAxisSuffix += " / " + str(minWidth) + " GeV"
 
         stack = self.makeStack(channel, variable)
 
@@ -278,6 +280,7 @@ class PlotZZ(object):
         stack.SetTitle("ZZ->4l " + variable)
         stack.GetXaxis().SetTitle(variable)
         stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
+        stack.GetYaxis().SetTitleOffset(1.05)
 
         stack.Draw("hist")
 
@@ -294,14 +297,14 @@ class PlotZZ(object):
 
 
 
-massBins = [30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
-print massBins
-ptBins = [i*20. for i in xrange(14)] + [300.+i*40. for i in xrange(3)] + [460., 600.]
+massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
+ptBins = [i*10. for i in xrange(31)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
 plotter = PlotZZ("zz")
+doLogy = False #True
 for channel in ["eeee","eemm","mmmm","Total"]:
-    plotter.makePlots(channel, "4lMass", massBins, False) #True)
-    plotter.makePlots(channel, "4lMt", massBins, False) #True)
-    plotter.makePlots(channel, "4lPt", ptBins, False) #True)
+    plotter.makePlots(channel, "4lMass", massBins, doLogy)
+    plotter.makePlots(channel, "4lMt", massBins, doLogy)
+    plotter.makePlots(channel, "4lPt", ptBins, doLogy)
     plotter.makePlots(channel, "4lEta", [])
     plotter.makePlots(channel, "4lPhi", [2])
 
