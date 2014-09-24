@@ -12,16 +12,24 @@ import multiprocessing
 import argparse
 import ZZAnalyzer
 import os
+import signal
+import time
 
-def runSomeAnalyzers(channels, cutSet, infiles, outdir, maxEvents):
+def runAnAnalyzer(channels, cutSet, infile, outdir, maxEvents):
     '''
-    Run one or more ZZAnalyzers serially.
-    Intended for use in treads, such that several processes each do this once.
+    Run a ZZAnalyzer.
+    Intended for use in threads, such that several processes each do this once.
     '''
-    for infile in infiles:
-        outfile = outdir+'/'+(infile.split('/')[-1])
-        analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, maxEvents)
-        analyzer.analyze()
+    outfile = outdir+'/'+(infile.split('/')[-1])
+    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, maxEvents)
+    analyzer.analyze()
+
+def init_worker():
+    '''
+    Ignore interrupt signals.
+    Tell worker processes to do this so that the parent process handles keyboard interrupts.
+    '''
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
@@ -32,10 +40,10 @@ parser.add_argument('channels', nargs='?', type=str, default='zz',
                     help='Comma separated (no spaces) list of channels, or keyword "zz" for eeee,mmmm,eemm')
 parser.add_argument('cutSet', nargs='?', type=str, default='HZZ4l2012',
                     help='Name of cut template.')
-parser.add_argument('nThreads', nargs='?', type=int, default=2,
-                    help='Maximum number of threads for simultaneous processing.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
                     help='Directory to place output (defaults to $zza/results/<cutSet>).')
+parser.add_argument('--nThreads', type=int,
+                    help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 4.')
 parser.add_argument('--maxEvents', nargs='?', type=int,
                     help='Maximum number of events to run for each sample in each channel.')
 
@@ -67,29 +75,33 @@ if args.channels == 'zz':
 else:
     channels = args.channels.split(',')
 
-# Don't need more than 1 thread/input
-nThreads = min(args.nThreads, len(infiles))
-
-filesPerThread = len(infiles) / nThreads
-extraFiles = len(infiles) % nThreads
-fileSets = [ [] for i in range(nThreads) ]
-i = 0
-for f in infiles:
-    fileSets[i].append(f)
-    i = (i+1)%nThreads
+if args.nThreads:
+    nThreads = min(args.nThreads, len(infiles))
+else:
+    nThreads = min(multiprocessing.cpu_count(), 4)
 
 if args.maxEvents:
     maxEvents = args.maxEvents
 else:
     maxEvents = float("inf")
 
-threads = [multiprocessing.Process(target=runSomeAnalyzers, args=(channels, args.cutSet, ifs, outdir, maxEvents)) for ifs in fileSets]
+pool = multiprocessing.Pool(nThreads, init_worker)
+results = []
+for infile in infiles:
+    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, maxEvents)))
 
-for t in threads:
-    t.start()
-
-for t in threads:
-    t.join()
+# A little magic to make keyboard interrupts work
+try:
+    while not all([result.ready() for result in results]):
+        time.sleep(3)
+except KeyboardInterrupt:
+    pool.terminate()
+    pool.join()
+    print "\nKilled ZZ Analyzers"
+    exit(1)
+else:
+    pool.close()
+    pool.join()
 
 print "Done!"
 
