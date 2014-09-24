@@ -51,3 +51,10 @@ sampleInfo["ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25"] = {
     'shortName' : 'ZZ->4l',
     'isSignal' : True,
 }
+sampleInfo["WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25"] = {
+    'xsec' : 1.634,
+    'n' : 240363,
+    'isData' : False,
+    'shortName' : 'WZJets',
+    'isSignal' : False,
+}
