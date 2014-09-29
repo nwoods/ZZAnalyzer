@@ -295,14 +295,14 @@ class PlotZZ(object):
 
 
 
+if __name__ == "__main__":
 
-
-massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
-ptBins = [i*10. for i in xrange(31)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
-plotter = PlotZZ("zz")
-doLogy = False #True
-for channel in ["eeee","eemm","mmmm","Total"]:
-    plotter.makePlots(channel, "4lMass", massBins, doLogy)
+    massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
+    ptBins = [i*10. for i in xrange(31)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
+    plotter = PlotZZ("zz")
+    doLogy = False #True
+    for channel in ["eeee","eemm","mmmm","Total"]:
+        plotter.makePlots(channel, "4lMass", massBins, doLogy)
     plotter.makePlots(channel, "4lMt", massBins, doLogy)
     plotter.makePlots(channel, "4lPt", ptBins, doLogy)
     plotter.makePlots(channel, "4lEta", [])
