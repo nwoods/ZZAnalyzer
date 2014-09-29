@@ -50,16 +50,16 @@ class ZZCutFlow(ZZAnalyzer):
         Template histograms for controls and flows, so we know how to bin
         '''
         self.controlTemplates = {
-            'Isolation' : ROOT.TH1F('Isolation_control_TEMPLATE', "Isolation", 30, 0., 10.),
-            'Z1Mass' : ROOT.TH1F('Z1Mass_control_TEMPLATE', "Z1 Invariant Mass", 60, 0., 120.),
-            'Z2Mass' : ROOT.TH1F('Z2Mass_control_TEMPLATE', "Z2 Invariant Mass", 60, 0., 120.),
-            'Lepton1Pt' : ROOT.TH1F('Lepton1Pt_control_TEMPLATE', "Lepton 1 Pt", 60, 0., 120.),
-            'Lepton2Pt' : ROOT.TH1F('Lepton2Pt_control_TEMPLATE', "Lepton 2 Pt", 60, 0., 120.),
+            'Isolation' : ROOT.TH1F('Isolation_control_TEMPLATE', "Isolation", 50, 0., 10.),
+            'Z1Mass' : ROOT.TH1F('Z1Mass_control_TEMPLATE', "Z1 Invariant Mass", 30, 0., 150.),
+            'Z2Mass' : ROOT.TH1F('Z2Mass_control_TEMPLATE', "Z2 Invariant Mass", 30, 0., 150.),
+            'Lepton1Pt' : ROOT.TH1F('Lepton1Pt_control_TEMPLATE', "Lepton 1 Pt", 50, 0., 150.),
+            'Lepton2Pt' : ROOT.TH1F('Lepton2Pt_control_TEMPLATE', "Lepton 2 Pt", 50, 0., 150.),
             }
         self.flowTemplates = {
-            '4lMass' : ROOT.TH1F('3lMass_cutflow_TEMPLATE', "4l Invariant Mass", 120, 30., 1500.),
-            'Z1Mass' : ROOT.TH1F('Z1Mass_cutflow_TEMPLATE', "Z1 Invariant Mass", 120, 0., 120.),
-            'Z2Mass' : ROOT.TH1F('Z2Mass_cutflow_TEMPLATE', "Z2 Invariant Mass", 120, 0., 120.),
+            '4lMass' : ROOT.TH1F('3lMass_cutflow_TEMPLATE', "4l Invariant Mass", 36, 100., 1000.),
+            'Z1Mass' : ROOT.TH1F('Z1Mass_cutflow_TEMPLATE', "Z1 Invariant Mass", 50, 0., 150.),
+            'Z2Mass' : ROOT.TH1F('Z2Mass_cutflow_TEMPLATE', "Z2 Invariant Mass", 50, 0., 150.),
             }
 
 
