@@ -300,13 +300,13 @@ class PlotCutFlow(object):
             # Legend needs to be placed differently depending on the quantity plotted
             etaDims = [0.375, 0.65, 0.625, 0.9]
             phiDims = [0.375, 0.35, 0.625, 0.6]
-            ZMassDims = [0.365, 0.5, 0.625, 0.8]
+            ZMassDims = [0.2, 0.5, 0.45, 0.8]
             
             if "Eta" in variable:
                 legend = self.makeLegend(channel, flow, variable, etaDims)
             elif "Phi" in variable:
                 legend = self.makeLegend(channel, flow, variable, phiDims)
-            elif 'Z1Mass' in variable or 'Z2Mass' in variable:
+            elif 'Z1Mass' in variable[:6] or 'Z2Mass' in variable[:6] and not logy:
                 legend = self.makeLegend(channel, flow, variable, ZMassDims)
             else:
                 legend = self.makeLegend(channel, flow, variable)
@@ -339,6 +339,22 @@ class PlotCutFlow(object):
             self.makePlots(channel, flow, [], logy)
 
 
+    def setOutdir(self, newDir):
+        '''
+        Set the output directory
+        Again, '.' is assumed to mean $zza.
+        '''
+        self.outdir = newDir
+        # don't want trailing slash
+        if self.outdir[-1] == '/':
+            self.outdir = self.outdir[:-1]
+        # Assume leading . means ZZA base directory
+        if self.outdir[0] == '.':
+            self.outdir = os.environ["zza"] + self.outdir[1:]
+        for channel in self.channels+['Total']:
+            for flow in self.cutFlows:
+                makeDirectory(self.outdir+'/'+channel+'/'+flow)
+
 
 
 # massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
@@ -353,7 +369,10 @@ class PlotCutFlow(object):
 #     plotter.makePlots(channel, "4lPhi", [2])
 
 if __name__ == "__main__":
-    plotter = PlotCutFlow("zz", 20000., './plots/cutflow_logy')
+    plotter = PlotCutFlow("zz", 20000., './plots/cutflow')
+    for channel in ["eeee", "eemm", "mmmm", "Total"]:
+        plotter.plotAllFlows(channel, False)
+    plotter.setOutdir('./plots/cutflow_logy')
     for channel in ["eeee", "eemm", "mmmm", "Total"]:
         plotter.plotAllFlows(channel, True)
 
