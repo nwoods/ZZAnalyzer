@@ -93,7 +93,7 @@ class Cutter():
                 passList = [((getattr(row, getVar2(obj, obj2, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
                             self.cuts[cutName]['cuts'].iteritems()]
             elif self.cuts[cutName]['mode'] == 'other':
-                if cutName == 'eID' and '4l2012' in self.cutSet:
+                if cutName == 'eID' and ('4l2012' in self.cutSet or '8TeV' in self.cutSet):
                     return self.eIDTight2012(row, obj)
                 raise NameError('Special cut %s is not yet defined for cutSet %s'%(cutName,self.cutSet))
             else:
@@ -117,7 +117,7 @@ class Cutter():
             return all(passList)
 
     def eIDTight2012(self, row, obj):
-        BDTName = 'MVANonTrigCSA14'
+        BDTName = self.cuts['eID']['cuts']['5<pt<10']['eta<0.8'].keys()[0]
         pt = getattr(row, getVar(obj, 'Pt'))
         eta = getattr(row, getVar(obj, 'SCEta'))
         bdt = getattr(row, getVar(obj, BDTName))
