@@ -91,14 +91,6 @@ class PlotZZ(object):
         # Set total luminosity
         self.intLumi = intLumi
 
-        # Set plotting color for each sample
-        colorList = [ROOT.EColor.kRed, ROOT.EColor.kBlue, ROOT.EColor.kGreen, ROOT.EColor.kOrange, ROOT.EColor.kViolet, ROOT.EColor.kCyan]
-        self.colors = {}
-        colorCounter = 0
-        for sample in self.samples:
-            self.colors[sample] = colorList[colorCounter%len(colorList)]
-            colorCounter += 1
-
         # Make plots non-ugly
         ROOT.gStyle.SetOptStat(0)
         ROOT.gROOT.ForceStyle()
@@ -113,6 +105,8 @@ class PlotZZ(object):
         h = self.samples[sample][channel]["ntuple"].Get(variable)
         assert h, "Histgram %s does not exist for sample %s, channel %s"%(variable, sample, channel)
         self.samples[sample][channel]["histos"][variable] = h.Clone()
+        if not sampleInfo[sample]["isData"]:
+            self.samples[sample][channel]["histos"][variable].Scale(sampleInfo[sample]["xsec"] * self.intLumi / sampleInfo[sample]["n"])
 
 
     def makeAllHists(self, channel, variable):
@@ -141,6 +135,20 @@ class PlotZZ(object):
             for sample in allSamples:
                 if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
                     continue
+                if '8TeV' in sample and 'ZZ' in sample:
+                    if channel == 'mmmm' and ('2e2mu' in sample or '4e' in sample):
+                        continue
+                    if channel == 'eeee' and ('2e2mu' in sample or '4mu' in sample):
+                        continue
+                    if channel == 'eemm' and ('4mu' in sample or '4e' in sample):
+                        continue
+                
+                self.samples[sample][channel]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
+                self.samples[sample][channel]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
+                self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
+                self.samples[sample][channel]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
+                self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
+
                 stack.Add(self.samples[sample][channel]["histos"][variable])
 
         return stack
@@ -212,6 +220,15 @@ class PlotZZ(object):
         leg = ROOT.TLegend(*bounds)
         leg.SetFillColor(ROOT.EColor.kWhite)
         for sample in self.samples:
+
+            if '8TeV' in sample and 'ZZ' in sample:
+                if channel == 'mmmm' and ('2e2mu' in sample or '4e' in sample):
+                    continue
+                if channel == 'eeee' and ('2e2mu' in sample or '4mu' in sample):
+                    continue
+                if channel == 'eemm' and ('4mu' in sample or '4e' in sample):
+                    continue
+                
             # format correctly
             if sampleInfo[sample]["isData"]:
                 formatString = "LPE"
@@ -246,14 +263,7 @@ class PlotZZ(object):
         # Format
         for sample in self.samples:
             yAxisSuffix = ''
-            self.samples[sample][channel]["histos"][variable].SetMarkerColor(self.colors[sample])
-            self.samples[sample][channel]["histos"][variable].SetLineColor(self.colors[sample])
-            if not sampleInfo[sample]["isData"]:
-                self.samples[sample][channel]["histos"][variable].Scale(sampleInfo[sample]["xsec"] * self.intLumi / sampleInfo[sample]["n"])
-                self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
-                self.samples[sample][channel]["histos"][variable].SetFillColor(self.colors[sample])
-                self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
-            else:
+            if sampleInfo[sample]["isData"]:
                 self.samples[sample][channel]["histos"][variable].SetMarkerStyle(20)
             if not rebin:
                 # Assume saved histograms have constant bin size
@@ -261,7 +271,7 @@ class PlotZZ(object):
             if "Mass" in variable or "Mt" in variable or "Pt" in variable:
                 yAxisSuffix += " / " + str(minWidth) + " GeV"
 
-        stack = self.makeStack(channel, variable)
+            stack = self.makeStack(channel, variable)
 
         # Legend needs to be placed differently depending on the quantity plotted
         etaDims = [0.375, 0.65, 0.625, 0.9]
@@ -277,10 +287,19 @@ class PlotZZ(object):
         # Have to call draw on stack before we can access its axis
         stack.Draw()
 
-        stack.SetTitle("ZZ->4l " + variable)
-        stack.GetXaxis().SetTitle(variable)
+        if channel == "eeee":
+            leptons = '4e'
+        elif channel == 'eemm':
+            leptons = '2e2#mu'
+        elif channel == 'mmmm':
+            leptons = '4#mu'
+        elif channel == 'Total':
+            leptons = '4l'
+
+        stack.SetTitle("ZZ->%s %s"%(leptons, variable))
+        stack.GetXaxis().SetTitle(variable.replace('4l',leptons))
         stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
-        stack.GetYaxis().SetTitleOffset(1.05)
+        stack.GetYaxis().SetTitleOffset(1.5)
 
         stack.Draw("hist")
 
@@ -299,8 +318,8 @@ if __name__ == "__main__":
 
     massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
     ptBins = [i*10. for i in xrange(31)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
-    plotter = PlotZZ("zz")
-    doLogy = False #True
+    plotter = PlotZZ("zz", 19710, './plots/SMP13TeV_summary', './results/SMPZZ4l2012/*.root')
+    doLogy = True #False
     for channel in ["eeee","eemm","mmmm","Total"]:
         plotter.makePlots(channel, "4lMass", massBins, doLogy)
     plotter.makePlots(channel, "4lMt", massBins, doLogy)

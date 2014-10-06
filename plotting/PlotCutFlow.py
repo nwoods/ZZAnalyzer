@@ -40,7 +40,7 @@ class PlotCutFlow(object):
     '''
     A plotter  for ZZ->4l controls and cut flows
     '''
-    def __init__(self, channels, intLumi=20000., outdir='./plots/cutflow', infiles='ZZA_NORMAL'):
+    def __init__(self, channels, intLumi=19710., outdir='./plots/cutflow', infiles='ZZA_NORMAL'):
         '''
         Setup
         If outdir starts with '.' you are presumed to be giving the path relative to $zza
@@ -56,16 +56,6 @@ class PlotCutFlow(object):
             assert type(channels)==list, 'Channels must be a list or a string'
             assert all ((all(letter in ['e','m','t','g','j'] for letter in channel) and len(channel) <= 4) for channel in channels), 'Invalid channel in ['+','.join(channels)+']'
             self.channels = channels
-
-#         # Get cut flows
-#         if type(cutFlows) == str:
-#             self.cutFlows = [cutFlows]
-#         else:
-#             assert type(cutFlows)==list, 'Channels must be a list or a string'
-#             self.cutFlows = cutFlows
-#         # Add "control" to the cut flow list and treat it the same while plotting, just for convenience
-#         if "control" not in self.cutFlows:
-#             self.cutFlows.append("control")        
 
         # Setup samples (which are just all ROOT files in the results directory)
         # Makes a dictionary with an entry for each sample, to hold the ntuples (now) and various histograms (later)
@@ -89,6 +79,8 @@ class PlotCutFlow(object):
         for channel in self.channels+['Total']:
             for flow in self.cutFlows:
                 makeDirectory(self.outdir+'/'+channel+'/'+flow)
+
+        print "Plots will be placed in: %s"%self.outdir
 
         # Set total luminosity
         self.intLumi = intLumi
@@ -157,27 +149,18 @@ class PlotCutFlow(object):
         allSamples = [s for s in self.samples]
         allSamples.sort(key=lambda s: self.samples[s][channel][flow]["histos"][variable].GetMaximum())
 
-        # Set plotting color for each sample, if needed
-        if not hasattr(self, 'colors'):
-            colorList = [ROOT.EColor.kGreen, ROOT.EColor.kOrange, ROOT.EColor.kViolet, ROOT.EColor.kBlue, ROOT.EColor.kViolet+2, ROOT.EColor.kAzure-4, ROOT.EColor.kCyan, ROOT.EColor.kRed]
-            self.colors = {}
-            colorCounter = 0
-            for sample in allSamples:
-                self.colors[sample] = colorList[colorCounter%len(colorList)]
-                colorCounter += 1
-
         stack = ROOT.THStack('stack_%s_%s_%s'%(channel, flow, variable), variable)
-        # Now plot in that order, but
+        # Now plot in that order, but with signal on top
         for signal in [False, True]:
             for sample in allSamples:
 
                 if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
                     continue
                 
-                self.samples[sample][channel][flow]["histos"][variable].SetMarkerColor(self.colors[sample])
-                self.samples[sample][channel][flow]["histos"][variable].SetLineColor(self.colors[sample])
+                self.samples[sample][channel][flow]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
+                self.samples[sample][channel][flow]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
                 self.samples[sample][channel][flow]["histos"][variable].SetFillStyle(1001)
-                self.samples[sample][channel][flow]["histos"][variable].SetFillColor(self.colors[sample])
+                self.samples[sample][channel][flow]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
                 self.samples[sample][channel][flow]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
 
                 stack.Add(self.samples[sample][channel][flow]["histos"][variable])
@@ -369,10 +352,10 @@ class PlotCutFlow(object):
 #     plotter.makePlots(channel, "4lPhi", [2])
 
 if __name__ == "__main__":
-    plotter = PlotCutFlow("zz", 20000., './plots/cutflow')
+    plotter = PlotCutFlow("zz", 19710., './plots/SMPZZ4l2012/cutflow')
     for channel in ["eeee", "eemm", "mmmm", "Total"]:
         plotter.plotAllFlows(channel, False)
-    plotter.setOutdir('./plots/cutflow_logy')
+    plotter.setOutdir('./plots/SMPZZ4l2012/cutflow_logy')
     for channel in ["eeee", "eemm", "mmmm", "Total"]:
         plotter.plotAllFlows(channel, True)
 
