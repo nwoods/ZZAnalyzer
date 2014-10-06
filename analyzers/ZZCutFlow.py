@@ -33,7 +33,8 @@ class ZZCutFlow(ZZAnalyzer):
 
         # Dictionary of fuctions to calculate values for control plots (variables cut on)
         self.controls = {
-            'Isolation' : self.getIso,
+            'Z1Iso' : self.getIsoZ1,
+            'Z2Iso' : self.getIsoZ2,
             'Z1Mass' : self.getZ1Mass,
             'Z2Mass' : self.getZ2Mass,
             'Lepton1Pt' : self.getLepton1Pt,
@@ -50,7 +51,8 @@ class ZZCutFlow(ZZAnalyzer):
         Template histograms for controls and flows, so we know how to bin
         '''
         self.controlTemplates = {
-            'Isolation' : ROOT.TH1F('Isolation_control_TEMPLATE', "Isolation", 50, 0., 10.),
+            'Z1Iso' : ROOT.TH1F('Z1Iso_control_TEMPLATE', "Isolation", 50, 0., 10.),
+            'Z2Iso' : ROOT.TH1F('Z2Iso_control_TEMPLATE', "Isolation", 50, 0., 10.),
             'Z1Mass' : ROOT.TH1F('Z1Mass_control_TEMPLATE', "Z1 Invariant Mass", 30, 0., 150.),
             'Z2Mass' : ROOT.TH1F('Z2Mass_control_TEMPLATE', "Z2 Invariant Mass", 30, 0., 150.),
             'Lepton1Pt' : ROOT.TH1F('Lepton1Pt_control_TEMPLATE', "Lepton 1 Pt", 50, 0., 150.),
@@ -145,13 +147,27 @@ class ZZCutFlow(ZZAnalyzer):
                 self.histos["Total"]['control'][cut].Fill(value)
 
 
-    def getIso(self, row, channel):
+    def getIsoZ1(self, row, channel):
         '''
-        Get a tuple with the isolation of all objects
+        Get a tuple with the isolation of the leptons in the best Z candidate
         '''
         objects = self.mapObjects(channel)
         results = []
-        for obj in objects:
+        for obj in objects[:2]:
+            if obj[0] == 'e':
+                results.append(getVar(row, 'RelPFIsoRhoFSR', obj))
+            elif obj[0] == 'm':
+                results.append(getVar(row, 'RelPFIsoDBDefault', obj))
+        return results
+
+        
+    def getIsoZ2(self, row, channel):
+        '''
+        Get a tuple with the isolation of the leptons in the best Z candidate
+        '''
+        objects = self.mapObjects(channel)
+        results = []
+        for obj in objects[2:]:
             if obj[0] == 'e':
                 results.append(getVar(row, 'RelPFIsoRhoFSR', obj))
             elif obj[0] == 'm':
