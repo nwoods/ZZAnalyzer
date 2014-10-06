@@ -52,13 +52,12 @@ class ZZAnalyzer(object):
             "Total",
             "Combinatorics",
             "Trigger",
-            "ID",
-            "Selection",
-            "Isolation",
             "Overlap",
-            "OSSF1",
+            "Z1ID",
+            "Z1Iso",
             "Z1Mass",
-            "OSSF2",
+            "Z2ID",
+            "Z2Iso",
             "Z2Mass",
             "Lepton1Pt",
             "Lepton2Pt",
@@ -129,35 +128,32 @@ class ZZAnalyzer(object):
                     continue
                 self.passCut(row, channel, "Trigger")
 
-                # Pass ID cuts
-                self.preCut(row, channel, 'ID')
-                if not self.cutOnAll(row, 'ID', objects):
-                    continue
-                self.passCut(row, channel, "ID")
-                
-                # Pass selection cuts
-                self.preCut(row, channel, 'Selection')
-                if not self.cutOnAll(row, 'Selection', objects):
-                    continue
-                self.passCut(row, channel, "Selection")
-
-                # Pass isolation cuts
-                self.preCut(row, channel, 'Isolation')
-                if not self.cutOnAll(row, 'Iso', objects):
-                    continue
-                self.passCut(row, channel, "Isolation")
-
                 # Pass overlap cuts
                 self.preCut(row, channel, 'Overlap')
                 if not self.checkOverlaps(row, objects):
                     continue
                 self.passCut(row, channel, "Overlap")
 
-                # Make sure we have one good Z candidate (pair of OSSF leptons)
-                self.preCut(row, channel, 'OSSF1')
+                ### Make sure there's one good Z candidate
+                # Make sure we have one potential Z candidate (pair of OSSF lepton candidates)
+                self.preCut(row, channel, 'Z1ID')
                 if len(objects) < 2:
                     continue
-                self.passCut(row, channel, "OSSF1")
+
+                # Z1 ID cuts
+                if not self.cutOnAll(row, 'ID', objects[:2]):
+                    continue
+                
+                # Z1 selection cuts
+                if not self.cutOnAll(row, 'Selection', objects[:2]):
+                    continue
+                self.passCut(row, channel, "Z1ID")
+
+                # Z1 isolation cuts
+                self.preCut(row,channel, "Z1Iso")
+                if not self.cutOnAll(row, 'Iso', objects[:2]):
+                    continue
+                self.passCut(row, channel, "Z1Iso")
 
                 # Make sure it's a good Z
                 self.preCut(row, channel, 'Z1Mass')
@@ -165,11 +161,26 @@ class ZZAnalyzer(object):
                     continue
                 self.passCut(row, channel, "Z1Mass")
                 
-                # Make sure there's a second good Z candidate
-                self.preCut(row, channel, 'OSSF2')
+                ### Make sure we have an additional good Z candidate
+                # second pair of OSSF lepton candidates
+                self.preCut(row, channel, 'Z2ID')
                 if len(objects) < 4:
                     continue
-                self.passCut(row, channel, "OSSF2")
+
+                # Z2 ID cuts
+                if not self.cutOnAll(row, 'ID', objects[2:]):
+                    continue
+                
+                # Z2 selection cuts
+                if not self.cutOnAll(row, 'Selection', objects[2:]):
+                    continue
+                self.passCut(row, channel, "Z2ID")
+
+                # Z2 isolation cuts
+                self.preCut(row, channel, "Z2Iso")
+                if not self.cutOnAll(row, 'Iso', objects[2:]):
+                    continue
+                self.passCut(row, channel, "Z2Iso")
 
                 # Make sure it's a good-ish Z
                 self.preCut(row, channel, 'Z2Mass')
@@ -487,7 +498,7 @@ class ZZAnalyzer(object):
 
     def cutOnAll(self, row, var, objects):
         '''
-        Loop over all objects in the final state and see if they pass a single-particle
+        Loop over all objects and see if they pass a single-particle
         cut like isolation or ID or whatever
         '''
         for obj in objects:
