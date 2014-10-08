@@ -217,15 +217,16 @@ for channel in numbers:
     leg.SetTextSize(0.02)
 
     drawnYet = False
-    for sample in ['WZJetsTo3LNu_TuneZ2_8TeV-madgraph-tauola_Summer12DR53X_PUS10',
-                   'WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25',
-                   'DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball_Summer12DR53X_PUS10',
-                   'DYJetsToLL_M-50_13TeV-madgraph-pythia8-tauola_v2_Spring14miniaod_PU20bx25',
-                   'ZZTo2e2mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
-                   'ZZTo4e_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
-                   'ZZTo4mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
-                   'ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25',
-                   ]:
+    for sample in histos[channel]: 
+#                    ['WZJetsTo3LNu_TuneZ2_8TeV-madgraph-tauola_Summer12DR53X_PUS10',
+#                    'WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25',
+#                    'DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball_Summer12DR53X_PUS10',
+#                    'DYJetsToLL_M-50_13TeV-madgraph-pythia8-tauola_v2_Spring14miniaod_PU20bx25',
+#                    'ZZTo2e2mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
+#                    'ZZTo4e_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
+#                    'ZZTo4mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
+#                    'ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25',
+#                    ]:
         if '8TeV' in sample and 'ZZ' in sample:
             if channel == 'mmmm' and ('4e' in sample or '2e2mu' in sample):
                 continue
