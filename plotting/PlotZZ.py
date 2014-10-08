@@ -129,26 +129,26 @@ class PlotZZ(object):
         allSamples.sort(key=lambda s: self.samples[s][channel]["histos"][variable].GetMaximum())
 
         stack = ROOT.THStack('foo', variable)
-        # Now plot in that order
-#         for signal in [False, True]:
-        for sample in allSamples:
-#             if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
-#                 continue
-            if '8TeV' in sample and 'ZZ' in sample:
-                if channel == 'mmmm' and ('2e2mu' in sample or '4e' in sample):
+        # Now plot in that order, with signal on top
+        for signal in [False, True]:
+            for sample in allSamples:
+                if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
                     continue
-                if channel == 'eeee' and ('2e2mu' in sample or '4mu' in sample):
-                    continue
-                if channel == 'eemm' and ('4mu' in sample or '4e' in sample):
-                    continue
+                if '8TeV' in sample and 'ZZ' in sample:
+                    if channel == 'mmmm' and ('2e2mu' in sample or '4e' in sample):
+                        continue
+                    if channel == 'eeee' and ('2e2mu' in sample or '4mu' in sample):
+                        continue
+                    if channel == 'eemm' and ('4mu' in sample or '4e' in sample):
+                        continue
+                    
+                self.samples[sample][channel]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
+                self.samples[sample][channel]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
+                self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
+                self.samples[sample][channel]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
+                self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
                 
-            self.samples[sample][channel]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
-            self.samples[sample][channel]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
-            self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
-            self.samples[sample][channel]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
-            self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
-            
-            stack.Add(self.samples[sample][channel]["histos"][variable])
+                stack.Add(self.samples[sample][channel]["histos"][variable])
 
         return stack
 
@@ -246,7 +246,7 @@ class PlotZZ(object):
         '''
         return self.channels
         
-    def makePlots(self, channel, variable, rebin=[], logy=False):
+    def makePlots(self, channel, variable, rebin=[], logy=False, separate=False):
         '''
         For a channel and variable, plot a stack of MC and data points (when they exist, which 
         won't be for a while), with a legend
@@ -256,6 +256,7 @@ class PlotZZ(object):
         If len(rebin)==1, rebin[0] bins will be combined to make a single bin. 
         If len(rebin)>1, the elements of rebin are interpreted as bin boundaries, and the new
         histogram will have length len(rebin)-1
+        If logy is True, the y axis will be plotted on a log scale
         '''
         c = ROOT.TCanvas('foo', 'foo', 800, 800)
         
