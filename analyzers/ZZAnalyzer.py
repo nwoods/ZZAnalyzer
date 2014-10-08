@@ -12,7 +12,6 @@ Author: Nate Woods
 import ROOT
 import Cutter
 import os
-import glob
 from itertools import combinations
 import math
 
@@ -559,21 +558,28 @@ def getVar(row, var, *objects):
     return getattr(row, '_'.join(objects) + '_' + var)
 
 
-def getInputs(indir):
-    '''
-    Given a directory where input files reside, gives back file names (with 
-    paths).
-    '''
 
-    if indir[-1] == '/':
-        fileNames = glob.glob(indir + '*.root')
-    else:
-        fileNames = glob.glob(indir + '/*.root')
+################################################################
+####    To do a small test, jut run python ZZAnalyzer.py    ####
+################################################################
 
-    return fileNames
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Running ZZAnalyzer directly just does a little test.')
+    parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
+    parser.add_argument("cutset", nargs='?', default='FullSpectrum2012', type=str, help='Cut set to test.')
+    parser.add_argument("infile", nargs='?', 
+                        default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25.root'%os.environ["zza"],
+                        type=str, help='Single file to test on. No wildcards.')
+    parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
+    parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
+    args = parser.parse_args()
 
-
-
+    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.nEvents)
+    print "TESTING ZZAnalyzer"
+    a.analyze()
+    print "TEST COMPLETE"
 
 
 
