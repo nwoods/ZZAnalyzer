@@ -38,7 +38,8 @@ parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
 parser.add_argument('intLumi', type=float, nargs='?', default=19710.,
                     help='Integrated luminosity, in inverse picobarns')
 parser.add_argument('--logy', action="store_true", help='Plot with log scale on y axis.')
-parser.add_argument('--saveHists', action="store_true", help='Save the underlying histograms in addition to making an image')
+parser.add_argument('--stacks', action='store_true', 
+                    help='Plot two stacks (signal overlayed on top of background) instead of plotting samples separately as points.')
 
 args = parser.parse_args()
 
@@ -69,39 +70,7 @@ else:
     else:
         outdir = args.outdir
 
-if args.saveHists:
-    saveFile = ROOT.TFile("%s/cutSummary_hists.root"%outdir, "RECREATE")
-
 makeDirectory(outdir)
-
-# Make colors the same as the old plot
-colors = {
-    "GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6_Spring14miniaod_PU20bx25" : ROOT.EColor.kRed,
-    "ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25" : ROOT.EColor.kViolet,
-    "WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25" : ROOT.EColor.kCyan,
-    "VBF_HToZZTo4L_M-125_13TeV-powheg-pythia6_Spring14miniaod_PU20bx25" : ROOT.EColor.kPink+10,
-    "TTJets_MSDecaysCKM_central_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25" : ROOT.EColor.kGreen,
-    "DYJetsToLL_M-50_13TeV-madgraph-pythia8-tauola_v2_Spring14miniaod_PU20bx25" : ROOT.EColor.kAzure+7,
-    "ZZTo2e2mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10" : ROOT.EColor.kMagenta-4,
-    "ZZTo4mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10"   : ROOT.EColor.kMagenta-4,
-    "ZZTo4e_8TeV-powheg-pythia6_Summer12DR53X_PUS10"    : ROOT.EColor.kMagenta-4,
-    "DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball_Summer12DR53X_PUS10" : ROOT.EColor.kBlue,
-    "WZJetsTo3LNu_TuneZ2_8TeV-madgraph-tauola_Summer12DR53X_PUS10": ROOT.EColor.kTeal-1,
-}
-
-markers = {
-    "GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6_Spring14miniaod_PU20bx25" : 21,
-    "ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25" : 21, 
-    "WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25" : 21,
-    "VBF_HToZZTo4L_M-125_13TeV-powheg-pythia6_Spring14miniaod_PU20bx25" : 21, 
-    "TTJets_MSDecaysCKM_central_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25" : 21, 
-    "DYJetsToLL_M-50_13TeV-madgraph-pythia8-tauola_v2_Spring14miniaod_PU20bx25" : 21, 
-    "ZZTo2e2mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10" : 4, 
-    "ZZTo4mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10" : 4,
-    "ZZTo4e_8TeV-powheg-pythia6_Summer12DR53X_PUS10" : 4, 
-    "DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball_Summer12DR53X_PUS10" : 4,
-    "WZJetsTo3LNu_TuneZ2_8TeV-madgraph-tauola_Summer12DR53X_PUS10": 4, 
-}
 
 histos = {}
 numbers = {}
@@ -138,7 +107,7 @@ for infile in infiles:
                 # remove colon when finding cut name
                 cut = words[0][:-1]
                 # ignore some cuts, rename others
-                if cut == "Total" or cut == "Overlap" or cut == "Lepton1Pt":
+                if cut == "Total" or cut == "Overlap" or cut == "Lepton1Pt" or cut == "4lMass":
                     continue
 
                 cutCount += 1
@@ -171,10 +140,21 @@ for channel in numbers:
         for nCut, n in numbers[channel][sample].iteritems():
             histos[channel][sample].SetBinContent(nCut, float(n))
             histos[channel][sample].GetXaxis().SetBinLabel(nCut, cutNames[nCut])
-            histos[channel][sample].SetMarkerStyle(markers[sample])
-            histos[channel][sample].SetMarkerColor(colors[sample])
-            histos[channel][sample].SetMarkerSize(2)
-            histos[channel][sample].SetLineColor(colors[sample])
+
+            if args.stacks:
+                if not sampleInfo[sample]['isData'] and sampleInfo[sample]['isSignal']:
+                    histos[channel][sample].SetFillColorAlpha(sampleInfo[sample]['color'], 0.4)
+                    histos[channel][sample].SetLineWidth(4)
+                    histos[channel][sample].SetLineColor(sampleInfo[sample]['color'])
+                elif not sampleInfo[sample]['isData'] and not sampleInfo[sample]['isSignal']:
+                    histos[channel][sample].SetFillStyle(1001)
+                    histos[channel][sample].SetFillColor(sampleInfo[sample]['color'])
+                    histos[channel][sample].SetLineColor(ROOT.EColor.kBlack)
+            else:
+                histos[channel][sample].SetMarkerStyle(4)
+                histos[channel][sample].SetMarkerColor(sampleInfo[sample]['color'])
+                histos[channel][sample].SetMarkerSize(2)
+                histos[channel][sample].SetLineColor(sampleInfo[sample]['color'])
             if channel == "eeee":
                 evType = "4e"
             elif channel == "eemm":
@@ -193,13 +173,14 @@ for channel in numbers:
         histos[channel][sample].Scale(sampleInfo[sample]['xsec'] * args.intLumi / sampleInfo[sample]['n'])
 
     # Make sure the viewing range is big enough to see all the histograms
-    maxMax = max([h.GetMaximum() for s, h in histos[channel].iteritems()])
-    if args.logy:
-        maxMax *= 3
-    else:
-        maxMax *= 1.2
-    for sample in histos[channel]:
-        histos[channel][sample].SetMaximum(maxMax)
+    if not args.stacks:
+        maxMax = max([h.GetMaximum() for s, h in histos[channel].iteritems()])
+        if args.logy:
+            maxMax *= 3
+        else:
+            maxMax *= 1.2
+        for sample in histos[channel]:
+            histos[channel][sample].SetMaximum(maxMax)
 
 # don't draw in a graphical window right now
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -216,41 +197,63 @@ for channel in numbers:
     leg.SetFillColor(ROOT.EColor.kWhite)
     leg.SetTextSize(0.02)
 
+    channelName = '4l'
+    if channel == 'eeee':
+        channelName = '4e'
+    elif channel == 'eemm':
+        channelName = '2e2#mu'
+    elif channel == 'mmmm':
+        channelName = '4#mu'
+
+    allSamples = [s for s in histos[channel]]
+    if args.stacks:
+        # sort histograms by size of the last bin so they stack sensibly. Break ties by putting samples with smaller maxima on the bottom
+        allSamples.sort(key=lambda s: histos[channel][s].GetMinimum() + histos[channel][s].GetMaximum()/10000000.)
+        # Make stacks
+        stackB = ROOT.THStack('background', "ZZ#rightarrow%s Cut Flow Summary"%channelName)
+        stackS = ROOT.THStack('signal', "ZZ#rightarrow%s Cut Flow Summary"%channelName)
+
     drawnYet = False
-    for sample in histos[channel]: 
-#                    ['WZJetsTo3LNu_TuneZ2_8TeV-madgraph-tauola_Summer12DR53X_PUS10',
-#                    'WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_Spring14miniaod_PU20bx25',
-#                    'DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball_Summer12DR53X_PUS10',
-#                    'DYJetsToLL_M-50_13TeV-madgraph-pythia8-tauola_v2_Spring14miniaod_PU20bx25',
-#                    'ZZTo2e2mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
-#                    'ZZTo4e_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
-#                    'ZZTo4mu_8TeV-powheg-pythia6_Summer12DR53X_PUS10',
-#                    'ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25',
-#                    ]:
-        if '8TeV' in sample and 'ZZ' in sample:
-            if channel == 'mmmm' and ('4e' in sample or '2e2mu' in sample):
-                continue
-            if channel == 'eemm' and ('4e' in sample or '4mu' in sample):
-                continue
-            if channel == 'eeee' and ('4mu' in sample or '2e2m' in sample):
-                continue
-
-        if '8TeV' in sample:
-            energy = '8TeV'
+    sigs = []
+    bkgs = []
+    for sample in allSamples:
+        if sampleInfo[sample]['isData']:
+            continue
+        if args.stacks:
+            if sampleInfo[sample]['isSignal']:
+                stackS.Add(histos[channel][sample])
+                sigs.append(sample)
+            else:
+                stackB.Add(histos[channel][sample])
+                bkgs.append(sample)
         else:
-            energy = '13TeV'
+            leg.AddEntry(histos[channel][sample], sampleInfo[sample]["shortName"], "LPE")
+            if not drawnYet:
+                histos[channel][sample].Draw("e")
+                drawnYet = True
+            else:
+                histos[channel][sample].Draw("esame")
 
-        leg.AddEntry(histos[channel][sample], "%s %s"%(sampleInfo[sample]["shortName"],energy), "LPE")
-        
-        if not drawnYet:
-            histos[channel][sample].Draw("e")
-            drawnYet = True
-        else:
-            histos[channel][sample].Draw("esame")
+    if args.stacks:
+        if args.logy:
+            minmin = 999999999.
+            for s in allSamples:
+                if histos[channel][s].GetMinimum() > 0 and histos[channel][s].GetMinimum() < minmin:
+                    minmin = histos[channel][s].GetMinimum()
+            stackB.SetMinimum(0.5 * minmin)
+        # Have to draw before we can get axes, for some reason
+        stackB.Draw()
+        stackB.GetYaxis().SetTitle("%s Events"%channelName)
+        stackB.GetYaxis().SetTitleOffset(1.1)
+        for i in range(stackB.GetHistogram().GetNbinsX()):
+            stackB.GetXaxis().SetBinLabel(i+1, histos[channel][allSamples[0]].GetXaxis().GetBinLabel(i+1))
+        stackB.Draw("HIST")
+        stackS.Draw("HISTSAMENOCLEAR")
+        for s in reversed(sigs+bkgs):
+            leg.AddEntry(histos[channel][s], sampleInfo[s]["shortName"], "F")
+
 
     leg.Draw("same")
     
     c.Print("%s/cutSummary_%s.png"%(outdir, channel))
 
-if args.saveHists:
-    saveFile.Write()
