@@ -130,26 +130,26 @@ class PlotZZ(object):
         allSamples.sort(key=lambda s: self.samples[s][channel]["histos"][variable].GetMaximum())
 
         stack = ROOT.THStack('foo', variable)
-        # Now plot in that order, but
-        for signal in [False, True]:
-            for sample in allSamples:
-                if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
+        # Now plot in that order
+#         for signal in [False, True]:
+        for sample in allSamples:
+#             if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
+#                 continue
+            if '8TeV' in sample and 'ZZ' in sample:
+                if channel == 'mmmm' and ('2e2mu' in sample or '4e' in sample):
                     continue
-                if '8TeV' in sample and 'ZZ' in sample:
-                    if channel == 'mmmm' and ('2e2mu' in sample or '4e' in sample):
-                        continue
-                    if channel == 'eeee' and ('2e2mu' in sample or '4mu' in sample):
-                        continue
-                    if channel == 'eemm' and ('4mu' in sample or '4e' in sample):
-                        continue
+                if channel == 'eeee' and ('2e2mu' in sample or '4mu' in sample):
+                    continue
+                if channel == 'eemm' and ('4mu' in sample or '4e' in sample):
+                    continue
                 
-                self.samples[sample][channel]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
-                self.samples[sample][channel]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
-                self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
-                self.samples[sample][channel]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
-                self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
-
-                stack.Add(self.samples[sample][channel]["histos"][variable])
+            self.samples[sample][channel]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
+            self.samples[sample][channel]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
+            self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
+            self.samples[sample][channel]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
+            self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
+            
+            stack.Add(self.samples[sample][channel]["histos"][variable])
 
         return stack
 
@@ -318,7 +318,7 @@ if __name__ == "__main__":
 
     massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
     ptBins = [i*10. for i in xrange(31)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
-    plotter = PlotZZ("zz", 19710, './plots/SMP13TeV_summary', './results/SMPZZ4l2012/*.root')
+    plotter = PlotZZ("zz", 19710, './plots/HZZ4l2012', './results/HZZ4l2012/*.root')
     doLogy = True #False
     for channel in ["eeee","eemm","mmmm","Total"]:
         plotter.makePlots(channel, "4lMass", massBins, doLogy)
