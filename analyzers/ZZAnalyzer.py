@@ -414,19 +414,19 @@ class ZZAnalyzer(object):
             if channel != 'Total':
                 objects = self.mapObjects(channel)
                 for obj in objects:
-                    self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+'Pt', 120, 0., 120.)
-                    self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 12, -5., 5.)
-                    self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 32, -math.pi, math.pi)
+                    self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+'Pt', 240, 0., 120.)
+                    self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 100, -5., 5.)
+                    self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 64, -math.pi, math.pi)
             for obj in ['Z1', 'Z2']:
-                self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+' Pt', 120, 0., 120.)
-                self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 12, -5., 5.)
-                self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 32, -math.pi, math.pi)
-                self.histos[channel][obj+'Mass'] = ROOT.TH1F(obj+'Mass'+":~:"+channel, obj+' Mass', 120, 5., 125.)
-            self.histos[channel]['4lPt'] = ROOT.TH1F('4lPt'+":~:"+channel, '4l Pt', 120, 0., 600.)
-            self.histos[channel]['4lEta'] = ROOT.TH1F('4lEta'+":~:"+channel, '4l Eta', 12, -5., 5.)
-            self.histos[channel]['4lPhi'] = ROOT.TH1F('4lPhi'+":~:"+channel, '4l Phi', 32, -math.pi, math.pi)
-            self.histos[channel]['4lMass'] = ROOT.TH1F('4lMass'+":~:"+channel, '4l Mass', 36, 100., 1000.)
-            self.histos[channel]['4lMt'] = ROOT.TH1F('4lMt'+":~:"+channel, '4l Mt', 36, 100., 1000.)
+                self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+' Pt', 240, 0., 120.)
+                self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 100, -5., 5.)
+                self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 64, -math.pi, math.pi)
+                self.histos[channel][obj+'Mass'] = ROOT.TH1F(obj+'Mass'+":~:"+channel, obj+' Mass', 260, 0., 130.)
+            self.histos[channel]['4lPt'] = ROOT.TH1F('4lPt'+":~:"+channel, '4l Pt', 200, 0., 400.)
+            self.histos[channel]['4lEta'] = ROOT.TH1F('4lEta'+":~:"+channel, '4l Eta', 100, -5., 5.)
+            self.histos[channel]['4lPhi'] = ROOT.TH1F('4lPhi'+":~:"+channel, '4l Phi', 64, -math.pi, math.pi)
+            self.histos[channel]['4lMass'] = ROOT.TH1F('4lMass'+":~:"+channel, '4l Mass', 600, 0., 1200.)
+            self.histos[channel]['4lMt'] = ROOT.TH1F('4lMt'+":~:"+channel, '4l Mt', 600, 0., 1200.)
 
 
     def fillHistos(self, row, channel, objects):
