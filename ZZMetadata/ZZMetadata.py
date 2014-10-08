@@ -32,7 +32,7 @@ sampleInfo["VBF_HToZZTo4L_M-125_13TeV-powheg-pythia6_Spring14miniaod_PU20bx25"] 
     'isData' : False,
     'shortName' : 'VBFH->ZZ->4l',
     'isSignal' : True,
-    'color' : EColor.kPink+10,
+    'color' : EColor.kOrange+7,
 }
 sampleInfo["GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6_Spring14miniaod_PU20bx25"] = {
     'xsec' : 43.62 * 0.000294,
