@@ -10,7 +10,6 @@ Author: Nate Woods, U. Wisconsin
 
 import ROOT
 import glob
-import argparse
 import os
 from ZZMetadata import sampleInfo
 import array
@@ -240,6 +239,12 @@ class PlotZZ(object):
 
         return leg
 
+
+    def getChannels(self):
+        '''
+        Get channels this plotter can do. Doesn't include "Total"
+        '''
+        return self.channels
         
     def makePlots(self, channel, variable, rebin=[], logy=False):
         '''
@@ -316,16 +321,35 @@ class PlotZZ(object):
 
 if __name__ == "__main__":
 
-    massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
-    ptBins = [i*10. for i in xrange(31)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
-    plotter = PlotZZ("zz", 19710, './plots/HZZ4l2012', './results/HZZ4l2012/*.root')
-    doLogy = True #False
-    for channel in ["eeee","eemm","mmmm","Total"]:
-        plotter.makePlots(channel, "4lMass", massBins, doLogy)
-    plotter.makePlots(channel, "4lMt", massBins, doLogy)
-    plotter.makePlots(channel, "4lPt", ptBins, doLogy)
-    plotter.makePlots(channel, "4lEta", [])
-    plotter.makePlots(channel, "4lPhi", [2])
+    import argparse
+    parser = argparse.ArgumentParser(description="Make primary ZZ->4l plots.")
+
+    parser.add_argument("channels", type=str, default='zz', nargs='?', help='Comma separated channels')
+    parser.add_argument("outdir", type=str, default='./plots/HZZ4l2012', nargs='?', help='Location for output plots')
+    parser.add_argument("infiles", type=str, default='./results/HZZ4l2012/*.root', nargs='?', help='Input files (may contain wildcards)')
+    parser.add_argument("intlumi", type=float, default=19710, nargs='?', help="Integrated luminosity")
+    parser.add_argument("--logy", action="store_true", help="Plot with log scale on y axis")
+
+    args = parser.parse_args()
+
+    if ',' in args.channels:
+        channels = args.channels.split(',')
+    else:
+        channels = args.channels
+
+    massBins = [i*24. for i in xrange(43)] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
+    ptBins = [i*6. for i in xrange(51)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
+    etaBins=[5]
+    phiBins=[4]
+
+    plotter = PlotZZ(channels, args.intlumi, args.outdir, args.infiles)
+
+    for channel in plotter.getChannels()+["Total"]:
+        plotter.makePlots(channel, "4lMass", massBins, args.logy)
+        plotter.makePlots(channel, "4lMt", massBins, args.logy)
+        plotter.makePlots(channel, "4lPt", ptBins, args.logy)
+        plotter.makePlots(channel, "4lEta", etaBins, args.logy)
+        plotter.makePlots(channel, "4lPhi", phiBins, args.logy)
 
 
 
