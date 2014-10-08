@@ -151,19 +151,19 @@ class PlotCutFlow(object):
 
         stack = ROOT.THStack('stack_%s_%s_%s'%(channel, flow, variable), variable)
         # Now plot in that order, but with signal on top
-        for signal in [False, True]:
-            for sample in allSamples:
+#         for signal in [False, True]:
+        for sample in allSamples:
 
-                if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
-                    continue
+#                 if sampleInfo[sample]["isData"] or sampleInfo[sample]["isSignal"] != signal:
+#                     continue
                 
-                self.samples[sample][channel][flow]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
-                self.samples[sample][channel][flow]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
-                self.samples[sample][channel][flow]["histos"][variable].SetFillStyle(1001)
-                self.samples[sample][channel][flow]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
-                self.samples[sample][channel][flow]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
+            self.samples[sample][channel][flow]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
+            self.samples[sample][channel][flow]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
+            self.samples[sample][channel][flow]["histos"][variable].SetFillStyle(1001)
+            self.samples[sample][channel][flow]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
+            self.samples[sample][channel][flow]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
 
-                stack.Add(self.samples[sample][channel][flow]["histos"][variable])
+            stack.Add(self.samples[sample][channel][flow]["histos"][variable])
 
         return stack
 
@@ -297,8 +297,8 @@ class PlotCutFlow(object):
             # Have to call draw on stack before we can access its axis
             stack.Draw()
 
-            stack.SetTitle("ZZ->4l " + variable)
-            stack.GetXaxis().SetTitle(variable)
+            stack.SetTitle(self.getTitle(channel,variable))
+            stack.GetXaxis().SetTitle(self.getXLabel(channel,variable))
             stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
             stack.GetYaxis().SetTitleOffset(1.05)
 
@@ -339,6 +339,132 @@ class PlotCutFlow(object):
                 makeDirectory(self.outdir+'/'+channel+'/'+flow)
 
 
+    def getTitle(self, channel, variable):
+        '''
+        For a lot of possible variables, get something reasonable to put in the title of the plot
+        '''
+        words = variable.split('_')
+        if channel == 'mmmm':
+            search = 'ZZ#rightarrow4#mu'
+            particle = '#mu'
+        elif channel == 'eemm':
+            search = 'ZZ#rightarrow2e2#mu'
+            particle = 'l'
+        elif channel == 'eeee':
+            search = 'ZZ#rightarrow4e'
+            particle = 'e'
+        elif channel == 'Total':
+            search = 'ZZ#rightarrow4l'
+            particle = 'l'
+        else:
+            print "WARNING: channel %s is unusual"%channel
+            search = ''
+            particle = 'l'
+
+        if words[-1] == 'control':
+            if words[0] == 'Z1Iso':
+                return '%s %s_{1,2} Isolation'%(search, particle)
+            elif words[0] == 'Z2Iso':
+                return '%s %s_{3,4} Isolation'%(search, particle)
+            elif words[0] == 'Z1Mass':
+                return '%s Z_{1} Invariant Mass'%search
+            elif words[0] == 'Z2Mass':
+                return '%s Z_{2} Invariant Mass'%search
+            elif words[0] == 'Lepton1Pt':
+                return '%s %s_{1} p_{T}'%(search, particle)
+            elif words[0] == 'Lepton2Pt':
+                return '%s %s_{2} p_{T}'%(search, particle)
+
+        if words[-2] == 'cutflow':
+            cut = words[-1]
+            if words[0] == '4lMass':
+                return '%s ZZ Invariant Mass after %s cut'%(search, cut.replace('Z1','Z_{1} ').replace('Z2','Z_{2} '))
+            if words[0] == 'Z1Mass':
+                return '%s Z_{1} Invariant Mass after %s cut'%(search, cut.replace('Z1','Z_{1} ').replace('Z2','Z_{2} '))
+            if words[0] == 'Z2Mass':
+                return '%s Z_{2} Invariant Mass after %s cut'%(search, cut.replace('Z1','Z_{1} ').replace('Z2','Z_{2} '))
+
+
+    def getXLabel(self, channel, variable):
+        '''
+        For a lot of possible variables, get something reasonable to put in the title of the plot
+        '''
+        words = variable.split('_')
+        if channel == 'mmmm':
+            search = 'ZZ#rightarrow4#mu'
+            particle = '#mu'
+        elif channel == 'eemm':
+            search = 'ZZ#rightarrow2e2#mu'
+            particle = 'l'
+        elif channel == 'eeee':
+            search = 'ZZ#rightarrow4e'
+            particle = 'e'
+        elif channel == 'Total':
+            search = 'ZZ#rightarrow4l'
+            particle = 'l'
+        else:
+            print "WARNING: channel %s is unusual"%channel
+            search = ''
+            particle = 'l'
+
+        if words[-1] == 'control':
+            if words[0] == 'Z1Iso':
+                return '%s_{1,2} Rel. Iso.'%(particle)
+            elif words[0] == 'Z2Iso':
+                return '%s_{3,4} Rel. Iso'%(particle)
+            elif words[0] == 'Z1Mass':
+                return 'm_{Z_{1}}'
+            elif words[0] == 'Z2Mass':
+                return 'm_{Z_{2}}'
+            elif words[0] == 'Lepton1Pt':
+                return '%s{1} p_{T}'%(particle)
+            elif words[0] == 'Lepton2Pt':
+                return '%s{2} p_{T}'%(particle)
+
+        if words[-2] == 'cutflow':
+            cut = words[-1]
+            if words[0] == '4lMass':
+                return '%s Inv. Mass'%search
+            if words[0] == 'Z1Mass':
+                return 'm_{Z_{1}}'
+            if words[0] == 'Z2Mass':
+                return 'm_{Z_{2}}'
+
+
+#         title = 'ZZ#rightarrow'
+#         if channel == 'mmmm':
+#             leptons = '4#mu'
+#             particle = '#mu'
+#         elif channel == 'eemm':
+#             leptons = '2e2#mu'
+#             particle = 'l'
+#         elif channel == 'eeee':
+#             leptons = '4e'
+#             particle = 'e'
+#         elif channel == 'Total':
+#             leptons = '4l'
+#             particle = 'l'
+#         else:
+#             leptons = ''
+#             particle = 'l'
+# 
+#         title += leptons
+# 
+#         if 'Lepton1' in variable:
+#             particle += '_{1}'
+#         if 'Lepton2' in variable:
+#             particle += '_{2}'
+#         if 'Z1' in invariable:
+#             particle += '_{1,2}'
+#         if 'Z2' in invariable:
+#             particle += '_{3,4}'
+#         title += ' %s'%particle
+# 
+#         if 'Iso' in variable:
+#             title += 'Isolation'
+#         if '
+
+
 
 # massBins = [] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
 # ptBins = [i*10. for i in xrange(31)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
@@ -351,11 +477,16 @@ class PlotCutFlow(object):
 #     plotter.makePlots(channel, "4lEta", [])
 #     plotter.makePlots(channel, "4lPhi", [2])
 
+
 if __name__ == "__main__":
-    plotter = PlotCutFlow("zz", 19710., './plots/SMPZZ4l2012/cutflow')
+
+#     parser = argparse.ArgumentParser(description='Plot cut flows and controls from the output of ZZCutFlows.')
+#     parser.add_argument('channels'
+
+    plotter = PlotCutFlow("zz", 19710., './plots/HZZ4l2012/cutflow')
     for channel in ["eeee", "eemm", "mmmm", "Total"]:
         plotter.plotAllFlows(channel, False)
-    plotter.setOutdir('./plots/SMPZZ4l2012/cutflow_logy')
+    plotter.setOutdir('./plots/HZZ4l2012/cutflow_logy')
     for channel in ["eeee", "eemm", "mmmm", "Total"]:
         plotter.plotAllFlows(channel, True)
 
