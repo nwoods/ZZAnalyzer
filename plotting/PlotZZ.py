@@ -143,7 +143,6 @@ class PlotZZ(object):
                         continue
                     
                 self.samples[sample][channel]["histos"][variable].SetMarkerColor(sampleInfo[sample]['color'])
-                self.samples[sample][channel]["histos"][variable].SetLineColor(sampleInfo[sample]['color'])
                 self.samples[sample][channel]["histos"][variable].SetFillStyle(1001)
                 self.samples[sample][channel]["histos"][variable].SetFillColor(sampleInfo[sample]['color'])
                 self.samples[sample][channel]["histos"][variable].SetLineColor(ROOT.EColor.kBlack)
