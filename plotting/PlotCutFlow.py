@@ -13,7 +13,7 @@ import os
 from ZZMetadata import sampleInfo
 import array
 import errno
-
+from ZZPlotStyle import ZZPlotStyle
 
 
 from PlotZZ import PlotZZ, makeDirectory
@@ -85,9 +85,10 @@ class PlotCutFlow(object):
         # Set total luminosity
         self.intLumi = intLumi
 
-        # Make plots non-ugly
-        ROOT.gStyle.SetOptStat(0)
-        ROOT.gROOT.ForceStyle()
+        self.style = ZZPlotStyle()
+#         # Make plots non-ugly
+#         ROOT.gStyle.SetOptStat(0)
+#         ROOT.gROOT.ForceStyle()
 
 
     def setupSamples(self):
@@ -233,7 +234,6 @@ class PlotCutFlow(object):
         The label on the sample is sampleInfo[sample]["shortName"]
         '''
         leg = ROOT.TLegend(*bounds)
-        leg.SetFillColor(ROOT.EColor.kWhite)
         for sample in self.samples:
             # format correctly
             if sampleInfo[sample]["isData"]:
@@ -258,7 +258,7 @@ class PlotCutFlow(object):
         If len(rebin)>1, the elements of rebin are interpreted as bin boundaries, and the new
         histogram will have length len(rebin)-1
         '''
-        c = ROOT.TCanvas('foo', 'foo', 800, 800)
+        c = ROOT.TCanvas('foo', 'foo')#, 1200, 1200)
         
         self.makeAllHists(channel, flow)
 
@@ -300,7 +300,7 @@ class PlotCutFlow(object):
             stack.SetTitle(self.getTitle(channel,variable))
             stack.GetXaxis().SetTitle(self.getXLabel(channel,variable))
             stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
-            stack.GetYaxis().SetTitleOffset(1.05)
+#            stack.GetYaxis().SetTitleOffset(1.05)
 
             stack.Draw("hist")
 
@@ -311,7 +311,10 @@ class PlotCutFlow(object):
             if logy:
                 c.SetLogy()
 
+            self.style.setPrelimStyle(c)
+
             c.Print("%s/%s/%s/%s.png"%(self.outdir, channel, flow, variable))
+            c.Print("%s/%s/%s/%s.pdf"%(self.outdir, channel, flow, variable))
 
 
     def plotAllFlows(self, channel, logy=False):
@@ -483,10 +486,10 @@ if __name__ == "__main__":
 #     parser = argparse.ArgumentParser(description='Plot cut flows and controls from the output of ZZCutFlows.')
 #     parser.add_argument('channels'
 
-    plotter = PlotCutFlow("zz", 19710., './plots/HZZ4l2012/cutflow')
+    plotter = PlotCutFlow("zz", 19710., './plots/styletest/cutflow')
     for channel in ["eeee", "eemm", "mmmm", "Total"]:
         plotter.plotAllFlows(channel, False)
-    plotter.setOutdir('./plots/HZZ4l2012/cutflow_logy')
+    plotter.setOutdir('./plots/styletest/cutflow_logy')
     for channel in ["eeee", "eemm", "mmmm", "Total"]:
         plotter.plotAllFlows(channel, True)
 

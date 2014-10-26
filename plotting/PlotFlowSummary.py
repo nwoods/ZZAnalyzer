@@ -12,7 +12,7 @@ import glob
 import os
 from ZZMetadata import sampleInfo
 import errno
-
+from ZZPlotStyle import ZZPlotStyle
 
 assert os.environ["zza"], "Run setup.sh before making cut flow summary plots"
 
@@ -71,6 +71,9 @@ else:
         outdir = args.outdir
 
 makeDirectory(outdir)
+
+# Look decent
+style = ZZPlotStyle()
 
 histos = {}
 numbers = {}
@@ -142,9 +145,9 @@ for channel in numbers:
             histos[channel][sample].GetXaxis().SetBinLabel(nCut, cutNames[nCut])
 
             if args.stacks:
+                histos[channel][sample].SetLineWidth(4)
                 if not sampleInfo[sample]['isData'] and sampleInfo[sample]['isSignal']:
                     histos[channel][sample].SetFillColorAlpha(sampleInfo[sample]['color'], 0.4)
-                    histos[channel][sample].SetLineWidth(4)
                     histos[channel][sample].SetLineColor(sampleInfo[sample]['color'])
                 elif not sampleInfo[sample]['isData'] and not sampleInfo[sample]['isSignal']:
                     histos[channel][sample].SetFillStyle(1001)
@@ -165,7 +168,6 @@ for channel in numbers:
                 evType = channel
             histos[channel][sample].SetTitle("Cut Flow Summary %s "%evType)
             histos[channel][sample].GetYaxis().SetTitle("%s Events"%evType)
-            histos[channel][sample].GetYaxis().SetTitleOffset(1.3)
             
         # Make sure the errors get scaled correctly
         histos[channel][sample].Sumw2()
@@ -184,18 +186,14 @@ for channel in numbers:
 
 # don't draw in a graphical window right now
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
-# don't look like shit
-ROOT.gStyle.SetOptStat(0)
-ROOT.gROOT.ForceStyle()
 
-c = ROOT.TCanvas("foo", "foo", 1200, 1200)
+c = ROOT.TCanvas("foo", "foo")#, 1200, 1200)
 if args.logy:
     c.SetLogy()
 
 for channel in numbers:
-    leg = ROOT.TLegend(0.65, 0.55, 0.9, 0.85)
-    leg.SetFillColor(ROOT.EColor.kWhite)
-    leg.SetTextSize(0.02)
+    leg = ROOT.TLegend(0.65, 0.6, 0.9, 0.9)
+    leg.SetTextSize(0.03)
 
     channelName = '4l'
     if channel == 'eeee':
@@ -244,16 +242,21 @@ for channel in numbers:
         # Have to draw before we can get axes, for some reason
         stackB.Draw()
         stackB.GetYaxis().SetTitle("%s Events"%channelName)
-        stackB.GetYaxis().SetTitleOffset(1.1)
         for i in range(stackB.GetHistogram().GetNbinsX()):
             stackB.GetXaxis().SetBinLabel(i+1, histos[channel][allSamples[0]].GetXaxis().GetBinLabel(i+1))
+        stackB.GetXaxis().SetLabelSize(0.04)
+        c.SetRightMargin(0.04)
         stackB.Draw("HIST")
         stackS.Draw("HISTSAMENOCLEAR")
         for s in reversed(sigs+bkgs):
             leg.AddEntry(histos[channel][s], sampleInfo[s]["shortName"], "F")
 
+    ROOT.gStyle.SetLineWidth(3)
 
     leg.Draw("same")
+
+    style.setPrelimStyle(c)
     
     c.Print("%s/cutSummary_%s.png"%(outdir, channel))
+    c.Print("%s/cutSummary_%s.pdf"%(outdir, channel))
 

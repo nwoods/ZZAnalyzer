@@ -14,7 +14,7 @@ import os
 from ZZMetadata import sampleInfo
 import array
 import errno
-
+from ZZPlotStyle import ZZPlotStyle
 
 
 # Make sure the environment is set up
@@ -90,9 +90,11 @@ class PlotZZ(object):
         # Set total luminosity
         self.intLumi = intLumi
 
-        # Make plots non-ugly
-        ROOT.gStyle.SetOptStat(0)
-        ROOT.gROOT.ForceStyle()
+        self.style = ZZPlotStyle()
+
+#         # Make plots non-ugly
+#         ROOT.gStyle.SetOptStat(0)
+#         ROOT.gROOT.ForceStyle()
 
 
     def getHist(self, sample, channel, variable):
@@ -216,7 +218,7 @@ class PlotZZ(object):
         The label on the sample is sampleInfo[sample]["shortName"]
         '''
         leg = ROOT.TLegend(*bounds)
-        leg.SetFillColor(ROOT.EColor.kWhite)
+#        leg.SetFillColor(ROOT.EColor.kWhite)
         for sample in self.samples:
 
             if '8TeV' in sample and 'ZZ' in sample:
@@ -257,7 +259,7 @@ class PlotZZ(object):
         histogram will have length len(rebin)-1
         If logy is True, the y axis will be plotted on a log scale
         '''
-        c = ROOT.TCanvas('foo', 'foo', 800, 800)
+        c = ROOT.TCanvas('foo', 'foo')
         
         self.makeAllHists(channel, variable)
 
@@ -266,6 +268,9 @@ class PlotZZ(object):
             minWidth = self.rebinAll(channel, variable, rebin)
         
         # Format
+        units = ''
+        if "Mass" in variable or "Mt" in variable or "Pt" in variable:
+            units =  "GeV"
         for sample in self.samples:
             yAxisSuffix = ''
             if sampleInfo[sample]["isData"]:
@@ -273,8 +278,8 @@ class PlotZZ(object):
             if not rebin:
                 # Assume saved histograms have constant bin size
                 minWidth = self.samples[sample][channel]["histos"][variable].GetBinWidth(1)
-            if "Mass" in variable or "Mt" in variable or "Pt" in variable:
-                yAxisSuffix += " / " + str(minWidth) + " GeV"
+            widthString = ("%.2f"%minWidth).rstrip('0').rstrip('.')
+            yAxisSuffix += " / %s %s"%(widthString, units)
 
             stack = self.makeStack(channel, variable)
 
@@ -302,9 +307,11 @@ class PlotZZ(object):
             leptons = '4l'
 
         stack.SetTitle("ZZ->%s %s"%(leptons, variable))
-        stack.GetXaxis().SetTitle(variable.replace('4l',leptons))
+        if units:
+            units = "[%s]"%units
+        stack.GetXaxis().SetTitle("%s %s"%(variable.replace('4l',leptons), units))
         stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
-        stack.GetYaxis().SetTitleOffset(1.5)
+ #       stack.GetYaxis().SetTitleOffset(1.5)
 
         stack.Draw("hist")
 
@@ -315,7 +322,10 @@ class PlotZZ(object):
         if logy:
             c.SetLogy()
 
+        self.style.setPrelimStyle(c)
+
         c.Print("%s/%s/%s.png"%(self.outdir, channel, variable))
+        c.Print("%s/%s/%s.pdf"%(self.outdir, channel, variable))
 
 
 
