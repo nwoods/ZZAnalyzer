@@ -8,7 +8,6 @@ Author: Nate Woods, U. Wisconsin.
 
 import ROOT
 import glob
-import argparse
 import os
 from ZZMetadata import sampleInfo
 import array
@@ -325,6 +324,13 @@ class PlotCutFlow(object):
             self.makePlots(channel, flow, [], logy)
 
 
+    def getChannels(self):
+        '''
+        Return list of channels.
+        '''
+        return self.channels
+
+
     def setOutdir(self, newDir):
         '''
         Set the output directory
@@ -483,16 +489,26 @@ class PlotCutFlow(object):
 
 if __name__ == "__main__":
 
-#     parser = argparse.ArgumentParser(description='Plot cut flows and controls from the output of ZZCutFlows.')
-#     parser.add_argument('channels'
+    import argparse
+    parser = argparse.ArgumentParser(description="Make ZZ->4l cut flow and control plots.")
 
-    plotter = PlotCutFlow("zz", 19710., './plots/styletest/cutflow')
-    for channel in ["eeee", "eemm", "mmmm", "Total"]:
-        plotter.plotAllFlows(channel, False)
-    plotter.setOutdir('./plots/styletest/cutflow_logy')
-    for channel in ["eeee", "eemm", "mmmm", "Total"]:
-        plotter.plotAllFlows(channel, True)
+    parser.add_argument("channels", type=str, default='zz', nargs='?', help='Comma separated channels')
+    parser.add_argument("outdir", type=str, default='./plots/HZZ4l2012', nargs='?', help='Location for output plots')
+    parser.add_argument("infiles", type=str, default='./results/HZZ4l2012/*.root', nargs='?', help='Input files (may contain wildcards)')
+    parser.add_argument("intlumi", type=float, default=19710, nargs='?', help="Integrated luminosity")
+    parser.add_argument("--logy", action="store_true", help="Plot with log scale on y axis")
 
+    args = parser.parse_args()
+
+    if ',' in args.channels:
+        channels = args.channels.split(',')
+    else:
+        channels = args.channels
+
+    plotter = PlotCutFlow(channels, args.intlumi, args.outdir, args.infiles)
+
+    for channel in plotter.getChannels()+["Total"]:
+        plotter.plotAllFlows(channel, args.logy)
 
 
 
