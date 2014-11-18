@@ -53,8 +53,8 @@ class ZZCutFlow(ZZAnalyzer):
         self.controlTemplates = {
             'Z1Iso' : ROOT.TH1F('Z1Iso_control_TEMPLATE', "Isolation", 50, 0., 10.),
             'Z2Iso' : ROOT.TH1F('Z2Iso_control_TEMPLATE', "Isolation", 50, 0., 10.),
-            'Z1Mass' : ROOT.TH1F('Z1Mass_control_TEMPLATE', "Z1 Invariant Mass", 30, 0., 150.),
-            'Z2Mass' : ROOT.TH1F('Z2Mass_control_TEMPLATE', "Z2 Invariant Mass", 30, 0., 150.),
+            'Z1Mass' : ROOT.TH1F('Z1Mass_control_TEMPLATE', "Z1 Invariant Mass", 50, 0., 150.),
+            'Z2Mass' : ROOT.TH1F('Z2Mass_control_TEMPLATE', "Z2 Invariant Mass", 50, 0., 150.),
             'Lepton1Pt' : ROOT.TH1F('Lepton1Pt_control_TEMPLATE', "Lepton 1 Pt", 50, 0., 150.),
             'Lepton2Pt' : ROOT.TH1F('Lepton2Pt_control_TEMPLATE', "Lepton 2 Pt", 50, 0., 150.),
             }
