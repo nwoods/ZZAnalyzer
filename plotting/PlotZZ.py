@@ -284,7 +284,7 @@ class PlotZZ(object):
             stack = self.makeStack(channel, variable)
 
         # Legend needs to be placed differently depending on the quantity plotted
-        etaDims = [0.375, 0.65, 0.625, 0.9]
+        etaDims = [0.43, 0.65, 0.653, 0.9]
         phiDims = [0.375, 0.35, 0.625, 0.6]
         
         if "Eta" in variable:
