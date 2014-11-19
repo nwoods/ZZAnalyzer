@@ -325,7 +325,7 @@ class ZZAnalyzer(object):
                     prevRow = nRow
                 continue
             
-            Zmass = getVar(row, 'Mass', objects[0], objects[1])
+            Zmass = getVar(row, 'MassFsr', objects[0], objects[1])
             ptSum = getVar(row, 'Pt', objects[2]) + getVar(row, 'Pt', objects[3])
 
             # if this doesn't seem to be a duplicate event, we don't need to do anything but store
@@ -390,8 +390,8 @@ class ZZAnalyzer(object):
 
         # if this is 2e2mu, we might need to flip if the 2mu Z was better
         if channel == 'eemm':
-            mass1 = getVar(row, 'Mass', ossfs[0], ossfs[1])
-            mass2 = getVar(row, 'Mass', ossfs[2], ossfs[3])
+            mass1 = getVar(row, 'MassFsr', ossfs[0], ossfs[1])
+            mass2 = getVar(row, 'MassFsr', ossfs[2], ossfs[3])
             if abs(mass2 - Z_MASS) < abs(mass1 - Z_MASS):
                 return ossfs[2:]+ossfs[:2]
         return ossfs
@@ -432,29 +432,27 @@ class ZZAnalyzer(object):
         '''
         Add this row's objects to the output histograms
         '''
-        # Need object 4momenta to calculate some values
-        momenta = []
-
-        for obj in objects:
-            mom = ROOT.TLorentzVector()
-            mass = 0
-            if obj[0] == 'e':
-                mass = 0.000511
-            if obj[0] == 'm':
-                mass = 0.1057
-            mom.SetPtEtaPhiM(getVar(row, 'Pt', obj), getVar(row, 'Eta', obj), getVar(row, 'Phi', obj), mass)
-            momenta.append(mom)
-
-        Z1Mom = momenta[0] + momenta[1]
-        Z2Mom = momenta[2] + momenta[3]
-        totalMom = Z1Mom + Z2Mom
-        
         # Single objects
         for obj in objects:
             self.histos[channel][obj+'Pt'].Fill(getVar(row, 'Pt', obj))
             self.histos[channel][obj+'Eta'].Fill(getVar(row, 'Eta', obj))
             self.histos[channel][obj+'Phi'].Fill(getVar(row, 'Phi', obj))
-
+            
+        # Composite objects
+        Z1Mom = ROOT.TLorentzVector()
+        Z2Mom = ROOT.TLorentzVector()
+        Z1Mom.SetPtEtaPhiM(getVar(row,'PtFsr', objects[0], objects[1]),
+                           getVar(row, 'EtaFsr', objects[0], objects[1]),
+                           getVar(row, 'PhiFsr', objects[0], objects[1]),
+                           getVar(row, 'MassFsr', objects[0], objects[1])
+        )
+        Z2Mom.SetPtEtaPhiM(getVar(row,'PtFsr', objects[2], objects[3]),
+                           getVar(row, 'EtaFsr', objects[2], objects[3]),
+                           getVar(row, 'PhiFsr', objects[2], objects[3]),
+                           getVar(row, 'MassFsr', objects[2], objects[3])
+        )
+        totalMom = Z1Mom + Z2Mom
+                   
         for title in [channel, 'Total']:
             
             self.histos[title]['Z1Pt'].Fill(Z1Mom.Pt())
@@ -466,7 +464,7 @@ class ZZAnalyzer(object):
             self.histos[title]['Z2Eta'].Fill(Z2Mom.Eta())
             self.histos[title]['Z2Phi'].Fill(Z2Mom.Phi())
             self.histos[title]['Z2Mass'].Fill(Z2Mom.M())
-                   
+
             self.histos[title]['4lPt'].Fill(totalMom.Pt())
             self.histos[title]['4lEta'].Fill(totalMom.Eta())
             self.histos[title]['4lPhi'].Fill(totalMom.Phi())
