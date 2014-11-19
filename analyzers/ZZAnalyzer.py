@@ -1,9 +1,8 @@
 '''
 
 ZZ->4l analyzer. Takes an FSA Ntuple as input, makes a root file 
-with a bunch of histograms of interesting quantities as output.
-By default, runs on all root files in a folder. I'll probably add
-an option to change that later. It keeps the outputs separate.
+with a bunch of histograms of interesting quantities and a cut flow 
+text file.
 
 Author: Nate Woods
 
@@ -14,6 +13,7 @@ import Cutter
 import os
 from itertools import combinations
 import math
+from ZZMetadata import sampleInfo
 
 
 
@@ -22,8 +22,17 @@ Z_MASS = 91.1876
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
 class ZZAnalyzer(object):
-    def __init__(self, channels, cutSet, infile, outfile='./results/output.root', maxEvents=float("inf")):
-
+    def __init__(self, channels, cutSet, infile, outfile='./results/output.root', maxEvents=float("inf"), intLumi=10000):
+        '''
+        Channels:    list of strings or single string in the format (e.g.) eemm for 
+                         a 2e2mu final state. '4l', 'zz' and 'ZZ' turn into ['eeee' 'eemm' 'mmmm']
+        cutSet:      string with the name of the cut template to use
+        infile:      string of an input file name, with path
+        outfile:     string of an output file name, with path
+        maxEvents:   stop after this many events processed
+        intLumi:     in output text file, report how many events we would expect for this integrated luminosity
+        '''
+        
         if type(channels) == str:
             if channels == '4l' or channels == 'zz' or channels == 'ZZ':
                 self.channels = ['eeee', 'eemm', 'mmmm']
@@ -45,6 +54,9 @@ class ZZAnalyzer(object):
         self.outFile = outfile
 
         self.maxEvents = maxEvents
+        # if we don't use all the events, we need to know how many we would have done in the whole thing
+        if self.maxEvents < float('inf'):
+            self.ntupleSize = {}
 
         # Too lazy to go look up Python's version of an ordered hash table, keeping the order separately
         self.cutOrder = [
@@ -68,6 +80,7 @@ class ZZAnalyzer(object):
 
         self.getHistoDict(self.channels)
 
+        self.intLumi = intLumi
 
 
     def prepareCutSummary(self):
@@ -86,8 +99,6 @@ class ZZAnalyzer(object):
         For a given file, do the whole analysis and output the results to 
         self.outFile
         '''
-        # Sample name is file name without path or '.root'
-        sampleName = self.inFile.split('/')[-1].replace('.root', '')
 
         inFile = ROOT.TFile.Open(self.inFile)
         assert bool(inFile), 'No file %s'%self.inFile
@@ -96,6 +107,9 @@ class ZZAnalyzer(object):
             objectTemplate = self.mapObjects(channel)
             ntuple = inFile.Get(channel+'/final/Ntuple')
 
+            if self.maxEvents < float('inf'):
+                self.ntupleSize[channel] = ntuple.GetEntries()
+
             # For events with more than 4 leptons, FSA Ntuples just have one
             #     row for each possible combination of objects. We have to know
             #     which one is the right one
@@ -103,7 +117,7 @@ class ZZAnalyzer(object):
 
             for row in ntuple:
                 # If we've hit maxEvents, we're done
-                if self.cutsPassed[channel]['Total'] == self.maxEvents:
+                if self.cutsPassed[channel]['Combinatorics'] == self.maxEvents:
                     print "%s: Reached %d %s events, ending"%(self.sample, self.maxEvents, channel)
                     break
 
@@ -275,6 +289,7 @@ class ZZAnalyzer(object):
         tiebreaker
         '''
         nRow = 0
+        nEvent = 0
         redundantRows = set()
 
         prevRun = -1
@@ -287,7 +302,7 @@ class ZZAnalyzer(object):
         objectTemplate = self.mapObjects(channel)
 
         for row in ntuple:
-            if nRow == self.maxEvents:
+            if nEvent == self.maxEvents:
                 break
 
             nRow += 1
@@ -298,6 +313,9 @@ class ZZAnalyzer(object):
             lumi = getVar(row, 'lumi')
             evt = getVar(row,'evt')
             sameEvent = (evt == prevEvt and lumi == prevLumi and run == prevRun)
+
+            if not sameEvent:
+                nEvent += 1
 
             # The best row for the event is actually the best one *that passes ID cuts*
             # so we have to treat a row that fails them as automatically bad. But, we can
@@ -523,18 +541,34 @@ class ZZAnalyzer(object):
         Same name as outfile but .txt instead of .root.
         '''
         totals = {}
+        expectedTotals = {}
+        # factor to translate n events in MC to m events in data
         for cut in self.cutOrder:
             totals[cut] = 0
+            expectedTotals[cut] = 0.
+
         with open(self.outFile.replace('.root','.txt'), 'w') as f:
             for channel in self.channels:
-                f.write("\n" + channel + ":\n")
-                for cut in self.cutOrder:
-                    f.write(cut + ": " + str(self.cutsPassed[channel][cut]) + "\n")
-                    totals[cut] += self.cutsPassed[channel][cut]
+                if self.cutsPassed[channel]['Combinatorics'] != self.maxEvents:
+                    expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi / sampleInfo[self.sample]['n']
+                else:
+                    # estimate fraction that would have passed to be nPassedTot/nEvents ~ nPassed * nRowsTot / (nRows * nEvents)
+                    # must make this approximation because we don't know what fraction of the sample was cut out
+                    #     by the ntuplizer
+                    expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi * \
+                                     self.ntupleSize[channel] / \
+                                     (self.cutsPassed[channel]['Total'] * sampleInfo[self.sample]['n'])
 
-            f.write("\nTotal:\n")
+                f.write("\n%-32s in %0.0f pb^-1\n"%(channel+':',self.intLumi))
+                for cut in self.cutOrder:
+                    expected = self.cutsPassed[channel][cut] * expectedFactor
+                    f.write("%16s : %-9d :      %0.2f\n"%(cut, self.cutsPassed[channel][cut], expected))
+                    totals[cut] += self.cutsPassed[channel][cut]
+                    expectedTotals[cut] += expected
+                                                     
+            f.write("\n%-32s in %0.0f pb^-1\n"%('Total:',self.intLumi))
             for cut in self.cutOrder:
-                f.write(cut + ": " + str(totals[cut]) + "\n")
+                f.write("%16s : %-9d :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
     
 
 def getVar(row, var, *objects):
@@ -566,7 +600,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Running ZZAnalyzer directly just does a little test.')
     parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
-    parser.add_argument("cutset", nargs='?', default='FullSpectrum2012', type=str, help='Cut set to test.')
+    parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Cut set to test.')
     parser.add_argument("infile", nargs='?', 
                         default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25.root'%os.environ["zza"],
                         type=str, help='Single file to test on. No wildcards.')

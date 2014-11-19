@@ -1,7 +1,7 @@
 #!/usr/bin/python
 '''
 
-Run a ZZ->4l analysis, all channels, taking a path or wildcard as input
+Run a ZZ->4l analysis on multiple files
 
 Author: Nate Woods, U. Wisconsin
 
@@ -15,13 +15,13 @@ import os
 import signal
 import time
 
-def runAnAnalyzer(channels, cutSet, infile, outdir, maxEvents):
+def runAnAnalyzer(channels, cutSet, infile, outdir, maxEvents, intLumi):
     '''
     Run a ZZAnalyzer.
-    Intended for use in threads, such that several processes each do this once.
+    Intended for use in threads, such that several processes all do this once.
     '''
     outfile = outdir+'/'+(infile.split('/')[-1])
-    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, maxEvents)
+    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, maxEvents, intLumi)
     analyzer.analyze()
 
 def init_worker():
@@ -42,6 +42,8 @@ parser.add_argument('cutSet', nargs='?', type=str, default='HZZ4l2012',
                     help='Name of cut template.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
                     help='Directory to place output (defaults to $zza/results/<cutSet>).')
+parser.add_argument('intLumi', type=float, nargs='?', default=10000,
+                    help='Integrated luminosity for report in ouput text files. In pb^-1.')
 parser.add_argument('--nThreads', type=int,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 4.')
 parser.add_argument('--maxEvents', nargs='?', type=int,
@@ -65,7 +67,10 @@ infiles = list(set(infiles))
 if args.outdir == "ZZA_NORMAL":
     outdir = os.environ["zza"] + "/results/"+args.cutSet
 else:
-    outdir = args.outdir
+    if args.outdir.endswith('/'):
+        outdir = args.outdir[:-1]
+    else:
+        outdir = args.outdir
 
 if not os.path.isdir(outdir):
     os.makedirs(outdir)
@@ -85,10 +90,12 @@ if args.maxEvents:
 else:
     maxEvents = float("inf")
 
+intLumi = args.intLumi
+
 pool = multiprocessing.Pool(nThreads, init_worker)
 results = []
 for infile in infiles:
-    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, maxEvents)))
+    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, maxEvents, intLumi)))
 
 # A little magic to make keyboard interrupts work
 try:

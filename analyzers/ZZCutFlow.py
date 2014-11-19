@@ -19,7 +19,7 @@ assert os.environ["zza"], "Run setup.sh before running cut flows"
 
 
 class ZZCutFlow(ZZAnalyzer):
-    def __init__(self, channels, cutSet, infile, outfile='./results/output_cutflow.root', maxEvents=float("inf")):
+    def __init__(self, channels, cutSet, infile, outfile='./results/output_cutflow.root', maxEvents=float("inf"), intLumi=10000):
 
         # Has to happen before super is instantiated
         self.setupTemplates()
@@ -41,7 +41,7 @@ class ZZCutFlow(ZZAnalyzer):
             'Lepton2Pt' : self.getLepton2Pt,
             }
 
-        super(ZZCutFlow, self).__init__(channels, cutSet, infile, outfile, maxEvents)
+        super(ZZCutFlow, self).__init__(channels, cutSet, infile, outfile, maxEvents, intLumi)
 
 
 
