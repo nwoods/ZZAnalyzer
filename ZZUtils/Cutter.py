@@ -93,9 +93,9 @@ class Cutter():
                 passList = [((getattr(row, getVar2(obj, obj2, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
                             self.cuts[cutName]['cuts'].iteritems()]
             elif self.cuts[cutName]['mode'] == 'other':
-                if cutName == 'eID' and ('2012' in self.cutSet or '8TeV' in self.cutSet):
-                    return self.eIDTight2012(row, obj)
-                raise NameError('Special cut %s is not yet defined for cutSet %s'%(cutName,self.cutSet))
+#                if cutName == 'eID' and ('2012' in self.cutSet or '8TeV' in self.cutSet):
+                return self.eIDTight2012(row, obj)
+#                raise NameError('Special cut %s is not yet defined for cutSet %s'%(cutName,self.cutSet))
             else:
                 passList = [((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
                             self.cuts[cutName]['cuts'].iteritems()]
