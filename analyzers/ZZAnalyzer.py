@@ -14,7 +14,7 @@ import os
 from itertools import combinations
 import math
 from ZZMetadata import sampleInfo
-from ZZHelpers import *
+from ZZHelpers import * # evVar, objVar, nObjVar
 
 
 Z_MASS = 91.1876
@@ -121,10 +121,6 @@ class ZZAnalyzer(object):
                     print "%s: Reached %d %s events, ending"%(self.sample, self.maxEvents, channel)
                     break
 
-                # Report progress every 5000 events
-                if self.cutsPassed[channel]['Total'] % 5000 == 0:
-                    print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["Total"])
-                
                 # Always pass "TotalRows" because it's always a new row
                 self.passCut(row, channel, "TotalRows")
 
@@ -132,6 +128,10 @@ class ZZAnalyzer(object):
                 if self.cutsPassed[channel]['TotalRows'] in wrongRows:
                     continue
 
+                # Report progress every 5000 events
+                if self.cutsPassed[channel]['Total'] % 5000 == 0:
+                    print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["Total"])
+                
                 if needReorder:
                     objects = self.orderLeptons(row, channel, objectTemplate)
 
@@ -226,9 +226,9 @@ class ZZAnalyzer(object):
                 print "%s: Found redundant rows for %d %s events, ending"%(self.sample, self.maxEvents, channel)
                 break
 
-            nRow += 1
             if nRow % 5000 == 0:
-                print "%s: Finding redundant rows %s row %d"%(self.sample, channel, self.cutsPassed[channel]["Total"])
+                print "%s: Finding redundant rows %s row %d"%(self.sample, channel, nRow)
+            nRow += 1
 
             if needReorder:
                 objects = self.orderLeptons(row, channel, objectTemplate)
@@ -301,6 +301,8 @@ class ZZAnalyzer(object):
                         redundantRows.add(nRow)
                 else:
                     redundantRows.add(nRow)
+        else:
+            print "%s: Found redundant rows for %d %s events, moving to analyzer"%(self.sample, nRows, channel)
                     
         return redundantRows
        
