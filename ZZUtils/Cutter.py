@@ -1,6 +1,13 @@
 '''
 
-Class containing all cuts in ZZ analysis
+Base class to do cuts in ZZ analysis. In practice, analyses will 
+    typically use a daughter class of Cutter. Cutter can do most
+    of the cuts one wants from a bare template, but most analyses
+    will do *something* unusual that requires special methods and
+    so forth. Cutter can read cut information in from a bare
+    cut dictionary and cutflow collections.OrderedDict, but daughter
+    classes are expected to overload the getCutTemplate(*args) and 
+    setupCutFlow methods
 
 The goal is to have everything in one place, so that when a cut needs 
     to be changed, we're not stuck searching through  the selection  
@@ -54,112 +61,245 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-import imp
-#import CutController
+import imp, collections, os, itertools
+from ZZHelpers import *
 
-def getVar(obj, var):
-    return obj+var
-def getVar2(obj1, obj2, var):
-    return obj1+'_'+obj2+'_'+var
 
-class Cutter():
+class Cutter(object):
     def __init__(self, cutSet):
 
         self.cutSet = cutSet
 
-        self.cuts = self.getCutDict(self.cutSet)
+        self.otherCuts = self.setupOtherCuts()
 
-        # Only do cut flow / control stuff if explicitly told to
-        self.doCutFlow = False
+        self.cutFlow = self.setupCutFlow()
 
-
-    def doCut(self, row, cutName, obj='', obj2=''):
-        '''
-        Returns true if obj passes cuts[cutName]
-        obj2 is ignored unless the cut's mode is '2obj'
-
-        It turns out that we get the desired less/greaterOrEqual behavior with
-                variable<cut XNOR lessThanCut
-            which is most easily expressed as
-                variable<cut == lessThanCut
-
-        If no objects are supplied, it will just give back the global variable with 
-            the appropriate name
-        '''
-        assert cutName in self.cuts, 'Incorrect cut name %s'%cutName
-
-        if 'options' not in self.cuts[cutName]:
-            if self.cuts[cutName]['mode'] == '2obj':
-                passList = [((getattr(row, getVar2(obj, obj2, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
-                            self.cuts[cutName]['cuts'].iteritems()]
-            elif self.cuts[cutName]['mode'] == 'other':
-#                if cutName == 'eID' and ('2012' in self.cutSet or '8TeV' in self.cutSet):
-                return self.eIDTight2012(row, obj)
-#                raise NameError('Special cut %s is not yet defined for cutSet %s'%(cutName,self.cutSet))
-            else:
-                passList = [((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
-                            self.cuts[cutName]['cuts'].iteritems()]
-
-            if self.cuts[cutName]['mode'] == 'or':
-                return any(passList)
-            return all(passList)
-        else:
-            assert 'abs' in self.cuts[cutName]['options'], "Unknown option %s"%self.cuts[cutName]['options']
-            absolutes = self.cuts[cutName]['options'].split('abs')
-            passList = []
-            for var, cut in self.cuts[cutName]['cuts'].iteritems():
-                if var in absolutes:
-                    passList.append((abs(getattr(row, getVar(obj, var.split('#')[0]))) < cut[0]) == cut[1])
-                else:
-                    passList.append((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1])
-            if self.cuts[cutName]['mode'] == 'or':
-                return any(passList)
-            return all(passList)
-
-    def eIDTight2012(self, row, obj):
-        BDTName = self.cuts['eID']['cuts']['5<pt<10']['eta<0.8'].keys()[0]
-        pt = getattr(row, getVar(obj, 'Pt'))
-        eta = getattr(row, getVar(obj, 'SCEta'))
-        bdt = getattr(row, getVar(obj, BDTName))
-        if pt > 5. and pt < 10.:
-            ptName = '5<pt<10'
-        else:
-            ptName = 'pt>10'
-
-        if abs(eta) < 0.8:
-            etaName = 'eta<0.8'
-        elif abs(eta) < 1.479:
-            etaName = '0.8<eta<1.479'
-        else:
-            etaName = 'eta>1.479'
-
-        cut = self.cuts['eID']['cuts'][ptName][etaName][BDTName][0]
-
-#         print ptName + ", " + etaName
-#         print "want > " + str(cut)
-#         print "got" + str(getattr(row, getVar(obj, BDTName)))
-
-        return getattr(row, getVar(obj, BDTName)) > cut
-
-    
-    def getCutDict(self, cutSet, path='./ZZUtils/templates'):
-        '''
-        Gets a dictionary of cuts from a python template file. 
-        Assumes that the file will be named cutSet.py and will contain
-        a dictionary called cuts
-        '''
+        self.cuts = self.setupCuts(self.cutSet)
         
+        # Add an always-true cut because it's vaguely useful
+        if 'true' not in self.cuts:
+            self.cuts['true'] = lambda *args: True
+
+
+    def setupOtherCuts(self):
+        '''
+        Virtual; use to add hand-coded cuts to daughter classes of Cutter
+        '''
+        return {}
+
+
+    def getCutList(self):
+        '''
+        Get an ordered list of the cuts to be performed
+        '''
+        return [c for c in self.cutFlow]
+
+
+    def analysisCut(self, row, cut, *objects):
+        '''
+        Takes cut name and all leptons, uses self.cutFlow to figure out 
+        which cut and objects to use, returns the result
+        '''
+        return self.cuts[self.cutFlow[cut][0]](row, *[objects[i-1] for i in self.cutFlow[cut][1]])
+
+
+    def doCut(self, row, cut, *objects):
+        '''
+        Do a cut on exactly the objects passed (as opposed to passing all 
+        objects and letting self.cutFlow tell us which to use as in self.doCut).
+        '''
+        return self.cuts[cut](row, *objects)
+
+
+    def setupCuts(self, *args):
+        '''
+        Gets a dictionary of cut parameters from a template file or 
+        daughter-class-specific dictionary data member and turns it
+        into an dictionary of functions that perform the cuts.
+        self.getCutTemplate(*args) should be changed by any daughter
+        class of Cutter to create the template if you don't want
+        to get it from a template file.
+        A cut with mode 'other' is one that requires a special function,
+        assumed to be defined already in dictionary self.otherCuts
+        '''
+        temp = self.getCutTemplate(*args)
+        cuts = {}
+        
+        for cut, params in temp.iteritems():
+            if params['logic'] == 'other':
+                cuts[cut] = self.otherCuts[cut]
+                continue
+            
+            if params['type'] == 'caller':
+                cuts[cut] = self.cutCaller(params)
+                continue
+            
+            if 'objects' not in params:
+                nObjects = 0 # event variable
+            else:
+                try:
+                    nObjects = int(params['objects'])
+                except ValueError:
+                    print "Base cuts must have an integer number of input objects"
+
+            if nObjects == 0:
+                cuts[cut] = self.baseEvCut(params)
+            elif nObjects == 1:
+                cuts[cut] = self.baseObjCut(params)
+            else:
+                cuts[cut] = self.baseNObjCut(params)
+                
+        return cuts
+
+
+    def getCutTemplate(self, *args):
+        '''
+        Gets cuts from a template file as a dictionary. May be (likely will 
+        be) overwritten by daughter classes of Cutter to set up the dictionary
+        by hand or in some other way.
+        '''
+        mod = self.getTemplateFile(*args)
+
+        return mod.cuts
+
+
+    def setupCutFlow(self, *args):
+        '''
+        Gets cutFlow  from a template file as a collections.OrderedDict. May 
+        be (likely will be) overwritten by daughter classes of Cutter to set 
+        up the OrderedDict by hand or in some other way.
+        '''
+        mod = self.getTemplateFile(*args)
+        
+        return mod.cutFlow
+
+
+    def getTemplateFile(self,*args):
+        '''
+        Find a python file with the templates in it. Crash if it's missing
+        the cuts dictionary and/or the cutFlow OrderedDict. 
+        Expects *args to be a template name and a path. If no path is 
+        specified, will look in $zza/ZZUtils/templates
+        '''
+        assert len(args), "Need cut set name for template"
+        cutSet = args[0]
+        if len(args) >= 2:
+            path = args[1]
+        else: 
+            path = "%s/ZZUtils/templates"%os.environ["zza"]
+
         f, fName, desc = imp.find_module(cutSet, [path])
         
         assert f, 'Set of cuts %s does not exist in %s'%(cutSet,path)
         
         mod = imp.load_module(cutSet, f, fName, desc)
         
-        assert mod.cuts and type(mod.cuts) == dict, 'No valid set of cuts'
+        assert mod.cuts and type(mod.cuts) == dict, 'No valid set of cuts in %s'%fName        
+        assert mod.cutFlow and type(mod.cutFlow) == collections.OrderedDict, 'No valid cutFlow in %s'%fName
         
-        return mod.cuts
-        
-    
+        return mod
+
+
+    def cutCaller(self, cutDict):
+        '''
+        Return a function that does one or more object cuts. 
+        cutDict is template[cut] or at least in the same format
+        '''
+        requireAll = cutDict['logic'] == 'and'
+        if cutDict['objects'] == 'pairs':
+            if requireAll:
+                return lambda row, *obj: all([self.doCut(row, cut, *sorted(ob)) for foo, cut in cutDict['cuts'].iteritems() for ob in itertools.combinations(obj,2)])
+            else:
+                return lambda row, *obj: any(
+                    [all(self.doCut(row, cut, *sorted(ob)) for foo, cut in cutDict['cuts'].iteritems()) for ob in itertools.combinations(obj,2)])
+
+        if cutDict['objects'] == 'sfpairs':
+            if requireAll:
+                return lambda row, *obj: all([(self.doCut(row, cut, *sorted(ob)) if ob[0][0] == ob[1][0] else True) for foo, cut in cutDict['cuts'].iteritems() for ob in itertools.combinations(obj,2)])
+            else:
+                return lambda row, *obj: any([all((self.doCut(row, cut, *sorted(ob)) if ob[0][0] == ob[1][0] else True) for foo, cut in cutDict['cuts'].iteritems()) for ob in itertools.combinations(obj,2)])
+
+        # otherwise, it's just the number of objects used
+        try:
+            nObjects = int(cutDict['objects'])
+        except ValueError:
+            print "Number of objects must be an integer"
+            raise
+
+        if requireAll:
+            return lambda row, *obj: all([self.doCut(row, self.getCutName(cut,ob), ob) for foo, cut in cutDict['cuts'].iteritems() for ob in obj])
+        else:
+            return lambda row, *obj: any([all(self.doCut(row, self.getCutName(cut,ob), ob) for foo, cut in cutDict['cuts'].iteritems()) for ob in obj])
+
+
+
+    def getCutName(self, cut, ob):
+        '''
+        Replaces 'TYPE' with the object type (e.g. TYPEIso becomes eIso or mIso)
+        '''
+        return cut.replace("TYPE", ob[0])
+
+
+    def baseEvCut(self, cutDict):
+        '''
+        Return a function that does one event-level cut.
+        cutDict is template[cut] or at least in the same format
+        '''
+        requireAll = cutDict['logic'] == 'and'
+        if requireAll:
+            return lambda row: all([self.cutEvVar(row, var.split("#")[0], val[0], val[1]) for var, val in cutDict['cuts'].iteritems()])
+        else:
+            return lambda row: any([self.cutEvVar(row, var.split("#")[0], val[0], val[1]) for var, val in cutDict['cuts'].iteritems()])
+
+
+    def baseObjCut(self, cutDict):
+        '''
+        Return a function that does one event-level cut.
+        cutDict is template[cut] or at least in the same format
+        '''
+        requireAll = cutDict['logic'] == 'and'
+        if requireAll:
+            return lambda row, obj: all([self.cutObjVar(row, var.split("#")[0], val[0], val[1], obj) for var, val in cutDict['cuts'].iteritems()])
+        else:
+            return lambda row, obj: any([self.cutObjVar(row, var.split("#")[0], val[0], val[1], obj) for var, val in cutDict['cuts'].iteritems()])
+
+
+    def baseNObjCut(self, cutDict):
+        '''
+        Return a function that does one event-level cut.
+        cutDict is template[cut] or at least in the same format
+        '''
+        requireAll = cutDict['logic'] == 'and'
+        if requireAll:
+            return lambda row, *obj: all([self.cutNObjVar(row, var.split("#")[0], val[0], val[1], *obj) for var, val in cutDict['cuts'].iteritems()])
+        else:
+            return lambda row, *obj: any([self.cutNObjVar(row, var.split("#")[0], val[0], val[1], *obj) for var, val in cutDict['cuts'].iteritems()])
+
+
+    def cutEvVar(self, row, var, val, wantLessThan):
+        '''
+        Do one cut on one final state variable. Checks to see if row.var < val if 
+        wantLessThan is True, row.var >= val if False
+        '''
+        return ((evVar(row, var) < val) == wantLessThan)
+
+
+    def cutObjVar(self, row, var, val, wantLessThan, obj):
+        '''
+        Do one cut on one object-associated variable. Checks to see if row.objvar < val if 
+        wantLessThan is True, row.objvar >= val if False
+        '''
+        return ((objVar(row, var, obj) < val) == wantLessThan)
+
+
+    def cutNObjVar(self, row, var, val, wantLessThan, *obj):
+        '''
+        Do one cut on one N-object composite variable. Checks to see if row.[obj1_obj2_...]_var < val if 
+        wantLessThan is True, row.[obj1_obj2...]_var >= val if False
+        '''
+        return ((nObjVar(row, var, *obj) < val) == wantLessThan)
+
+
     def dumpCutValues(self, row, cutName, obj):
         '''
         Debugging tool to print all values involved in cut
@@ -174,6 +314,50 @@ class Cutter():
             
         
 
-
+#     def doCut(self, row, cutName, obj='', obj2=''):
+#         '''
+#         Returns true if obj passes cuts[cutName]
+#         obj2 is ignored unless the cut's mode is '2obj'
+# 
+#         It turns out that we get the desired less/greaterOrEqual behavior with
+#                 variable<cut XNOR lessThanCut
+#             which is most easily expressed as
+#                 variable<cut == lessThanCut
+# 
+#         If no objects are supplied, it will just give back the global variable with 
+#             the appropriate name
+#         '''
+# 
+# 
+# 
+#         assert cutName in self.cuts, 'Incorrect cut name %s'%cutName
+# 
+#         if 'options' not in self.cuts[cutName]:
+#             if self.cuts[cutName]['mode'] == '2obj':
+#                 passList = [((getattr(row, getVar2(obj, obj2, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
+#                             self.cuts[cutName]['cuts'].iteritems()]
+#             elif self.cuts[cutName]['mode'] == 'other':
+# #                if cutName == 'eID' and ('2012' in self.cutSet or '8TeV' in self.cutSet):
+#                 return self.eIDTight2012(row, obj)
+# #                raise NameError('Special cut %s is not yet defined for cutSet %s'%(cutName,self.cutSet))
+#             else:
+#                 passList = [((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
+#                             self.cuts[cutName]['cuts'].iteritems()]
+# 
+#             if self.cuts[cutName]['mode'] == 'or':
+#                 return any(passList)
+#             return all(passList)
+#         else:
+#             assert 'abs' in self.cuts[cutName]['options'], "Unknown option %s"%self.cuts[cutName]['options']
+#             absolutes = self.cuts[cutName]['options'].split('abs')
+#             passList = []
+#             for var, cut in self.cuts[cutName]['cuts'].iteritems():
+#                 if var in absolutes:
+#                     passList.append((abs(getattr(row, getVar(obj, var.split('#')[0]))) < cut[0]) == cut[1])
+#                 else:
+#                     passList.append((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1])
+#             if self.cuts[cutName]['mode'] == 'or':
+#                 return any(passList)
+#             return all(passList)
 
 

@@ -9,12 +9,12 @@ Author: Nate Woods
 '''
 
 import ROOT
-import Cutter
+import imp
 import os
 from itertools import combinations
 import math
 from ZZMetadata import sampleInfo
-
+from ZZHelpers import *
 
 
 Z_MASS = 91.1876
@@ -32,6 +32,11 @@ class ZZAnalyzer(object):
         maxEvents:   stop after this many events processed
         intLumi:     in output text file, report how many events we would expect for this integrated luminosity
         '''
+        # cheat, for now
+        self.zPtVar = 'PtFsr'
+        self.zEtaVar = 'EtaFsr'
+        self.zPhiVar = 'PhiFsr'
+        self.zMassVar = 'MassFsr'
         
         if type(channels) == str:
             if channels == '4l' or channels == 'zz' or channels == 'ZZ':
@@ -45,7 +50,15 @@ class ZZAnalyzer(object):
             self.channels = channels
 
         self.cutSet = cutSet
-        self.cuts = Cutter.Cutter(self.cutSet)
+        cutpath = os.environ["zza"]+"/ZZUtils/templates"
+        cutf, cutfName, cutdesc = imp.find_module(cutSet, [cutpath])
+        assert cutf, 'Set of cuts %s does not exist in %s'%(cutSet,cutpath)
+        cutmod = imp.load_module(cutSet, cutf, cutfName, cutdesc)
+        cutclass = getattr(cutmod, cutSet)
+
+        self.cuts = cutclass()
+
+        self.cutOrder = self.cuts.getCutList()
 
         self.inFile = infile
 
@@ -58,24 +71,6 @@ class ZZAnalyzer(object):
         if self.maxEvents < float('inf'):
             self.ntupleSize = {}
 
-        # Too lazy to go look up Python's version of an ordered hash table, keeping the order separately
-        self.cutOrder = [
-            "Total",
-            "Combinatorics",
-            "Trigger",
-            "Overlap",
-            "Z1ID",
-            "Z1Iso",
-            "Z1Mass",
-            "Z2ID",
-            "Z2Iso",
-            "Z2Mass",
-            "Lepton1Pt",
-            "Lepton2Pt",
-            "LeptonPairMass",
-            "4lMass"
-            ]
-        
         self.prepareCutSummary()
 
         self.getHistoDict(self.channels)
@@ -85,12 +80,13 @@ class ZZAnalyzer(object):
 
     def prepareCutSummary(self):
         '''
-        Prepare dictionary with number of events passing each cut for each channel
+        Prepare dictionary with number of events passing each cut for each channel.
+        Adds first item for number of rows before the combinatorics cut.
         '''
         self.cutsPassed = {}
         for channel in self.channels:
             self.cutsPassed[channel] = {}
-            for cut in self.cutOrder:
+            for cut in ['TotalRows']+self.cutOrder:
                 self.cutsPassed[channel][cut] = 0
 
 
@@ -104,11 +100,14 @@ class ZZAnalyzer(object):
         assert bool(inFile), 'No file %s'%self.inFile
 
         for channel in self.channels:
-            objectTemplate = self.mapObjects(channel)
             ntuple = inFile.Get(channel+'/final/Ntuple')
 
             if self.maxEvents < float('inf'):
                 self.ntupleSize[channel] = ntuple.GetEntries()
+
+            objectTemplate = self.mapObjects(channel)
+            objects = objectTemplate
+            needReorder = channel[0][0] != channel[-1][0]
 
             # For events with more than 4 leptons, FSA Ntuples just have one
             #     row for each possible combination of objects. We have to know
@@ -116,8 +115,9 @@ class ZZAnalyzer(object):
             wrongRows = self.getRedundantRows(ntuple, channel)
 
             for row in ntuple:
+
                 # If we've hit maxEvents, we're done
-                if self.cutsPassed[channel]['Combinatorics'] == self.maxEvents:
+                if self.cutsPassed[channel]['Total'] == self.maxEvents:
                     print "%s: Reached %d %s events, ending"%(self.sample, self.maxEvents, channel)
                     break
 
@@ -125,109 +125,27 @@ class ZZAnalyzer(object):
                 if self.cutsPassed[channel]['Total'] % 5000 == 0:
                     print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["Total"])
                 
-                # Always pass "Total"
-                self.passCut(row, channel, "Total")
+                # Always pass "TotalRows" because it's always a new row
+                self.passCut(row, channel, "TotalRows")
 
                 # Ignore wrong version of event
-                if self.cutsPassed[channel]['Total'] in wrongRows:
-                    continue
-                self.passCut(row, channel, "Combinatorics")
-                    
-                objects = self.getOSSF(row, channel, objectTemplate)
-
-                # Pass HLT
-                if not self.cuts.doCut(row, 'Trigger'):
-                    self.preCut(row, channel, 'Trigger')
-                    continue
-                self.passCut(row, channel, "Trigger")
-
-                # Pass overlap cuts
-                self.preCut(row, channel, 'Overlap')
-                if not self.checkOverlaps(row, objects):
-                    continue
-                self.passCut(row, channel, "Overlap")
-
-                ### Make sure there's one good Z candidate
-                # Make sure we have one potential Z candidate (pair of OSSF lepton candidates)
-                self.preCut(row, channel, 'Z1ID')
-                if len(objects) < 2:
+                if self.cutsPassed[channel]['TotalRows'] in wrongRows:
                     continue
 
-                # Z1 ID cuts
-                if not self.cutOnAll(row, 'ID', objects[:2]):
-                    continue
-                
-                # Z1 selection cuts
-                if not self.cutOnAll(row, 'Selection', objects[:2]):
-                    continue
-                self.passCut(row, channel, "Z1ID")
+                if needReorder:
+                    objects = self.orderLeptons(row, channel, objectTemplate)
 
-                # Z1 isolation cuts
-                self.preCut(row,channel, "Z1Iso")
-                if not self.cutOnAll(row, 'Iso', objects[:2]):
-                    continue
-                self.passCut(row, channel, "Z1Iso")
+                evPass = True
+                for cut in self.cutOrder:
+                    self.preCut(row, channel, cut)
+                    if self.cuts.analysisCut(row, cut, *objects):
+                        self.passCut(row, channel, cut)
+                    else:
+                        evPass = False
+                        break
 
-                # Make sure it's a good Z
-                self.preCut(row, channel, 'Z1Mass')
-                if not self.cuts.doCut(row, 'Z1Mass', objects[0], objects[1]):
-                    continue
-                self.passCut(row, channel, "Z1Mass")
-                
-                ### Make sure we have an additional good Z candidate
-                # second pair of OSSF lepton candidates
-                self.preCut(row, channel, 'Z2ID')
-                if len(objects) < 4:
-                    continue
-
-                # Z2 ID cuts
-                if not self.cutOnAll(row, 'ID', objects[2:]):
-                    continue
-                
-                # Z2 selection cuts
-                if not self.cutOnAll(row, 'Selection', objects[2:]):
-                    continue
-                self.passCut(row, channel, "Z2ID")
-
-                # Z2 isolation cuts
-                self.preCut(row, channel, "Z2Iso")
-                if not self.cutOnAll(row, 'Iso', objects[2:]):
-                    continue
-                self.passCut(row, channel, "Z2Iso")
-
-                # Make sure it's a good-ish Z
-                self.preCut(row, channel, 'Z2Mass')
-                if not self.cuts.doCut(row, 'Z2Mass', objects[2], objects[3]):
-                    continue
-                self.passCut(row, channel, "Z2Mass")
-                
-                # Make sure at least one lepton has pt>20
-                self.preCut(row, channel, 'Lepton1Pt')
-                if not any(self.cuts.doCut(row, 'Lepton1Pt', obj) for obj in objects):
-                    continue
-                self.passCut(row, channel, "Lepton1Pt")
-
-                # Make sure another has pt>10
-                self.preCut(row, channel, 'Lepton2Pt')
-                if not any(self.cuts.doCut(row, 'Lepton2Pt', pair[0]) and self.cuts.doCut(row, 'Lepton2Pt', pair[1]) \
-                           for pair in combinations(objects,2)):
-                    continue
-                self.passCut(row, channel, "Lepton2Pt")
-
-                # All opposite-sign pairs of leptons must have an invariant mass > 4GeV (regardless of flavor)
-                self.preCut(row, channel, 'LeptonPairMass')
-                if not all(getVar(row, 'SS', pair[0], pair[1]) or self.cuts.doCut(row, 'LeptonPairMass', pair[0], pair[1]) \
-                           for pair in combinations(objectTemplate, 2)): # use template to maintain alphanumeric order
-                    continue
-                self.passCut(row, channel, "LeptonPairMass")
-
-                # 4l inv. mass window
-                self.preCut(row, channel, '4lMass')
-                if not self.cuts.doCut(row, '4lMass'):
-                    continue
-                self.passCut(row, channel, "4lMass")
-
-                self.fillHistos(row, channel, objects)
+                if evPass:
+                    self.fillHistos(row, channel, objects)
             else:
                 print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['Total'])
                 
@@ -295,23 +213,30 @@ class ZZAnalyzer(object):
         prevRun = -1
         prevLumi = -1
         prevEvt = -1
-        prevZ = -999.
+        prevDZ = 999.
         prevPtSum = -999.
         prevRow = -1
         
         objectTemplate = self.mapObjects(channel)
+        objects = objectTemplate
+        needReorder = channel[0][0] != channel[-1][0]
 
         for row in ntuple:
             if nEvent == self.maxEvents:
+                print "%s: Found redundant rows for %d %s events, ending"%(self.sample, self.maxEvents, channel)
                 break
 
             nRow += 1
-            objects = self.getOSSF(row, channel, objectTemplate)
+            if nRow % 5000 == 0:
+                print "%s: Finding redundant rows %s row %d"%(self.sample, channel, self.cutsPassed[channel]["Total"])
+
+            if needReorder:
+                objects = self.orderLeptons(row, channel, objectTemplate)
 
             # Keep track of events within this function by run, lumi block, and event number
-            run = getVar(row, 'run')
-            lumi = getVar(row, 'lumi')
-            evt = getVar(row,'evt')
+            run =  evVar(row, 'run')
+            lumi = evVar(row, 'lumi')
+            evt =  evVar(row,'evt')
             sameEvent = (evt == prevEvt and lumi == prevLumi and run == prevRun)
 
             if not sameEvent:
@@ -320,17 +245,15 @@ class ZZAnalyzer(object):
             # The best row for the event is actually the best one *that passes ID cuts*
             # so we have to treat a row that fails them as automatically bad. But, we can
             # only do this when the row is actually a duplicate, to keep our cut stats accurate.
-            allGood = False
-            for obj in objects:
-                if not self.cuts.doCut(row, obj[0]+'ID', obj):
+            allGood = True
+            for lepts in [[objects[0],objects[1]],[objects[2],objects[3]]]:
+                if not self.cuts.doCut(row, "GoodZ", *lepts):
+                    allGood = False
                     break
-                if not self.cuts.doCut(row, obj[0]+'Selection', obj):
+                if not self.cuts.doCut(row, "ZIso", *lepts):
+                    allGood = False
                     break
-                if not self.cuts.doCut(row, obj[0]+'Iso', obj):
-                    break
-            else:
-                # If we never break, the leptons must be OK, as long as there are the right number
-                allGood = len(objects) == 4
+
             if not allGood:
                 if sameEvent:
                     redundantRows.add(nRow)
@@ -338,13 +261,13 @@ class ZZAnalyzer(object):
                     prevRun = run
                     prevLumi = lumi
                     prevEvt = evt
-                    prevZ = -999.
+                    prevDZ = 999.
                     prevPtSum = -999.
                     prevRow = nRow
                 continue
             
-            Zmass = getVar(row, 'MassFsr', objects[0], objects[1])
-            ptSum = getVar(row, 'Pt', objects[2]) + getVar(row, 'Pt', objects[3])
+            dZ = self.zCompatibility(row, objects[0], objects[1])
+            ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
 
             # if this doesn't seem to be a duplicate event, we don't need to do anything but store
             # its info in case it's the first of several
@@ -352,26 +275,26 @@ class ZZAnalyzer(object):
                 prevRun = run
                 prevLumi = lumi
                 prevEvt = evt
-                prevZ = Zmass
+                prevDZ = dZ
                 prevPtSum = ptSum
                 prevRow = nRow
                 continue
             else:
-                if abs(Zmass - Z_MASS) < abs(prevZ - Z_MASS):
+                if dZ < prevDZ:
                     redundantRows.add(prevRow)
                     prevRun = run
                     prevLumi = lumi
                     prevEvt = evt
-                    prevZ = Zmass
+                    prevDZ = dZ
                     prevPtSum = ptSum
                     prevRow = nRow
-                elif abs(Zmass - Z_MASS) == abs(prevZ - Z_MASS):
+                elif dZ == prevDZ:
                     if ptSum > prevPtSum:
                         redundantRows.add(prevRow)
                         prevRun = run
                         prevLumi = lumi
                         prevEvt = evt
-                        prevZ = Zmass
+                        prevDZ = dZ
                         prevPtSum = ptSum
                         prevRow = nRow
                     else:
@@ -382,6 +305,33 @@ class ZZAnalyzer(object):
         return redundantRows
        
  
+    def orderLeptons(self, row, channel, objects):
+        '''
+        Put best (closest to nominal mass) Z candidate first. 
+        FSA does this automatically for 4e and 4mu cases.
+        Assumes 4 leptons, with (l1,l2) and (l3,l4) same-flavor pairs;
+        will have to be overloaded for other final states.
+        '''
+        if channel == 'eeee' or channel == 'mmmm':
+            return objects
+
+        dM1 = self.zCompatibility(row,objects[0],objects[1])
+        dM2 = self.zCompatibility(row,objects[2],objects[3])
+        
+        if dM1 > dM2:
+            return objects[2:] + objects[:2]
+        return objects
+
+
+    def zCompatibility(self, row, ob1, ob2):
+        '''
+        Absolute distance from Z mass. 1000 if same sign.
+        '''
+        if nObjVar(row, 'SS', ob1, ob2):
+            return 1000
+        return abs(nObjVar(row, self.zMassVar, ob1, ob2) - Z_MASS)
+
+
     def getOSSF(self, row, channel, objects=[]):
         '''
         Will return a list of same flavor, opposite sign leptons ordered by closeness
@@ -397,9 +347,9 @@ class ZZAnalyzer(object):
             objects = self.MapObjects(channel)
         
         # only include pairs that are OSSF
-        if objects[0][0] == objects[1][0] and not getVar(row, 'SS', objects[0], objects[1]):
+        if objects[0][0] == objects[1][0] and not nObjVar(row, 'SS', objects[0], objects[1]):
             ossfs.extend(objects[:2])
-        if objects[2][0] == objects[3][0] and not getVar(row, 'SS', objects[2], objects[3]):
+        if objects[2][0] == objects[3][0] and not nObjVar(row, 'SS', objects[2], objects[3]):
             ossfs.extend(objects[2:])
             
         # If there's 0 or 1 Z candidate, we don't need to worry about order
@@ -408,8 +358,8 @@ class ZZAnalyzer(object):
 
         # if this is 2e2mu, we might need to flip if the 2mu Z was better
         if channel == 'eemm':
-            mass1 = getVar(row, 'MassFsr', ossfs[0], ossfs[1])
-            mass2 = getVar(row, 'MassFsr', ossfs[2], ossfs[3])
+            mass1 = nObjVar(row, self.zMassVar, ossfs[0], ossfs[1])
+            mass2 = nObjVar(row, self.zMassVar, ossfs[2], ossfs[3])
             if abs(mass2 - Z_MASS) < abs(mass1 - Z_MASS):
                 return ossfs[2:]+ossfs[:2]
         return ossfs
@@ -452,22 +402,22 @@ class ZZAnalyzer(object):
         '''
         # Single objects
         for obj in objects:
-            self.histos[channel][obj+'Pt'].Fill(getVar(row, 'Pt', obj))
-            self.histos[channel][obj+'Eta'].Fill(getVar(row, 'Eta', obj))
-            self.histos[channel][obj+'Phi'].Fill(getVar(row, 'Phi', obj))
+            self.histos[channel][obj+'Pt'].Fill(objVar(row, 'Pt', obj))
+            self.histos[channel][obj+'Eta'].Fill(objVar(row, 'Eta', obj))
+            self.histos[channel][obj+'Phi'].Fill(objVar(row, 'Phi', obj))
             
         # Composite objects
         Z1Mom = ROOT.TLorentzVector()
         Z2Mom = ROOT.TLorentzVector()
-        Z1Mom.SetPtEtaPhiM(getVar(row,'PtFsr', objects[0], objects[1]),
-                           getVar(row, 'EtaFsr', objects[0], objects[1]),
-                           getVar(row, 'PhiFsr', objects[0], objects[1]),
-                           getVar(row, 'MassFsr', objects[0], objects[1])
+        Z1Mom.SetPtEtaPhiM(nObjVar(row, self.zPtVar, objects[0], objects[1]),
+                           nObjVar(row, self.zEtaVar, objects[0], objects[1]),
+                           nObjVar(row, self.zPhiVar, objects[0], objects[1]),
+                           nObjVar(row, self.zMassVar, objects[0], objects[1])
         )
-        Z2Mom.SetPtEtaPhiM(getVar(row,'PtFsr', objects[2], objects[3]),
-                           getVar(row, 'EtaFsr', objects[2], objects[3]),
-                           getVar(row, 'PhiFsr', objects[2], objects[3]),
-                           getVar(row, 'MassFsr', objects[2], objects[3])
+        Z2Mom.SetPtEtaPhiM(nObjVar(row, self.zPtVar, objects[2], objects[3]),
+                           nObjVar(row, self.zEtaVar, objects[2], objects[3]),
+                           nObjVar(row, self.zPhiVar, objects[2], objects[3]),
+                           nObjVar(row, self.zMassVar, objects[2], objects[3])
         )
         totalMom = Z1Mom + Z2Mom
                    
@@ -511,30 +461,6 @@ class ZZAnalyzer(object):
         f.Close()
 
 
-    def cutOnAll(self, row, var, objects):
-        '''
-        Loop over all objects and see if they pass a single-particle
-        cut like isolation or ID or whatever
-        '''
-        for obj in objects:
-            if not self.cuts.doCut(row, obj[0] + var, obj):
-                return False
-        return True
-        
-
-    def checkOverlaps(self, row, objects):
-        '''
-        Checks all pairs of leptons for overlap
-        '''
-        for pair in combinations(objects,2):
-            # order correctly to make sure the variable will exist
-            if pair[1] < pair[0]:
-                pair = [pair[1], pair[0]]
-            if not self.cuts.doCut(row, 'Overlap', *pair):
-                return False
-        return True
-
-
     def cutReport(self):
         '''
         Save a text file with cut information. 
@@ -543,13 +469,13 @@ class ZZAnalyzer(object):
         totals = {}
         expectedTotals = {}
         # factor to translate n events in MC to m events in data
-        for cut in self.cutOrder:
+        for cut in ['TotalRows']+self.cutOrder:
             totals[cut] = 0
             expectedTotals[cut] = 0.
 
         with open(self.outFile.replace('.root','.txt'), 'w') as f:
             for channel in self.channels:
-                if self.cutsPassed[channel]['Combinatorics'] != self.maxEvents:
+                if self.cutsPassed[channel]['Total'] != self.maxEvents:
                     expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi / sampleInfo[self.sample]['n']
                 else:
                     # estimate fraction that would have passed to be nPassedTot/nEvents ~ nPassed * nRowsTot / (nRows * nEvents)
@@ -557,37 +483,19 @@ class ZZAnalyzer(object):
                     #     by the ntuplizer
                     expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi * \
                                      self.ntupleSize[channel] / \
-                                     (self.cutsPassed[channel]['Total'] * sampleInfo[self.sample]['n'])
+                                     (self.cutsPassed[channel]['TotalRows'] * sampleInfo[self.sample]['n'])
 
                 f.write("\n%-32s in %0.0f pb^-1\n"%(channel+':',self.intLumi))
-                for cut in self.cutOrder:
+                for cut in ['TotalRows']+self.cutOrder:
                     expected = self.cutsPassed[channel][cut] * expectedFactor
                     f.write("%16s : %-9d :      %0.2f\n"%(cut, self.cutsPassed[channel][cut], expected))
                     totals[cut] += self.cutsPassed[channel][cut]
                     expectedTotals[cut] += expected
                                                      
             f.write("\n%-32s in %0.0f pb^-1\n"%('Total:',self.intLumi))
-            for cut in self.cutOrder:
+            for cut in ['TotalRows']+self.cutOrder:
                 f.write("%16s : %-9d :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
     
-
-def getVar(row, var, *objects):
-    '''
-    Return a variable from an ntuple row. If no objects are specified, it gets
-    the "bare" variable (e.g. Mass). If one object is specified, it will return
-    the variable specific to that object (e.g. e1Pt). If more objects are 
-    specified, it will give the combined object for all of them (e.g. e1_e2_Mass).
-    '''
-
-    if not objects:
-        return getattr(row,var)
-        
-    if len(objects) == 1:
-        return getattr(row, objects[0]+var)
-
-    # move from tuple to list to sort
-    items = [o for o in objects].sort()
-    return getattr(row, '_'.join(objects) + '_' + var)
 
 
 
