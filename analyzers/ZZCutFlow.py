@@ -9,9 +9,11 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from ZZAnalyzer import ZZAnalyzer, getVar
+from ZZAnalyzer import ZZAnalyzer
 import os
 import ROOT
+from ZZHelpers import * # evVar, objVar, nObjVar
+
 
 # Environment must be set up
 assert os.environ["zza"], "Run setup.sh before running cut flows"
@@ -82,7 +84,7 @@ class ZZCutFlow(ZZAnalyzer):
                 self.histos[channel][flow] = {}
             for control, ctemplate in self.controlTemplates.iteritems():
                 self.histos[channel]['control'][control] = ctemplate.Clone("%s_control:~:%s"%(control,channel))
-            for cut in self.cutOrder:
+            for cut in ['TotalRows']+self.cutOrder:
                 for flow, ftemplate in self.flowTemplates.iteritems():
                     self.histos[channel][flow][cut] = ftemplate.Clone("%s_cutflow_%s:~:%s"%(flow, cut,channel))
                     
@@ -155,9 +157,9 @@ class ZZCutFlow(ZZAnalyzer):
         results = []
         for obj in objects[:2]:
             if obj[0] == 'e':
-                results.append(getVar(row, 'RelPFIsoRhoFSR', obj))
+                results.append(objVar(row, 'RelPFIsoRhoFSR', obj))
             elif obj[0] == 'm':
-                results.append(getVar(row, 'RelPFIsoDBDefault', obj))
+                results.append(objVar(row, 'RelPFIsoDBDefault', obj))
         return results
 
         
@@ -169,9 +171,9 @@ class ZZCutFlow(ZZAnalyzer):
         results = []
         for obj in objects[2:]:
             if obj[0] == 'e':
-                results.append(getVar(row, 'RelPFIsoRhoFSR', obj))
+                results.append(objVar(row, 'RelPFIsoRhoFSR', obj))
             elif obj[0] == 'm':
-                results.append(getVar(row, 'RelPFIsoDBDefault', obj))
+                results.append(objVar(row, 'RelPFIsoDBDefault', obj))
         return results
 
         
@@ -195,7 +197,7 @@ class ZZCutFlow(ZZAnalyzer):
         Zero-indexed, so the highest Pt lepton is lepton 0.
         '''
         objects = self.mapObjects(channel)
-        pts = [getVar(row, 'Pt', obj) for obj in objects]
+        pts = [objVar(row, 'Pt', obj) for obj in objects]
         pts.sort(reverse=True)
         return pts[N]
         
@@ -204,7 +206,7 @@ class ZZCutFlow(ZZAnalyzer):
         '''
         Get the 4 lepton invariant mass
         '''
-        return row.Mass
+        return evVar(row, 'MassFSR')
 
 
     def getZ1Mass(self, row, channel):
@@ -212,27 +214,46 @@ class ZZCutFlow(ZZAnalyzer):
         Get the invariant mass of the best Z candidate
         '''
         objectTemplate = self.mapObjects(channel)
-        objects = self.getOSSF(row, channel, objectTemplate)
-        if len(objects) >= 2:
-            return getVar(row, 'Mass', objects[0], objects[1])
-        else:
-            return getVar(row, 'Mass', objectTemplate[0], objectTemplate[1])
+        objects = self.orderLeptons(row, channel, objectTemplate)
+        return nObjVar(row, 'MassFsr', objects[0], objects[1])
 
 
     def getZ2Mass(self, row, channel):
         '''
-        Get the invariant mass of the best Z candidate
+        Get the invariant mass of the other Z candidate
         '''
         objectTemplate = self.mapObjects(channel)
-        objects = self.getOSSF(row, channel, objectTemplate)
-        if len(objects) >= 4:
-            return getVar(row, 'Mass', objects[2], objects[3])
-        else:
-            # in 2e2mu case, good Z could be second in template
-            if channel == 'eemm':
-                if len(objects) == 2 and objects[0][0] == 'm':
-                    return getVar(row, 'Mass', objectTemplate[0], objectTemplate[1])
-            return getVar(row, 'Mass', objectTemplate[2], objectTemplate[3])
+        objects = self.orderLeptons(row, channel, objectTemplate)
+        return nObjVar(row, 'MassFsr', objects[2], objects[3])
+
+
+
+
+################################################################
+####    To do a small test, jut run python ZZCutFlow.py    ####
+################################################################
+
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Running ZZCutFlow directly just does a little test.')
+    parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
+    parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Cut set to test.')
+    parser.add_argument("infile", nargs='?', 
+                        default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25.root'%os.environ["zza"],
+                        type=str, help='Single file to test on. No wildcards.')
+    parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
+    parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
+    args = parser.parse_args()
+
+    a = ZZCutFlow(args.channel, args.cutset, args.infile, args.outfile, args.nEvents)
+    print "TESTING ZZCutFlow"
+    a.analyze()
+    print "TEST COMPLETE"
+
+
+
+
     
 
             
