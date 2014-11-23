@@ -302,7 +302,7 @@ class ZZAnalyzer(object):
                 else:
                     redundantRows.add(nRow)
         else:
-            print "%s: Found redundant rows for %d %s events, moving to analyzer"%(self.sample, nRows, channel)
+            print "%s: Found redundant rows for %d %s events, moving to analyzer"%(self.sample, nRow, channel)
                     
         return redundantRows
        
