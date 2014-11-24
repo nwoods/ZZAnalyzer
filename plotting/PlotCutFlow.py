@@ -283,6 +283,7 @@ class PlotCutFlow(object):
             etaDims = [0.375, 0.65, 0.625, 0.9]
             phiDims = [0.375, 0.35, 0.625, 0.6]
             ZMassDims = [0.2, 0.5, 0.45, 0.8]
+            Z2MassDimsLog = [0.75, 0.5, 0.95, 0.8]
             
             if "Eta" in variable:
                 legend = self.makeLegend(channel, flow, variable, etaDims)
@@ -290,6 +291,8 @@ class PlotCutFlow(object):
                 legend = self.makeLegend(channel, flow, variable, phiDims)
             elif 'Z1Mass' in variable[:6] or 'Z2Mass' in variable[:6] and not logy:
                 legend = self.makeLegend(channel, flow, variable, ZMassDims)
+            elif 'Z2Mass' in variable[:6] and logy:
+                legend = self.makeLegend(channel, flow, variable, Z2MassDimsLog)
             else:
                 legend = self.makeLegend(channel, flow, variable)
 
