@@ -11,7 +11,9 @@ Author: Nate Woods, U. Wisconsin
 
 from ZZAnalyzer import ZZAnalyzer
 import os
-import ROOT
+from rootpy import ROOT
+from rootpy.io import root_open
+from rootpy.plotting import Hist
 from ZZHelpers import * # evVar, objVar, nObjVar
 
 
@@ -53,17 +55,17 @@ class ZZCutFlow(ZZAnalyzer):
         Template histograms for controls and flows, so we know how to bin
         '''
         self.controlTemplates = {
-            'Z1Iso' : ROOT.TH1F('Z1Iso_control_TEMPLATE', "Isolation", 50, 0., 10.),
-            'Z2Iso' : ROOT.TH1F('Z2Iso_control_TEMPLATE', "Isolation", 50, 0., 10.),
-            'Z1Mass' : ROOT.TH1F('Z1Mass_control_TEMPLATE', "Z1 Invariant Mass", 50, 0., 150.),
-            'Z2Mass' : ROOT.TH1F('Z2Mass_control_TEMPLATE', "Z2 Invariant Mass", 50, 0., 150.),
-            'Lepton1Pt' : ROOT.TH1F('Lepton1Pt_control_TEMPLATE', "Lepton 1 Pt", 50, 0., 150.),
-            'Lepton2Pt' : ROOT.TH1F('Lepton2Pt_control_TEMPLATE', "Lepton 2 Pt", 50, 0., 150.),
+            'Z1Iso' :     Hist(50, 0., 10., name='Z1Iso_control_TEMPLATE', title="Isolation"),
+            'Z2Iso' :     Hist(50, 0., 10., name='Z2Iso_control_TEMPLATE', title="Isolation"),
+            'Z1Mass' :    Hist(50, 0., 150., name='Z1Mass_control_TEMPLATE', title="Z1 Invariant Mass"),
+            'Z2Mass' :    Hist(50, 0., 150., name='Z2Mass_control_TEMPLATE', title="Z2 Invariant Mass"),
+            'Lepton1Pt' : Hist(50, 0., 150., name='Lepton1Pt_control_TEMPLATE', title="Lepton 1 Pt"),
+            'Lepton2Pt' : Hist(50, 0., 150., name='Lepton2Pt_control_TEMPLATE', title="Lepton 2 Pt"),
             }
         self.flowTemplates = {
-            '4lMass' : ROOT.TH1F('3lMass_cutflow_TEMPLATE', "4l Invariant Mass", 36, 100., 1000.),
-            'Z1Mass' : ROOT.TH1F('Z1Mass_cutflow_TEMPLATE', "Z1 Invariant Mass", 50, 0., 150.),
-            'Z2Mass' : ROOT.TH1F('Z2Mass_cutflow_TEMPLATE', "Z2 Invariant Mass", 50, 0., 150.),
+            '4lMass' : Hist(36, 100., 1000., name='4lMass_cutflow_TEMPLATE', title="4l Invariant Mass"),
+            'Z1Mass' : Hist(50, 0., 150., name='Z1Mass_cutflow_TEMPLATE', title="Z1 Invariant Mass"),
+            'Z2Mass' : Hist(50, 0., 150., name='Z2Mass_cutflow_TEMPLATE', title="Z2 Invariant Mass"),
             }
 
 
@@ -93,7 +95,7 @@ class ZZCutFlow(ZZAnalyzer):
         '''
         Save all histograms to self.outFile, in directories by channel/flow[ or 'control']/cut_histogram
         '''
-        f = ROOT.TFile(self.outFile, 'RECREATE')
+        f = root_open(self.outFile, 'RECREATE')
 
         dirs = []
         for channel, flowDict in self.histos.iteritems():
@@ -111,7 +113,7 @@ class ZZCutFlow(ZZAnalyzer):
 
         for dir in dirs:
             dir.Write()
-        f.Close()
+        f.close()
 
 
 

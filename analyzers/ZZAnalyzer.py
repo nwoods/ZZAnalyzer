@@ -8,7 +8,9 @@ Author: Nate Woods
 
 '''
 
-import ROOT
+from rootpy import ROOT
+from rootpy.io import root_open
+from rootpy.plotting import Hist
 import imp
 import os
 from itertools import combinations
@@ -96,7 +98,7 @@ class ZZAnalyzer(object):
         self.outFile
         '''
 
-        inFile = ROOT.TFile.Open(self.inFile)
+        inFile = root_open(self.inFile) # ROOT.TFile.Open(self.inFile)
         assert bool(inFile), 'No file %s'%self.inFile
 
         for channel in self.channels:
@@ -154,6 +156,8 @@ class ZZAnalyzer(object):
         self.saveAllHistos()
 
         self.cutReport()
+
+        inFile.close()
                 
 
     def passCut(self, row, channel, cut):
@@ -382,20 +386,23 @@ class ZZAnalyzer(object):
 
             if channel != 'Total':
                 objects = self.mapObjects(channel)
+                
                 for obj in objects:
-                    self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+'Pt', 240, 0., 120.)
-                    self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 100, -5., 5.)
-                    self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 64, -math.pi, math.pi)
+                    self.histos[channel][obj+'Pt'] = Hist(240, 0., 120., name='%sPt:~:%s'%(obj, channel), title='%s Pt'%obj)
+                    self.histos[channel][obj+'Eta'] = Hist(100, -5., 5., name='%sEta:~:%s'%(obj, channel), title='%s Eta'%obj)
+                    self.histos[channel][obj+'Phi'] = Hist(64, -math.pi, math.pi, name='%sPhi:~:%s'%(obj, channel), title='%s Phi'%obj)
+                
             for obj in ['Z1', 'Z2']:
-                self.histos[channel][obj+'Pt'] = ROOT.TH1F(obj+'Pt'+":~:"+channel, obj+' Pt', 240, 0., 120.)
-                self.histos[channel][obj+'Eta'] = ROOT.TH1F(obj+'Eta'+":~:"+channel, obj+' Eta', 100, -5., 5.)
-                self.histos[channel][obj+'Phi'] = ROOT.TH1F(obj+'Phi'+":~:"+channel, obj+' Phi', 64, -math.pi, math.pi)
-                self.histos[channel][obj+'Mass'] = ROOT.TH1F(obj+'Mass'+":~:"+channel, obj+' Mass', 260, 0., 130.)
-            self.histos[channel]['4lPt'] = ROOT.TH1F('4lPt'+":~:"+channel, '4l Pt', 200, 0., 400.)
-            self.histos[channel]['4lEta'] = ROOT.TH1F('4lEta'+":~:"+channel, '4l Eta', 100, -5., 5.)
-            self.histos[channel]['4lPhi'] = ROOT.TH1F('4lPhi'+":~:"+channel, '4l Phi', 64, -math.pi, math.pi)
-            self.histos[channel]['4lMass'] = ROOT.TH1F('4lMass'+":~:"+channel, '4l Mass', 600, 0., 1200.)
-            self.histos[channel]['4lMt'] = ROOT.TH1F('4lMt'+":~:"+channel, '4l Mt', 600, 0., 1200.)
+                self.histos[channel][obj+'Pt'] = Hist(240, 0., 120., name='%sPt:~:%s'%(obj, channel), title='%s Pt'%obj)     
+                self.histos[channel][obj+'Eta'] = Hist(100, -5., 5. , name='%sEta:~:%s'%(obj, channel), title='%s Eta'%obj)   
+                self.histos[channel][obj+'Phi'] = Hist(64, -math.pi , math.pi, name='%sPhi:~:%s'%(obj, channel), title='%s Phi'%obj)   
+                self.histos[channel][obj+'Mass'] = Hist(260, 0., 130., name='%sMass:~:%s'%(obj, channel), title='%s Mass'%obj) 
+                
+            self.histos[channel]['4lPt'] = Hist(200, 0., 400., name='4lPt:~:%s'%  channel,   title='4l Pt')         
+            self.histos[channel]['4lEta'] = Hist(100, -5., 5. , name='4lEta:~:%s'% channel,  title='4l Eta')       
+            self.histos[channel]['4lPhi'] = Hist(64, -math.pi, math.pi, name='4lPhi:~:%s'%channel, title='4l Phi')
+            self.histos[channel]['4lMass'] = Hist(600, 0., 1200., name='4lMass:~:%s'%channel, title='4l Mass')
+            self.histos[channel]['4lMt'] = Hist(600, 0., 1200., name='4lMt:~:%s'%channel, title='4l Mt')
 
 
     def fillHistos(self, row, channel, objects):
@@ -446,7 +453,7 @@ class ZZAnalyzer(object):
         '''
         Save all histograms to self.outFile, in directories by channel (+Total)
         '''
-        f = ROOT.TFile(self.outFile, 'RECREATE')
+        f = root_open(self.outFile, 'RECREATE') #ROOT.TFile(self.outFile, 'RECREATE')
 
         dirs = []
         for channel, hDict in self.histos.iteritems():

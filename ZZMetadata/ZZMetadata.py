@@ -14,7 +14,7 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from ROOT import EColor
+from rootpy.ROOT import EColor
 
 sampleInfo = {}
 

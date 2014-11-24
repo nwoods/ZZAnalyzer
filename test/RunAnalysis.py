@@ -14,6 +14,12 @@ import ZZAnalyzer
 import os
 import signal
 import time
+from rootpy.plotting import Hist
+from rootpy import ROOT
+
+
+ROOT.gROOT.SetBatch(True)
+
 
 def runAnAnalyzer(channels, cutSet, infile, outdir, maxEvents, intLumi):
     '''
@@ -48,6 +54,10 @@ parser.add_argument('--nThreads', type=int,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 4.')
 parser.add_argument('--maxEvents', nargs='?', type=int,
                     help='Maximum number of events to run for each sample in each channel.')
+
+# we have to create some ROOT object to get ROOT's metadata system setup before the threads start
+# or else we get segfault-causing race conditions
+bar = Hist(10,0.,1.,name="foo",title="foo")
 
 args = parser.parse_args()
 
