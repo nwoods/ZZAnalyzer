@@ -46,7 +46,6 @@ args = parser.parse_args()
 infiles = []
 rawInputs = args.inputs[0].split(',')
 for raw in rawInputs:
-    print raw
     if raw[0] == '.':
         inputs = os.environ["zza"]+raw[1:].replace("$zza",os.environ["zza"])
     else:
@@ -89,9 +88,9 @@ for infile in infiles:
         cutCount = 0
         # loop over lines
         for line in f:
-            words = line.split()
+            words = line.split(":")
 #             print "%d (%d): %s (%d)"%(cutCount, cutCountMax, " ".join(words), len(words))
-            if len(words) == 1:
+            if len(words) == 2:
                 # Make sure the previous channel had the right number of cuts
                 if cutCount != 0:
                     if cutCountMax == -1:
@@ -101,23 +100,23 @@ for infile in infiles:
                                                                                                              cutCountMax, sample, channel)
                 
                 cutCount = 0
-                channel = words[0].replace(':','')
+                channel = words[0].replace(' ','')
                 if channel not in numbers:
                     numbers[channel] = {}
                 if sample not in numbers[channel]:
                     numbers[channel][sample] = {}
-            if len(words) == 2:
-                # remove colon when finding cut name
-                cut = words[0][:-1]
+            if len(words) == 3:
+                # Remove whitespace
+                cut = words[0].replace(' ','')
                 # ignore some cuts, rename others
-                if cut == "Total" or cut == "Overlap" or cut == "Lepton1Pt" or cut == "4lMass":
+                if cut == "TotalRows" or cut == "Overlap" or cut == "Lepton1Pt" or cut == "4lMass":
                     continue
 
                 cutCount += 1
 
                 # save the name of the cut, but only if this is the first time through
                 if cutCount > cutCountMax:
-                    if cut == "Combinatorics":
+                    if cut == "Total":
                         cut = "Init."
                     elif cut == "Lepton2Pt":
                         cut = "Lepton Pt"
@@ -257,6 +256,6 @@ for channel in numbers:
 
     style.setPrelimStyle(c)
     
-    c.Print("%s/cutSummary_%s.png"%(outdir, channel))
-    c.Print("%s/cutSummary_%s.pdf"%(outdir, channel))
+    outFile = "%s/cutSummary_%s.png"%(outdir, channel)
+    c.Print(outFile)
 
