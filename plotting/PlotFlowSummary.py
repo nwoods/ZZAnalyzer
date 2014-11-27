@@ -128,6 +128,8 @@ for infile in infiles:
                         cut = "2l Mass"
                     elif cut == "4lMass":
                         cut = "4l Mass"
+                    elif "GoodZ" in cut:
+                        cut = cut.replace("oodZ","ood Z")
 
                     cutNames[cutCount] = cut
 
