@@ -6,6 +6,8 @@ Author: N. Woods, U. Wisconsin
 
 '''
 
+from math import pi, sqrt
+
 
 def evVar(row, var):
     '''
@@ -29,3 +31,11 @@ def nObjVar(row, var, *obj):
     return getattr(row, '_'.join([o for o in obj]+[var]))
 
 
+def deltaR(eta1, phi1, eta2, phi2):
+    dPhi = abs(phi2 - phi1)
+    if dPhi > pi:
+        dPhi -= 2*pi
+    return sqrt(dPhi**2 + (eta2 - eta1)**2)
+
+
+Z_MASS = 91.1876
