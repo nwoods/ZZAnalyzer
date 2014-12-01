@@ -21,13 +21,13 @@ from rootpy import ROOT
 ROOT.gROOT.SetBatch(True)
 
 
-def runAnAnalyzer(channels, cutSet, infile, outdir, maxEvents, intLumi):
+def runAnAnalyzer(channels, cutSet, infile, outdir, resultType, maxEvents, intLumi):
     '''
     Run a ZZAnalyzer.
     Intended for use in threads, such that several processes all do this once.
     '''
     outfile = outdir+'/'+(infile.split('/')[-1])
-    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, maxEvents, intLumi)
+    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, resultType, maxEvents, intLumi)
     analyzer.analyze()
 
 def init_worker():
@@ -48,6 +48,8 @@ parser.add_argument('cutSet', nargs='?', type=str, default='HZZ4l2012',
                     help='Name of cut template.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
                     help='Directory to place output (defaults to $zza/results/<cutSet>).')
+parser.add_argument('resultType', type=str, nargs='?', default='ZZFinalHists',
+                    help='Template for saving results')
 parser.add_argument('intLumi', type=float, nargs='?', default=10000,
                     help='Integrated luminosity for report in ouput text files. In pb^-1.')
 parser.add_argument('--nThreads', type=int,
@@ -105,7 +107,7 @@ intLumi = args.intLumi
 pool = multiprocessing.Pool(nThreads, init_worker)
 results = []
 for infile in infiles:
-    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, maxEvents, intLumi)))
+    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, args.resultType, maxEvents, intLumi)))
 
 # A little magic to make keyboard interrupts work
 try:
