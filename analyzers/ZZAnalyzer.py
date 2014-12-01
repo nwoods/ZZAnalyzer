@@ -24,7 +24,8 @@ Z_MASS = 91.1876
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
 class ZZAnalyzer(object):
-    def __init__(self, channels, cutSet, infile, outfile='./results/output.root', maxEvents=float("inf"), intLumi=10000):
+    def __init__(self, channels, cutSet, infile, outfile='./results/output.root', 
+                 resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000):
         '''
         Channels:    list of strings or single string in the format (e.g.) eemm for 
                          a 2e2mu final state. '4l', 'zz' and 'ZZ' turn into ['eeee' 'eemm' 'mmmm']
@@ -52,7 +53,7 @@ class ZZAnalyzer(object):
             self.channels = channels
 
         self.cutSet = cutSet
-        cutpath = os.environ["zza"]+"/ZZUtils/templates"
+        cutpath = os.environ["zza"]+"/ZZUtils/cutTemplates"
         cutf, cutfName, cutdesc = imp.find_module(cutSet, [cutpath])
         assert cutf, 'Set of cuts %s does not exist in %s'%(cutSet,cutpath)
         cutmod = imp.load_module(cutSet, cutf, cutfName, cutdesc)
@@ -60,14 +61,23 @@ class ZZAnalyzer(object):
 
         self.cuts = cutclass()
 
+        self.outFile = outfile
+
+        self.resultType = resultType
+        resultpath = os.environ["zza"]+"/ZZUtils/resultTemplates"
+        resf, resfName, resdesc = imp.find_module(resultType, [resultpath])
+        assert resf, 'Result template %s does not exist in %s'%(resultType,resultpath)
+        resmod = imp.load_module(resultType, resf, resfName, resdesc)
+        resultclass = getattr(resmod, resultType)
+
+        self.results = resultclass(self.outFile, self.channels)
+
         self.cutOrder = self.cuts.getCutList()
 
         self.inFile = infile
 
         self.sample = self.inFile.split('/')[-1].replace('.root','')
         
-        self.outFile = outfile
-
         self.maxEvents = maxEvents
         # if we don't use all the events, we need to know how many we would have done in the whole thing
         if self.maxEvents < float('inf'):
@@ -75,7 +85,7 @@ class ZZAnalyzer(object):
 
         self.prepareCutSummary()
 
-        self.getHistoDict(self.channels)
+#        self.getHistoDict(self.channels)
 
         self.intLumi = intLumi
 
@@ -147,17 +157,17 @@ class ZZAnalyzer(object):
                         break
 
                 if evPass:
-                    self.fillHistos(row, channel, objects)
+                    self.results.saveRow(row, channel, nested=True)
             else:
                 print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['Total'])
                 
         print "%s: Done with all channels, saving results"%self.sample
 
-        self.saveAllHistos()
+        inFile.close()
+
+        self.results.save()
 
         self.cutReport()
-
-        inFile.close()
                 
 
     def passCut(self, row, channel, cut):
@@ -522,10 +532,11 @@ if __name__ == "__main__":
                         default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25.root'%os.environ["zza"],
                         type=str, help='Single file to test on. No wildcards.')
     parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
+    parser.add_argument("resultType", nargs='?', default='ZZFinalHists', type=str, help='Format of output file')
     parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
     args = parser.parse_args()
 
-    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.nEvents)
+    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents)
     print "TESTING ZZAnalyzer"
     a.analyze()
     print "TEST COMPLETE"
