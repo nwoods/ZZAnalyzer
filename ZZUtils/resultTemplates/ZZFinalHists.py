@@ -43,19 +43,19 @@ class ZZFinalHists(ZZHistSaver):
             'mmmm' : {
                 'vars' : {
                     'Z1Mass' : {
-                        'f' : lambda row: evVar(row, "m1_m2_Mass"),
+                        'f' : self.copyFunc("m1_m2_Mass"),
                         'params' : [260, 0., 130.], 
                         },
                     'Z2Mass' : {
-                        'f' : lambda row: evVar(row, "m3_m4_Mass"),
+                        'f' : self.copyFunc("m3_m4_Mass"),
                         'params' : [260, 0., 130.],
                         },
                     'Z1MassFSR' : {
-                        'f' : lambda row: evVar(row, "m1_m2_MassFsr"),
+                        'f' : self.copyFunc("m1_m2_MassFsr"),
                         'params' : [260, 0., 130.],
                         },
                     'Z2MassFSR' : {
-                        'f' : lambda row: evVar(row, "m3_m4_MassFsr"),
+                        'f' : self.copyFunc("m3_m4_MassFsr"),
                         'params' : [260, 0., 130.],
                         },
                     'm1Pt' : {
@@ -155,19 +155,19 @@ class ZZFinalHists(ZZHistSaver):
             'eeee' : {
                 'vars' : {
                     'Z1Mass' : {
-                        'f' : lambda row: evVar(row, "e1_e2_Mass"),
+                        'f' : self.copyFunc("e1_e2_Mass"),
                         'params' : [260, 0., 130.], 
                         },
                     'Z2Mass' : {
-                        'f' : lambda row: evVar(row, "e3_e4_Mass"),
+                        'f' : self.copyFunc("e3_e4_Mass"),
                         'params' : [260, 0., 130.],
                         },
                     'Z1MassFSR' : {
-                        'f' : lambda row: evVar(row, "e1_e2_MassFsr"),
+                        'f' : self.copyFunc("e1_e2_MassFsr"),
                         'params' : [260, 0., 130.],
                         },
                     'Z2MassFSR' : {
-                        'f' : lambda row: evVar(row, "e3_e4_MassFsr"),
+                        'f' : self.copyFunc("e3_e4_MassFsr"),
                         'params' : [260, 0., 130.],
                         },
                     'e1Pt' : {
