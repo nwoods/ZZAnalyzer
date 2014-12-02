@@ -105,10 +105,8 @@ class ZZResultSaverBase(object):
         '''
         variables = {} # functions for these variables, returned
 
-#         print temp
         varTemp = temp.pop('vars', {})
-#         print temp
-#         print varTemp
+
         resultArgs = {}
         for var, varDef in varTemp.iteritems():
             if 'f' in varDef:
@@ -121,30 +119,14 @@ class ZZResultSaverBase(object):
 
         allItems = temp.pop('all', {})
 
-#         print "\n"
-#         for k in temp:
-#             print k
-#             print "\n"
-
         for k, v in temp.iteritems():
-#             print temp
-#             print k
-#             print v
             subTemp = {}
             if k in allItems:
                 subTemp = allItems[k].copy()
                 subTemp.update(v) # specific items overwrite items in 'all'
- #               print "Hi!"
             else:
                 subTemp = v.copy()
-#                print subTemp
-#                if self.stopnow:
-#                    exit(0)
-#                else:
-#                    print "\n\n Second time:"
-#                    self.stopnow = True
-#
-#            print "\n\n"
+
             subResults, subVariables = self.setupResultDirectory(subTemp, 
                                                                  *args, 
                                                                  **kwargs)
@@ -209,81 +191,3 @@ class ZZResultSaverBase(object):
 
 
 
-#     def commonSimpleBranches(self):
-#         '''
-#         Virtual.
-#         See self.setupVariables header comment for use.
-#         '''
-#         return []
-# 
-# 
-#     def specificSimpleBranches(self):
-#         '''
-#         Virtual.
-#         See self.setupVariables header comment for use.
-#         '''
-#         return {chan : [] for chan in self.channels}
-# 
-# 
-#     def commonComputedBranches(self):
-#         '''
-#         Virtual.
-#         See self.setupVariables header comment for use.
-#         '''
-#         return {}
-# 
-# 
-#     def specificComputedBranches(self):
-#         '''
-#         Virtual.
-#         See self.setupVariables header comment for use.
-#         '''
-#         return {chan : {} for chan in self.channels}
-# 
-# 
-#     def setupVariables(self, *args, **kwargs):
-#         '''
-#         Figures out from vitual methods how to make a dictionary of functions
-#         to get variables we want to save, and returns this dictionary.
-#         Wants daughter classes to define the following methods:
-#             self.commonSimpleBranches() - names of branches that should be 
-#                                           copied directly for all trees
-#             self.specificSimpleBranches() - dictionary mapping specific trees 
-#                                             to branches that they should copy
-#             self.commonComputedBranches() - dictionary mapping branch names to
-#                                             a method for computing them for 
-#                                             branches in all trees
-#             self.specificComputedBranches() - dictionary mapping trees to 
-#                                               dictionaries mapping branch names
-#                                               to methods for computing them for
-#                                               tree-specific branches
-#         '''
-#         # Base dictionary for common branches
-#         commonVars = {}        
-# 
-#         # Make a simple function to get the variable for all the common 
-#         # simple branches
-#         for var in self.commonSimpleBranches():
-#             commonVars[var] = lambda row: evVar(row, var)
-# 
-#         # Add common branches for which functions are specially defined
-#         for var, fun in self.commonComputedBranches().iteritems():
-#             commonVars[var] = fun
-# 
-#         out = {}
-# 
-#         # Make a copy for every channel
-#         # Shallow copy should be good enough because commonVars doesn't 
-#         # hold containers
-#         for chan in self.channels:
-#             out[chan] = commonVars.copy()
-# 
-#         # Add channel-specific functions to the relevant dictionary
-#         for chan, varList in self.specificSimpleBranches():
-#             for var in varList:
-#                 out[chan][var] = lambda row: evVar(row, var)
-#         for chan, funDict in self.specificComputedBranches().iteritems():
-#             for var, fun in funDict.iteritems():
-#                 out[chan][var] = fun
-#         
-#         return out
