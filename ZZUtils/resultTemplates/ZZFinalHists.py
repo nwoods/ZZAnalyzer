@@ -22,21 +22,45 @@ class ZZFinalHists(ZZHistSaver):
         template = {
             'all' : {
                 'vars' : {
-                    'Mass' : {
+                    '4lMass' : {
+                        'f' : self.copyFunc("Mass"),
                         'params' : [600, 0., 1200], 
                         },
-                    'Pt' : {
+                    '4lPt' : {
+                        'f' : self.copyFunc("Pt"),
                         'params' : [200, 0., 400.],
                         },
-                    'MtFSR' : {
-                        'f' : self.mtFSR, 
+                    '4lEta' : {
+                        'f' : self.copyFunc("Eta"),
+                        'params' : [100, -5., 5.],
+                        },
+                    '4lPhi' : {
+                        'f' : self.copyFunc("Phi"),
+                        'params' : [63, -3.15, 3.15],
+                        },
+                    '4lMt' : {
+                        'f' : self.copyFunc("Mt"),
                         'params' : [600, 0., 1200.],
                         },
-                    'MassFSR' : {
+                    '4lMassFSR' : {
+                        'f' : self.copyFunc("MassFSR"),
                         'params' : [600, 0., 1200.],
                         },
-                    'PtFSR' : {
+                    '4lPtFSR' : {
+                        'f' : self.copyFunc("PtFSR"),
                         'params' : [200, 0., 400.],
+                        },
+                    '4lEtaFSR' : {
+                        'f' : self.copyFunc("EtaFSR"),
+                        'params' : [100, -5., 5.],
+                        },
+                    '4lPhiFSR' : {
+                        'f' : self.copyFunc("PhiFSR"),
+                        'params' : [63, -3.15, 3.15],
+                        },
+                    '4lMtFSR' : {
+                        'f' : self.copyFunc("MtFSR"),
+                        'params' : [600, 0., 1200.],
                         },
                     },
                 },
@@ -51,11 +75,11 @@ class ZZFinalHists(ZZHistSaver):
                         'params' : [260, 0., 130.],
                         },
                     'Z1MassFSR' : {
-                        'f' : self.copyFunc("m1_m2_MassFsr"),
+                        'f' : self.copyFunc("m1_m2_MassFSR"),
                         'params' : [260, 0., 130.],
                         },
                     'Z2MassFSR' : {
-                        'f' : self.copyFunc("m3_m4_MassFsr"),
+                        'f' : self.copyFunc("m3_m4_MassFSR"),
                         'params' : [260, 0., 130.],
                         },
                     'm1Pt' : {
@@ -107,11 +131,11 @@ class ZZFinalHists(ZZHistSaver):
                         'params' : [260, 0., 130.],
                         },
                     'Z1MassFSR' : {
-                        'f' : lambda row: self.betterZMass(row, "m1_m2_MassFsr", "e1_e2_MassFsr"),
+                        'f' : lambda row: self.betterZMass(row, "m1_m2_MassFSR", "e1_e2_MassFSR"),
                         'params' : [260, 0., 130.],
                         },
                     'Z2MassFSR' : {
-                        'f' : lambda row: self.worseZMass(row, "m1_m2_MassFsr", "e1_e2_MassFsr"),
+                        'f' : lambda row: self.worseZMass(row, "m1_m2_MassFSR", "e1_e2_MassFSR"),
                         'params' : [260, 0., 130.],
                         },
                     'm1Pt' : {
@@ -163,11 +187,11 @@ class ZZFinalHists(ZZHistSaver):
                         'params' : [260, 0., 130.],
                         },
                     'Z1MassFSR' : {
-                        'f' : self.copyFunc("e1_e2_MassFsr"),
+                        'f' : self.copyFunc("e1_e2_MassFSR"),
                         'params' : [260, 0., 130.],
                         },
                     'Z2MassFSR' : {
-                        'f' : self.copyFunc("e3_e4_MassFsr"),
+                        'f' : self.copyFunc("e3_e4_MassFSR"),
                         'params' : [260, 0., 130.],
                         },
                     'e1Pt' : {
@@ -244,35 +268,25 @@ class ZZFinalHists(ZZHistSaver):
         return mZ2
 
 
-    def mtFSR(self, row):
-        '''
-        Mt including FSR for the 4-lepton candidate
-        '''
-        p4 = LorentzVector()
-        p4.SetPtEtaPhiM(evVar(row, "PtFSR"), evVar(row, "EtaFSR"), evVar(row, "PhiFSR"), 
-                        evVar(row, "MassFSR"))
-        return p4.Mt()
-
-
-    def lepHasFSR(self, row, lep):
-        '''
-        Is this lepton the one with FSR?
-        '''
-        if int(lep[-1]) % 0:
-            lep2 = lep
-            lep1 = "%s%d"%(lep[0],int(lep[-1])-1)
-        else:
-            lep1 = lep
-            lep2 = "%s%d"%(lep[0],int(lep[-1])+1)
-
-        fsrEta = nObjVar(row, "FSREta", lep1, lep2)
-        if fsrEta < -100: # default no-FSR value is -999
-            return False
-        fsrPhi = nObjVar(row, "FSRPhi", lep1, lep2)
-
-        eta = objVar(row, "Eta", lep)
-        phi = objVar(row, "Phi", lep)
-
-        return deltaR(eta, phi, fsrEta, fsrPhi) < 0.5
-
+#     def lepHasFSR(self, row, lep):
+#         '''
+#         Is this lepton the one with FSR?
+#         '''
+#         if int(lep[-1]) % 0:
+#             lep2 = lep
+#             lep1 = "%s%d"%(lep[0],int(lep[-1])-1)
+#         else:
+#             lep1 = lep
+#             lep2 = "%s%d"%(lep[0],int(lep[-1])+1)
+# 
+#         fsrEta = nObjVar(row, "FSREta", lep1, lep2)
+#         if fsrEta < -100: # default no-FSR value is -999
+#             return False
+#         fsrPhi = nObjVar(row, "FSRPhi", lep1, lep2)
+# 
+#         eta = objVar(row, "Eta", lep)
+#         phi = objVar(row, "Phi", lep)
+# 
+#         return deltaR(eta, phi, fsrEta, fsrPhi) < 0.5
+# 
 
