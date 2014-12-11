@@ -36,11 +36,8 @@ class ZZAnalyzer(object):
         intLumi:     in output text file, report how many events we would expect for this integrated luminosity
         '''
         # cheat, for now
-        self.zPtVar = 'PtFsr'
-        self.zEtaVar = 'EtaFsr'
-        self.zPhiVar = 'PhiFsr'
-        self.zMassVar = 'MassFsr'
-        
+        self.zMassVar = 'MassFSR'
+
         if type(channels) == str:
             if channels == '4l' or channels == 'zz' or channels == 'ZZ':
                 self.channels = ['eeee', 'eemm', 'mmmm']
@@ -381,105 +378,6 @@ class ZZAnalyzer(object):
         return ossfs
 
         
-    def getHistoDict(self, channels):
-        '''
-        Return a dictionary of empty TH1Fs organized as hists[channel][quantity] = hist
-        
-        The (ROOT internal) name of the histo will the the sensible obvious thing, with ":~:"+channel
-        appended to the end so that ROOT doesn't get mad (ROOT TSMASH!). The weird ":~:" is so that we
-        can easily remove the channel before we put it into a file.
-        '''
-        self.histos = {}
-
-        for channel in channels+['Total']:
-            self.histos[channel] = {}
-
-            if channel != 'Total':
-                objects = self.mapObjects(channel)
-                
-                for obj in objects:
-                    self.histos[channel][obj+'Pt'] = Hist(240, 0., 120., name='%sPt:~:%s'%(obj, channel), title='%s Pt'%obj)
-                    self.histos[channel][obj+'Eta'] = Hist(100, -5., 5., name='%sEta:~:%s'%(obj, channel), title='%s Eta'%obj)
-                    self.histos[channel][obj+'Phi'] = Hist(64, -math.pi, math.pi, name='%sPhi:~:%s'%(obj, channel), title='%s Phi'%obj)
-                
-            for obj in ['Z1', 'Z2']:
-                self.histos[channel][obj+'Pt'] = Hist(240, 0., 120., name='%sPt:~:%s'%(obj, channel), title='%s Pt'%obj)     
-                self.histos[channel][obj+'Eta'] = Hist(100, -5., 5. , name='%sEta:~:%s'%(obj, channel), title='%s Eta'%obj)   
-                self.histos[channel][obj+'Phi'] = Hist(64, -math.pi , math.pi, name='%sPhi:~:%s'%(obj, channel), title='%s Phi'%obj)   
-                self.histos[channel][obj+'Mass'] = Hist(260, 0., 130., name='%sMass:~:%s'%(obj, channel), title='%s Mass'%obj) 
-                
-            self.histos[channel]['4lPt'] = Hist(200, 0., 400., name='4lPt:~:%s'%  channel,   title='4l Pt')         
-            self.histos[channel]['4lEta'] = Hist(100, -5., 5. , name='4lEta:~:%s'% channel,  title='4l Eta')       
-            self.histos[channel]['4lPhi'] = Hist(64, -math.pi, math.pi, name='4lPhi:~:%s'%channel, title='4l Phi')
-            self.histos[channel]['4lMass'] = Hist(600, 0., 1200., name='4lMass:~:%s'%channel, title='4l Mass')
-            self.histos[channel]['4lMt'] = Hist(600, 0., 1200., name='4lMt:~:%s'%channel, title='4l Mt')
-
-
-    def fillHistos(self, row, channel, objects):
-        '''
-        Add this row's objects to the output histograms
-        '''
-        # Single objects
-        for obj in objects:
-            self.histos[channel][obj+'Pt'].Fill(objVar(row, 'Pt', obj))
-            self.histos[channel][obj+'Eta'].Fill(objVar(row, 'Eta', obj))
-            self.histos[channel][obj+'Phi'].Fill(objVar(row, 'Phi', obj))
-            
-        # Composite objects
-        Z1Mom = ROOT.TLorentzVector()
-        Z2Mom = ROOT.TLorentzVector()
-        Z1Mom.SetPtEtaPhiM(nObjVar(row, self.zPtVar, objects[0], objects[1]),
-                           nObjVar(row, self.zEtaVar, objects[0], objects[1]),
-                           nObjVar(row, self.zPhiVar, objects[0], objects[1]),
-                           nObjVar(row, self.zMassVar, objects[0], objects[1])
-        )
-        Z2Mom.SetPtEtaPhiM(nObjVar(row, self.zPtVar, objects[2], objects[3]),
-                           nObjVar(row, self.zEtaVar, objects[2], objects[3]),
-                           nObjVar(row, self.zPhiVar, objects[2], objects[3]),
-                           nObjVar(row, self.zMassVar, objects[2], objects[3])
-        )
-        totalMom = Z1Mom + Z2Mom
-                   
-        for title in [channel, 'Total']:
-            
-            self.histos[title]['Z1Pt'].Fill(Z1Mom.Pt())
-            self.histos[title]['Z1Eta'].Fill(Z1Mom.Eta())
-            self.histos[title]['Z1Phi'].Fill(Z1Mom.Phi())
-            self.histos[title]['Z1Mass'].Fill(Z1Mom.M())
-                   
-            self.histos[title]['Z2Pt'].Fill(Z2Mom.Pt())
-            self.histos[title]['Z2Eta'].Fill(Z2Mom.Eta())
-            self.histos[title]['Z2Phi'].Fill(Z2Mom.Phi())
-            self.histos[title]['Z2Mass'].Fill(Z2Mom.M())
-
-            self.histos[title]['4lPt'].Fill(totalMom.Pt())
-            self.histos[title]['4lEta'].Fill(totalMom.Eta())
-            self.histos[title]['4lPhi'].Fill(totalMom.Phi())
-            self.histos[title]['4lMass'].Fill(totalMom.M())
-            self.histos[title]['4lMt'].Fill(totalMom.Mt())
-
-
-    def saveAllHistos(self):
-        '''
-        Save all histograms to self.outFile, in directories by channel (+Total)
-        '''
-        f = root_open(self.outFile, 'RECREATE') #ROOT.TFile(self.outFile, 'RECREATE')
-
-        dirs = []
-        for channel, hDict in self.histos.iteritems():
-            dirs.append(ROOT.TDirectoryFile(channel, channel+" histograms"))
-            for foo, hist in hDict.iteritems():
-                # Change name to be consistent
-                name = hist.GetName()
-                name = name.split(":~:")[0]
-                hist.SetName(name)
-                dirs[-1].Append(hist)
-
-        for dir in dirs:
-            dir.Write()
-        f.Close()
-
-
     def cutReport(self):
         '''
         Save a text file with cut information. 
@@ -529,7 +427,7 @@ if __name__ == "__main__":
     parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
     parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Cut set to test.')
     parser.add_argument("infile", nargs='?', 
-                        default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25.root'%os.environ["zza"],
+                        default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_PHYS14DR_PU20bx25.root'%os.environ["zza"],
                         type=str, help='Single file to test on. No wildcards.')
     parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
     parser.add_argument("resultType", nargs='?', default='ZZFinalHists', type=str, help='Format of output file')
