@@ -120,12 +120,15 @@ class ZZResultSaverBase(object):
         allItems = temp.pop('all', {})
 
         for k, v in temp.iteritems():
+            # Anything in 'all' gets included, plus everything unique to this directory
             subTemp = {}
-            if k in allItems:
-                subTemp = allItems[k].copy()
-                subTemp.update(v) # specific items overwrite items in 'all'
-            else:
-                subTemp = v.copy()
+            for sub in allItems:
+                subTemp[sub] = allItems[sub].copy()
+            for subSub in v:
+                if subSub in subTemp:
+                    subTemp[subSub].update(v[subSub].copy()) # specific items overwrite items in 'all'
+                else:
+                    subTemp[subSub] = v[subSub].copy()
 
             subResults, subVariables = self.setupResultDirectory(subTemp, 
                                                                  *args, 
