@@ -26,10 +26,10 @@ class FullSpectrumFSR(Cutter.Cutter):
             'Trigger' : {
                 'cuts' : {
                     'doubleMuPass' : (1, False),
-                    'doubleMuTrkPass' : (1, False),
                     'doubleEPass' : (1, False), 
-                    'mu17ele8Pass' : (1, False),
-                    'mu8ele17Pass' : (1, False),
+                    'eMuPass' : (1, False),
+                    'muEPass' : (1, False),
+                    'tripleEPass' : (1,False),
                 },
                 'logic' : 'or',
                 'type' : 'base',
@@ -47,19 +47,19 @@ class FullSpectrumFSR(Cutter.Cutter):
                 'type' : 'base',
             },
             'mTightIso' : { 
-                'cuts' : { 'RelPFIsoDB' : (0.2, True) },
+                'cuts' : { 'RelPFIsoDBDefault' : (0.2, True) },
                 'objects' : '1',
                 'logic' : 'and',
                 'type' : 'base',
             },
             'eIso' : { 
-                'cuts' : { 'RelPFIsoRhoFSR' : (0.4, True) },
+                'cuts' : { 'RelPFIsoRho' : (0.4, True) },
                 'logic' : 'and',
                 'objects' : '1',
                 'type' : 'base',
             },
             'eTightIso' : { 
-                'cuts' : { 'RelPFIsoRhoFSR' : (0.2, True) },
+                'cuts' : { 'RelPFIsoRho' : (0.2, True) },
                 'logic' : 'and',
                 'objects' : '1',
                 'type' : 'base',
@@ -103,7 +103,7 @@ class FullSpectrumFSR(Cutter.Cutter):
             },
             'eID' : {
                 'cuts' : {
-                    'BDTName' : 'MVANonTrigCSA14',
+                    'BDTName' : 'MVANonTrigID',
                     'ptThr' : 10,
                     'etaLow' : 0.8,
                     'etaHigh' : 1.479,
@@ -126,8 +126,8 @@ class FullSpectrumFSR(Cutter.Cutter):
             },
             'Z1Mass' : {
                 'cuts' : { 
-                    'MassFsr#lower' : (40., False),
-                    'MassFsr#upper' : (120., True),
+                    'MassFSR#lower' : (40., False),
+                    'MassFSR#upper' : (120., True),
                 },
                 'objects' : '2',
                 'type' : 'base',
@@ -135,8 +135,8 @@ class FullSpectrumFSR(Cutter.Cutter):
             },
             'Z2Mass' : {
                 'cuts' : { 
-                    'MassFsr#lower' : (12., False),
-                    'MassFsr#upper' : (120., True),
+                    'MassFSR#lower' : (12., False),
+                    'MassFSR#upper' : (120., True),
                 },
                 'objects' : '2',
                 'type' : 'base',
@@ -144,7 +144,7 @@ class FullSpectrumFSR(Cutter.Cutter):
             },
             'LeptonPairMass' : {
                 'cuts' : {
-                    'Mass' : (4., False),
+                    'MassFSR' : (4., False),
                     'SS' : (1, True), # Must be opposite sign, same flavor not required
                 },
                 'objects' : '2',
@@ -222,7 +222,7 @@ class FullSpectrumFSR(Cutter.Cutter):
                 'objects' : '4',
                 'type' : 'caller',
             },
-            'MesonVeto' : {
+            'QCDVeto' : {
                 'cuts' : {
                     'lpm' : 'LeptonPairMass',
                 },
@@ -251,7 +251,7 @@ class FullSpectrumFSR(Cutter.Cutter):
         flow['Z2Mass'] = ('Z2Mass', [3,4])
         flow['Lepton1Pt'] = ('L1Pt', [1,3])
         flow['Lepton2Pt'] = ('L2Pt', [1,2,3,4])
-        flow['LeptonPairMass'] = ('MesonVeto', [1,2,3,4])
+        flow['LeptonPairMass'] = ('QCDVeto', [1,2,3,4])
         flow['4lMass'] = ('4lMass', [])
         
         return flow
