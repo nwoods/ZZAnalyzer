@@ -61,7 +61,7 @@ class PlotZZ(object):
         # Setup samples (which are just all ROOT files in the results directory)
         # Makes a dictionary with an entry for each sample, to hold the ntuples (now) and various histograms (later)
         if infiles == 'ZZA_NORMAL':
-            self.infiles = "%s/results/SMPZZ4l2012/*.root"%os.environ["zza"]
+            self.infiles = "%s/results/FullSpectrumFSR/*.root"%os.environ["zza"]
         else:
             self.infiles = infiles
         self.infiles = glob.glob(self.infiles)
@@ -70,11 +70,17 @@ class PlotZZ(object):
             sample = fileName.split('/')[-1].replace('.root','')
             self.samples[sample] = {}
             self.samples[sample]["file"] = ROOT.TFile(fileName)
-            for channel in self.channels+['Total']:
+            firstChannel = True
+            for channel in self.channels:
                 self.samples[sample][channel] = {}
+                if firstChannel:
+                    self.samples[sample]['Total'] = {}
                 self.samples[sample][channel]["ntuple"] = self.samples[sample]["file"].Get(channel)
                 assert type(self.samples[sample][channel]["ntuple"]).__name__ != 'PyROOT_NoneType', "Oops, no Ntuple %s"%(channel+"/final/Ntuple")
                 self.samples[sample][channel]["histos"] = {}
+                if firstChannel:
+                    self.samples[sample]['Total']["histos"] = {}
+                    firstChannel = False
 
         # Set up output directory
         self.outdir = outdir
@@ -108,6 +114,13 @@ class PlotZZ(object):
         self.samples[sample][channel]["histos"][variable] = h.Clone()
         if not sampleInfo[sample]["isData"]:
             self.samples[sample][channel]["histos"][variable].Scale(sampleInfo[sample]["xsec"] * self.intLumi / sampleInfo[sample]["n"])
+        
+        # also add to the totals if a correct variable
+        if '4l' in variable or 'Z1' in variable or 'Z2' in variable:
+            if variable in self.samples[sample]['Total']["histos"]:
+                self.samples[sample]['Total']["histos"][variable].Add(self.samples[sample][channel]["histos"][variable])
+            else:
+                self.samples[sample]['Total']["histos"][variable] = self.samples[sample][channel]["histos"][variable].Clone()
 
 
     def makeAllHists(self, channel, variable):
@@ -258,10 +271,14 @@ class PlotZZ(object):
         If len(rebin)>1, the elements of rebin are interpreted as bin boundaries, and the new
         histogram will have length len(rebin)-1
         If logy is True, the y axis will be plotted on a log scale
+
+        If the channel is 'Total', it doesn't make any new histograms, assuming 
+        that the correct ones are already stored.
         '''
         c = ROOT.TCanvas('foo', 'foo')
         
-        self.makeAllHists(channel, variable)
+        if channel != 'Total':
+            self.makeAllHists(channel, variable)
 
         minWidth = -1
         if rebin:
