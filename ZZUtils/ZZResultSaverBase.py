@@ -139,6 +139,17 @@ class ZZResultSaverBase(object):
         return results, variables            
 
 
+    def saveVar(self, row, *varPath):
+        '''
+        Saves a variable from row.
+        varPath should be the path to the variable, including the variable name
+        itself last, in the same format as saveRow's *args.
+        '''
+        output = self.getDictItem(self.results, *varPath)
+        calculator = self.getDictItem(self.variables, *varPath)
+        self.saveNumber(calculator(row), output)
+
+
     def saveRow(self, row, *args, **kwargs):
         '''
         Save everything we want from the row. args specified the directory we
