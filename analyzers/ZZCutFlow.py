@@ -159,7 +159,7 @@ class ZZCutFlow(ZZAnalyzer):
         results = []
         for obj in objects[:2]:
             if obj[0] == 'e':
-                results.append(objVar(row, 'RelPFIsoRhoFSR', obj))
+                results.append(objVar(row, 'RelPFIsoRho', obj))
             elif obj[0] == 'm':
                 results.append(objVar(row, 'RelPFIsoDBDefault', obj))
         return results
@@ -173,7 +173,7 @@ class ZZCutFlow(ZZAnalyzer):
         results = []
         for obj in objects[2:]:
             if obj[0] == 'e':
-                results.append(objVar(row, 'RelPFIsoRhoFSR', obj))
+                results.append(objVar(row, 'RelPFIsoRho', obj))
             elif obj[0] == 'm':
                 results.append(objVar(row, 'RelPFIsoDBDefault', obj))
         return results
@@ -217,7 +217,7 @@ class ZZCutFlow(ZZAnalyzer):
         '''
         objectTemplate = self.mapObjects(channel)
         objects = self.orderLeptons(row, channel, objectTemplate)
-        return nObjVar(row, 'MassFsr', objects[0], objects[1])
+        return nObjVar(row, 'MassFSR', objects[0], objects[1])
 
 
     def getZ2Mass(self, row, channel):
@@ -226,7 +226,7 @@ class ZZCutFlow(ZZAnalyzer):
         '''
         objectTemplate = self.mapObjects(channel)
         objects = self.orderLeptons(row, channel, objectTemplate)
-        return nObjVar(row, 'MassFsr', objects[2], objects[3])
+        return nObjVar(row, 'MassFSR', objects[2], objects[3])
 
 
 
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
     parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Cut set to test.')
     parser.add_argument("infile", nargs='?', 
-                        default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_Spring14miniaod_PU20bx25.root'%os.environ["zza"],
+                        default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_PHYS14DR_PU20bx25.root'%os.environ["zza"],
                         type=str, help='Single file to test on. No wildcards.')
     parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
     parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
