@@ -81,27 +81,27 @@ class ZZCutFlowHists(ZZHistSaver):
 
         Z1MassVarDictM = {
             'f' : self.copyFunc("m1_m2_MassFSR"),
-            'params' : [600, 0., 1200.],
+            'params' : [50, 0., 150.],
             }
         Z2MassVarDictM = {
-            'f' : self.copyFunc("m3_m3_MassFSR"),
-            'params' : [600, 0., 1200.],
+            'f' : self.copyFunc("m3_m4_MassFSR"),
+            'params' : [50, 0., 150.],
             }
         Z1MassVarDictE = {
             'f' : self.copyFunc("e1_e2_MassFSR"),
-            'params' : [600, 0., 1200.],
+            'params' : [50, 0., 150.],
             }
         Z2MassVarDictE = {
             'f' : self.copyFunc("e3_e4_MassFSR"),
-            'params' : [600, 0., 1200.],
+            'params' : [50, 0., 150.],
             }
         Z1MassVarDictEM = {
-            'f' : lambda row: self.BetterZMass(row, "e1_e2_MassFSR", "m1_m2_MassFSR"),
-            'params' : [600, 0., 1200.],
+            'f' : lambda row: self.betterZMass(row, "e1_e2_MassFSR", "m1_m2_MassFSR"),
+            'params' : [50, 0., 150.],
             }
         Z2MassVarDictEM = {
-            'f' : lambda row: self.WorseZMass(row, "e1_e2_MassFSR", "m1_m2_MassFSR"),
-            'params' : [600, 0., 1200.],
+            'f' : lambda row: self.worseZMass(row, "e1_e2_MassFSR", "m1_m2_MassFSR"),
+            'params' : [50, 0., 150.],
             }
 
         massFlow = {c : MassVarDict for c in cutList}
@@ -142,15 +142,15 @@ class ZZCutFlowHists(ZZHistSaver):
 
         template = {
             'all' : {
-                '4lMassFlow' : {
+                '4lMass' : {
                     'vars' : massFlow,
                 },
             },
             'mmmm' : {
-                'Z1MassFlow' : {
+                'Z1Mass' : {
                     'vars' : Z1MassFlowM
                     },
-                'Z2MassFlow' : {
+                'Z2Mass' : {
                     'vars' : Z2MassFlowM
                     },
                 'control' : {
@@ -158,10 +158,10 @@ class ZZCutFlowHists(ZZHistSaver):
                     },
                 },
             'eeee' : {
-                'Z1MassFlow' : {
+                'Z1Mass' : {
                     'vars' : Z1MassFlowE
                     },
-                'Z2MassFlow' : {
+                'Z2Mass' : {
                     'vars' : Z2MassFlowE
                     },
                 'control' : {
@@ -169,10 +169,10 @@ class ZZCutFlowHists(ZZHistSaver):
                     },
                 },
             'eemm' : {
-                'Z1MassFlow' : {
+                'Z1Mass' : {
                     'vars' : Z1MassFlowEM
                     },
-                'Z2MassFlow' : {
+                'Z2Mass' : {
                     'vars' : Z2MassFlowEM
                     },
                 'control' : {
