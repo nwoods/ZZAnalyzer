@@ -158,7 +158,7 @@ class ZZAnalyzer(object):
             else:
                 print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['Total'])
                 
-        print "%s: Done with all channels, saving results"%self.sample
+        print "%s: Done with all channels, saving results as %s"%(self.sample, self.outFile)
 
         inFile.close()
 
