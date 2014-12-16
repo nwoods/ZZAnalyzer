@@ -16,13 +16,14 @@ import signal
 import time
 from rootpy.plotting import Hist
 
-def runACutFlow(channels, cutSet, infile, outdir, maxEvents):
+def runACutFlow(channels, cutSet, infile, outdir, resultType, maxEvents):
     '''
     Run a ZZCutFlow.
     Intended for use in threads, such that several processes each do this once.
     '''
     outfile = outdir+'/'+(infile.split('/')[-1]).replace('.root', '_cutflow.root')
-    analyzer = ZZCutFlow.ZZCutFlow(channels, cutSet, infile, outfile, maxEvents)
+    print "oDir: %s, oFile: %s, resType: %s"%(outdir, outfile, resultType)
+    analyzer = ZZCutFlow.ZZCutFlow(channels, cutSet, infile, outfile, resultType, maxEvents)
     analyzer.analyze()
 
 def init_worker():
@@ -43,6 +44,8 @@ parser.add_argument('cutSet', nargs='?', type=str, default='HZZ4l2012',
                     help='Name of cut template.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
                     help='Directory to place output (defaults to $zza/results/<cutSet>/cutflow).')
+parser.add_argument('resultType', type=str, nargs='?', default='ZZCutFlowHists',
+                    help='Template for saving results')
 parser.add_argument('--nThreads', type=int,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 4.')
 parser.add_argument('--maxEvents', nargs='?', type=int,
@@ -93,7 +96,7 @@ else:
 pool = multiprocessing.Pool(nThreads, init_worker)
 results = []
 for infile in infiles:
-    results.append(pool.apply_async(runACutFlow, args=(channels, args.cutSet, infile, outdir, maxEvents)))
+    results.append(pool.apply_async(runACutFlow, args=(channels, args.cutSet, infile, outdir, args.resultType, maxEvents)))
 
 # A little magic to make keyboard interrupts work
 try:
