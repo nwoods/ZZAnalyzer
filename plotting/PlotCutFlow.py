@@ -101,17 +101,23 @@ class PlotCutFlow(object):
             sample = fileName.split('/')[-1].replace('_cutflow','').replace('.root','')
             self.samples[sample] = {}
             self.samples[sample]["file"] = ROOT.TFile(fileName)
-            for channel in self.channels+['Total']:
+            for channel in self.channels:
                 self.samples[sample][channel] = {}
+                if 'Total' not in self.samples[sample]:
+                    self.samples[sample]['Total'] = {}
                 flows = [k.GetName() for k in self.samples[sample]["file"].Get(channel).GetListOfKeys()]
                 for flow in flows:
                     self.samples[sample][channel][flow] = {}
+                    if flow not in self.samples[sample]['Total']:
+                        self.samples[sample]['Total'][flow] = {}
                     self.samples[sample][channel][flow]["ntuple"] = self.samples[sample]["file"].Get("%s/%s"%(channel,flow))
                     if flow not in self.cutFlows:
                         self.cutFlows[flow] = []
                         for var in [k.GetName() for k in self.samples[sample][channel][flow]["ntuple"].GetListOfKeys()]:
                             self.cutFlows[flow].append(var)
                     self.samples[sample][channel][flow]["histos"] = {}
+                    if 'histos' not in self.samples[sample]['Total'][flow]:
+                        self.samples[sample]['Total'][flow]["histos"] = {}
 
 
 
@@ -126,6 +132,10 @@ class PlotCutFlow(object):
         self.samples[sample][channel][flow]["histos"][variable] = h.Clone()
         if not sampleInfo[sample]["isData"]:
             self.samples[sample][channel][flow]["histos"][variable].Scale(sampleInfo[sample]["xsec"] * self.intLumi / sampleInfo[sample]["n"])
+        if variable not in self.samples[sample]['Total'][flow]["histos"]:
+            self.samples[sample]['Total'][flow]["histos"][variable] = self.samples[sample][channel][flow]["histos"][variable].Clone()
+        else:
+            self.samples[sample]['Total'][flow]["histos"][variable].Add(self.samples[sample][channel][flow]["histos"][variable])
 
 
     def makeAllHists(self, channel, flow):
@@ -256,10 +266,14 @@ class PlotCutFlow(object):
         If len(rebin)==1, rebin[0] bins will be combined to make a single bin. 
         If len(rebin)>1, the elements of rebin are interpreted as bin boundaries, and the new
         histogram will have length len(rebin)-1
+
+        If channel is 'Total', no new histograms are made, assuming the other channels were
+        done first so the total histograms are filled.
         '''
         c = ROOT.TCanvas('foo', 'foo')#, 1200, 1200)
         
-        self.makeAllHists(channel, flow)
+        if channel != 'Total':
+            self.makeAllHists(channel, flow)
 
         minWidth = -1
         if rebin:
@@ -299,8 +313,8 @@ class PlotCutFlow(object):
             # Have to call draw on stack before we can access its axis
             stack.Draw()
 
-            stack.SetTitle(self.getTitle(channel,variable))
-            stack.GetXaxis().SetTitle(self.getXLabel(channel,variable))
+#            stack.SetTitle(self.getTitle(channel,variable))
+            stack.GetXaxis().SetTitle(self.getXLabel(channel,flow, variable))
             stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
 #            stack.GetYaxis().SetTitleOffset(1.05)
 
@@ -316,7 +330,7 @@ class PlotCutFlow(object):
             self.style.setPrelimStyle(c)
 
             c.Print("%s/%s/%s/%s.png"%(self.outdir, channel, flow, variable))
-            c.Print("%s/%s/%s/%s.pdf"%(self.outdir, channel, flow, variable))
+#             c.Print("%s/%s/%s/%s.pdf"%(self.outdir, channel, flow, variable))
 
 
     def plotAllFlows(self, channel, logy=False):
@@ -397,11 +411,10 @@ class PlotCutFlow(object):
                 return '%s Z_{2} Invariant Mass after %s cut'%(search, cut.replace('Z1','Z_{1} ').replace('Z2','Z_{2} '))
 
 
-    def getXLabel(self, channel, variable):
+    def getXLabel(self, channel, flow, variable):
         '''
         For a lot of possible variables, get something reasonable to put in the title of the plot
         '''
-        words = variable.split('_')
         if channel == 'mmmm':
             search = 'ZZ#rightarrow4#mu'
             particle = '#mu'
@@ -419,29 +432,38 @@ class PlotCutFlow(object):
             search = ''
             particle = 'l'
 
-        if words[-1] == 'control':
-            if words[0] == 'Z1Iso':
-                return '%s_{1,2} Rel. Iso.'%(particle)
-            elif words[0] == 'Z2Iso':
-                return '%s_{3,4} Rel. Iso'%(particle)
-            elif words[0] == 'Z1Mass':
-                return 'm_{Z_{1}}'
-            elif words[0] == 'Z2Mass':
-                return 'm_{Z_{2}}'
-            elif words[0] == 'Lepton1Pt':
-                return '%s{1} p_{T}'%(particle)
-            elif words[0] == 'Lepton2Pt':
-                return '%s{2} p_{T}'%(particle)
+        if flow == 'control':
+            name = variable
+        else:
+            name = flow
 
-        if words[-2] == 'cutflow':
-            cut = words[-1]
-            if words[0] == '4lMass':
-                return '%s Inv. Mass'%search
-            if words[0] == 'Z1Mass':
-                return 'm_{Z_{1}}'
-            if words[0] == 'Z2Mass':
-                return 'm_{Z_{2}}'
-
+        if name == 'Z1Iso':
+            return '%s_{1,2} Rel. Iso.'%(particle)
+        elif name == 'Z2Iso':
+            return '%s_{3,4} Rel. Iso'%(particle)
+        if name == 'l1Iso':
+            return '%s_{1} Rel. Iso.'%(particle)
+        elif name == 'l2Iso':
+            return '%s_{2} Rel. Iso'%(particle)
+        elif name == 'l3Iso':
+            return '%s_{3} Rel. Iso.'%(particle)
+        elif name == 'l4Iso':
+            return '%s_{4} Rel. Iso'%(particle)
+        elif name == 'Z1Mass':
+            return 'm_{Z_{1}}'
+        elif name == 'Z2Mass':
+            return 'm_{Z_{2}}'
+        elif name == 'lepton1Pt':
+            return '%s{1} p_{T}'%(particle)
+        elif name == 'lepton2Pt':
+            return '%s{2} p_{T}'%(particle)
+        elif name == '4lMass':
+            return '%s Inv. Mass'%search
+        elif name == 'Z1Mass':
+            return 'm_{Z_{1}}'
+        elif name == 'Z2Mass':
+            return 'm_{Z_{2}}'
+        
 
 #         title = 'ZZ#rightarrow'
 #         if channel == 'mmmm':

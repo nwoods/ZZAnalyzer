@@ -342,7 +342,7 @@ class PlotZZ(object):
         self.style.setPrelimStyle(c)
 
         c.Print("%s/%s/%s.png"%(self.outdir, channel, variable))
-        c.Print("%s/%s/%s.pdf"%(self.outdir, channel, variable))
+#         c.Print("%s/%s/%s.pdf"%(self.outdir, channel, variable))
 
 
 
