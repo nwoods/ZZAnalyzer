@@ -34,6 +34,7 @@ class ZZResultSaverBase(object):
         '''
         self.fileName = fileName
         self.channels = channels
+        self.directories = []
         self.keepTotal = kwargs.get('keepTotal',False) or 'Total' in channels
         self.template = self.setupTemplate(*args, **kwargs)
         self.results, self.variables = self.setupResults(*args, **kwargs)
@@ -130,9 +131,14 @@ class ZZResultSaverBase(object):
                 else:
                     subTemp[subSub] = v[subSub].copy()
 
+            subdir = Directory(k)
+            subdir.cd()
             subResults, subVariables = self.setupResultDirectory(subTemp, 
                                                                  *args, 
                                                                  **kwargs)
+            subdir.GetMotherDir().cd()
+            self.directories.append(subdir)
+
             variables[k] = subVariables
             results[k] = subResults
 
