@@ -76,7 +76,7 @@ class ZZCutFlowHists(ZZHistSaver):
             
         MassVarDict = {
             'f' : self.copyFunc("MassFSR"),
-            'params' : [600, 0., 1200.],
+            'params' : [48, 0., 1200.],
             }
 
         Z1MassVarDictM = {
