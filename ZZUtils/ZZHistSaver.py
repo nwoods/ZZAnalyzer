@@ -27,11 +27,15 @@ class ZZHistSaver(ZZResultSaverBase):
         super(ZZHistSaver, self).__init__(fileName, channels, *args, **kwargs)
 
 
-    def saveNumber(self, num, hist):
+    def saveNumber(self, hist, num, var=''):
         '''
         Fill hist with num
         '''
         hist.Fill(num)
+#         print histDict[var].GetName()
+#         print var
+#         print histDict[var].GetEntries()
+#         print "\n"
 
 
     def setupResultObjects(self, resultArgs, *args, **kwargs):
@@ -48,3 +52,8 @@ class ZZHistSaver(ZZResultSaverBase):
         return hists
         
                      
+    def getResultObject(self, resultDict, var):
+        '''
+        Get correct histogram from dictionary
+        '''
+        return resultDict[var]
