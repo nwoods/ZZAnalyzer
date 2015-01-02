@@ -14,7 +14,7 @@ Author: Nate Woods, U. Wisconsin.
 '''
 
 from rootpy.io import root_open, Directory
-from rootpy.tree import Tree, Ntuple
+from rootpy.tree import Tree
 from ZZHelpers import * # evVar, objVar, nObjVar
 
 
@@ -33,19 +33,28 @@ class ZZResultSaverBase(object):
         its own channel and for channel 'Total'.
         '''
         self.fileName = fileName
+        self.outFile = root_open(self.fileName, "recreate")
         self.channels = channels
         self.directories = []
         self.keepTotal = kwargs.get('keepTotal',False) or 'Total' in channels
         self.template = self.setupTemplate(*args, **kwargs)
-        self.results, self.variables = self.setupResults(*args, **kwargs)
+        self.results, self.functions = self.setupResults(*args, **kwargs)
 
 
-    def saveNumber(self, num, resultObject):
+    def saveNumber(self, result, number, var=''):
         '''
         Virtual.
-        Used to store num in resultObject
+        Used to store num in result
         '''
         pass
+
+
+    def getResultObject(self, resultDir, var):
+        '''
+        Virtual
+        Given a directory of result objects and a variable, pick the one 
+        variable should be saved into.
+        '''
 
 
     def setupResultObjects(self, resultArgs, *args, **kwargs):
@@ -55,6 +64,16 @@ class ZZResultSaverBase(object):
         or whatever), takes a dictionary of arguments needed to build these.
         '''
         return {}
+
+
+    def finalizeResultObject(self, outputs):
+        '''
+        Virtual.
+        "close" this result object for this event after values have been
+        placed. I.e., fill a tree after the buffers are set.
+        Not always needed (e.g., histograms are all set after being filled).
+        '''
+        pass
 
 
     def getDictItem(self, theDict, *args):
@@ -91,10 +110,39 @@ class ZZResultSaverBase(object):
                         objects. It 'params' is missing, None will be passed
                         to the function that generates result objects.
         '''
-#         self.stopnow = False
-        results, variables = self.setupResultDirectory(self.template, *args, **kwargs)
+        results, calculators = self.setupResultDirectory(self.template, *args, **kwargs)
 
-        return results, variables
+        functions = self.setupFunctions(results, calculators)
+
+        return results, functions
+
+
+    def setupFunctions(self, results, calculators):
+        '''
+        Given nested dictionaries of result objects and functions (of the
+        same structure!), return a nested dictionary of functions that
+        calculate numbers (with the calculators) and place them in the
+        correct result objects.
+        '''
+        funs = {}
+        for name, calc in calculators.iteritems():
+            if isinstance(calc, dict):
+                funs[name] = self.setupFunctions(results[name], calc)
+            else:
+                funs[name] = self.getSaveFunction(results, name, calc)
+
+        return funs
+
+
+    def getSaveFunction(self, results, var, calculator):
+        '''
+        Returns a function that saves the result of caclulator in the correct
+        item in results for variable var.
+        This is a separate function to deal with obnoxious Python scoping
+        issues.
+        '''
+        result = self.getResultObject(results, var)
+        return lambda row: self.saveNumber(result, calculator(row), var)
 
 
     def setupResultDirectory(self, temp, *args, **kwargs):
@@ -136,6 +184,7 @@ class ZZResultSaverBase(object):
             subResults, subVariables = self.setupResultDirectory(subTemp, 
                                                                  *args, 
                                                                  **kwargs)
+#            subdir.Write()
             subdir.GetMotherDir().cd()
             self.directories.append(subdir)
 
@@ -156,7 +205,7 @@ class ZZResultSaverBase(object):
         self.saveNumber(calculator(row), output)
 
 
-    def saveRow(self, row, *args, **kwargs):
+    def saveRow(self, row, *pathToVars, **kwargs):
         '''
         Save everything we want from the row. args specified the directory we
         care about (i.e. the channel).
@@ -166,13 +215,27 @@ class ZZResultSaverBase(object):
         the directory structure and do the same in all subdirectories
         '''
         nested = kwargs.get("nested", False)
-        outputs = self.getDictItem(self.results, *args)
-        calculators = self.getDictItem(self.variables, *args)
-        for var in outputs:
-            if not isinstance(outputs[var], dict): # Not nested by default
-                self.saveNumber(calculators[var](row), outputs[var])
+        funs = self.getDictItem(self.functions, *pathToVars)
+        for var, fun in funs.iteritems():
+            if not isinstance(fun, dict): # Not nested by default
+#                print var
+                fun(row)
             elif nested: # if we do want to recurse down
-                self.saveRow(row, *(list(args)+[var]), nested=True)
+                self.saveRow(row, *(list(pathToVars)+[var]), nested=True)
+                
+        self.finalizeEvent(self.getDictItem(self.results, *pathToVars), nested)
+
+
+    def finalizeEvent(self, resultDict, nested=False):
+        '''
+        Finalize result objects (filling the tree or whatever). 
+        Recurses down result dicts if nested is True.
+        '''
+        for var, result in resultDict.iteritems():
+            if not isinstance(result, dict):
+                self.finalizeResultObject(result)
+            elif nested:
+                self.finalizeEvent(result)
 
 
     def copyFunc(self, var):
@@ -184,29 +247,9 @@ class ZZResultSaverBase(object):
 
     def save(self, *args):
         '''
-        Save everything, by calling self.saveResult, which saves everything in 
-        a directory structure matching the dictionary structure of self.results
-        (see header comment on self.setupResults)
+        Save output file
         '''
-        with root_open(self.fileName,"recreate") as f:
-            self.saveResult(self.results, *args)
-
-
-    def saveResult(self, result, *args):
-        '''
-        Recursively saves objects in a directory structure matching the 
-        dictionary structure of result. See header comment on self.setupResults
-        for details.
-        '''
-        for name, obj in result.iteritems():
-            if isinstance(obj, dict):
-                subdir = Directory(name)
-                subdir.cd()
-                self.saveResult(obj)
-                subdir.Write()
-                subdir.GetMotherDir().cd()
-            else:
-                obj.Write()
+        self.outFile.close()
 
 
 
