@@ -256,7 +256,7 @@ for channel in numbers:
 
     leg.Draw("same")
 
-    style.setPrelimStyle(c)
+    style.setPrelimStyle(c, 'N. Woods', True, 'Preliminary Simulation', 13, args.intLumi)
     
     outFile = "%s/cutSummary_%s.png"%(outdir, channel)
     c.Print(outFile)

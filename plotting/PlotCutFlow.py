@@ -237,7 +237,7 @@ class PlotCutFlow(object):
         return minWidth
 
         
-    def makeLegend(self, channel, flow, variable, bounds=[0.6, 0.5, 0.9, 0.8]):
+    def makeLegend(self, channel, flow, variable, bounds=[0.6, 0.6, 0.9, 0.9]):
         '''
         Returns a legend for all samples in this channel for variable. 
         The label on the sample is sampleInfo[sample]["shortName"]
@@ -296,17 +296,14 @@ class PlotCutFlow(object):
             # Legend needs to be placed differently depending on the quantity plotted
             etaDims = [0.375, 0.65, 0.625, 0.9]
             phiDims = [0.375, 0.35, 0.625, 0.6]
-            ZMassDims = [0.2, 0.5, 0.45, 0.8]
-            Z2MassDimsLog = [0.73, 0.5, 0.93, 0.8]
+            ZMassDims = [0.275, 0.65, 0.525, 0.9]
             
             if "Eta" in variable:
                 legend = self.makeLegend(channel, flow, variable, etaDims)
             elif "Phi" in variable:
                 legend = self.makeLegend(channel, flow, variable, phiDims)
-            elif 'Z1Mass' in variable[:6] or 'Z2Mass' in variable[:6] and not logy:
+            elif ('Z1Mass' in variable or 'Z2Mass' in variable) and "control" in flow:
                 legend = self.makeLegend(channel, flow, variable, ZMassDims)
-            elif 'Z2Mass' in variable[:6] and logy:
-                legend = self.makeLegend(channel, flow, variable, Z2MassDimsLog)
             else:
                 legend = self.makeLegend(channel, flow, variable)
 
@@ -327,7 +324,7 @@ class PlotCutFlow(object):
             if logy:
                 c.SetLogy()
 
-            self.style.setPrelimStyle(c)
+            self.style.setPrelimStyle(c, 'N. Woods', True, 'Preliminary Simulation', 13, self.intLumi)
 
             c.Print("%s/%s/%s/%s.png"%(self.outdir, channel, flow, variable))
 #             c.Print("%s/%s/%s/%s.pdf"%(self.outdir, channel, flow, variable))
@@ -454,9 +451,9 @@ class PlotCutFlow(object):
         elif name == 'Z2Mass':
             return 'm_{Z_{2}}'
         elif name == 'lepton1Pt':
-            return '%s{1} p_{T}'%(particle)
+            return '%s_{1} p_{T}'%(particle)
         elif name == 'lepton2Pt':
-            return '%s{2} p_{T}'%(particle)
+            return '%s_{2} p_{T}'%(particle)
         elif name == '4lMass':
             return '%s Inv. Mass'%search
         elif name == 'Z1Mass':

@@ -58,9 +58,10 @@ class ZZPlotStyle(object):
         TGaxis.SetExponentOffset(-0.055, -0.062, "x") # will overlap with title unless title is centered
 
 
-    def setPrelimStyle(self, canvas, author='N. Woods', textRight=True, dataType='Preliminary Simulation', energy=13, intLumi=19.71):
+    def setPrelimStyle(self, canvas, author='N. Woods', textRight=True, dataType='Preliminary Simulation', energy=13, intLumi=19710.):
         '''
         Set plotting defaults to something appropriate for UW prelims. 
+        intLumi is given in pb^-1 and converted to fb^-1
         '''
         # Make sure that if there's an exponent on the X axis, it's visible but not on top of the axis title
         self.fixXExponent(canvas)
@@ -83,15 +84,16 @@ class ZZPlotStyle(object):
 
         iPeriod = 0
         for i, e in enumerate(energy):
+            iL = intLumi[i] / 1000 # convert to fb^-1
             if e == 13:
                 iPeriod += 4
-                CMS_lumi.lumi_13TeV = CMS_lumi.lumi_13TeV.replace("20.1","%.1f"%intLumi[i])
+                CMS_lumi.lumi_13TeV = CMS_lumi.lumi_13TeV.replace("20.1","%.1f"%iL)
             elif energy == 8:
                 iPeriod += 2
-                CMS_lumi.lumi_8TeV = CMS_lumi.lumi_8TeV.replace("19.7","%.1f"%intLumi[i])
+                CMS_lumi.lumi_8TeV = CMS_lumi.lumi_8TeV.replace("19.7","%.1f"%iL)
             if energy == 7:
                 iPeriod += 1
-                CMS_lumi.lumi_7TeV = CMS_lumi.lumi_7TeV.replace("5.1","%.1f"%intLumi[i])
+                CMS_lumi.lumi_7TeV = CMS_lumi.lumi_7TeV.replace("5.1","%.1f"%iL)
                 
         # Put "CMS preliminary simulation" or whatever above the left side of the plot
         iPos = 0

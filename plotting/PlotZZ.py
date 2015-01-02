@@ -302,7 +302,7 @@ class PlotZZ(object):
 
         # Legend needs to be placed differently depending on the quantity plotted
         etaDims = [0.43, 0.65, 0.653, 0.9]
-        phiDims = [0.375, 0.35, 0.625, 0.6]
+        phiDims = [0.2, 0.6, 0.45, 0.85]
         
         if "Eta" in variable:
             legend = self.makeLegend(channel, variable, etaDims)
@@ -328,7 +328,6 @@ class PlotZZ(object):
             units = "[%s]"%units
         stack.GetXaxis().SetTitle("%s %s"%(variable.replace('4l',leptons), units))
         stack.GetYaxis().SetTitle("Events" + yAxisSuffix)
- #       stack.GetYaxis().SetTitleOffset(1.5)
 
         stack.Draw("hist")
 
@@ -339,10 +338,9 @@ class PlotZZ(object):
         if logy:
             c.SetLogy()
 
-        self.style.setPrelimStyle(c)
+        self.style.setPrelimStyle(c, 'N. Woods', True, 'Preliminary Simulation', 13, self.intLumi)
 
         c.Print("%s/%s/%s.png"%(self.outdir, channel, variable))
-#         c.Print("%s/%s/%s.pdf"%(self.outdir, channel, variable))
 
 
 
