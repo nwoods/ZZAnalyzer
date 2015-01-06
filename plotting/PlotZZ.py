@@ -362,10 +362,10 @@ if __name__ == "__main__":
     else:
         channels = args.channels
 
-    massBins = [i*24. for i in xrange(43)] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
-    ptBins = [i*6. for i in xrange(51)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
-    etaBins=[5]
-    phiBins=[4]
+    massBins = []#i*24. for i in xrange(43)] #[30., 80.] + [129.+i*49. for i in xrange(15)] + [864.+i*98. for i in xrange(3)] + [1500.]
+    ptBins = []#i*6. for i in xrange(51)] #[i*10. for i in xrange(8)] + [i*20. for i in xrange(4, 19)] # + [300.+i*40. for i in xrange(3)] + [460., 600.]
+    etaBins=[] # 5]
+    phiBins=[] # 4]
 
     plotter = PlotZZ(channels, args.intlumi, args.outdir, args.infiles)
 
