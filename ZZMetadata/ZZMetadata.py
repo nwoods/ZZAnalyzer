@@ -72,7 +72,7 @@ sampleInfo["DYJetsToLL_M-50_13TeV-madgraph-pythia8_PHYS14DR_PU20bx25"] = {
     'isData' : False,
     'shortName' : 'DYJets',
     'isSignal' : False,
-    'color' : EColor.kAzure+7,
+    'color' : EColor.kGreen+3,
 }
 sampleInfo["GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6_PHYS14DR_PU20bx25"] = {
     'xsec' : 43.62 * 0.000294,
@@ -96,7 +96,7 @@ sampleInfo["ZZTo4L_Tune4C_13TeV-powheg-pythia8_PHYS14DR_PU20bx25"] = {
     'isData' : False,
     'shortName' : 'ZZ->4l',
     'isSignal' : True,
-    'color' : EColor.kViolet,
+    'color' : EColor.kAzure-9,
 }
 sampleInfo["WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_PHYS14DR_PU20bx25"] = {
     'xsec' : 1.634,
@@ -104,7 +104,7 @@ sampleInfo["WZJetsTo3LNu_Tune4C_13TeV-madgraph-tauola_PHYS14DR_PU20bx25"] = {
     'isData' : False,
     'shortName' : 'WZJets',
     'isSignal' : False,
-    'color' : EColor.kCyan,
+    'color' : EColor.kViolet,
 }
 sampleInfo["WZJetsTo3LNu_TuneZ2_8TeV-madgraph-tauola_Summer12DR53X_PUS10"] = {
     'xsec' : 0.8674,
