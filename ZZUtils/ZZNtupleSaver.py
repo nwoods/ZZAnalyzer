@@ -17,6 +17,7 @@ Author: Nate Woods, U. Wisconsin
 from rootpy.tree import Tree, TreeModel, FloatCol
 from ZZResultSaverBase import ZZResultSaverBase
 from ZZHelpers import * # evVar, objVar, nObjVar
+from collections import OrderedDict
 
 
 
@@ -40,10 +41,15 @@ class ZZNtupleSaver(ZZResultSaverBase):
         '''
         Dict with an Ntuple keyed to 'Ntuple'
         '''
-        modelCols = {}
-        for result in resultArgs:
-            modelCols[result] = FloatCol()
-        
+        if not resultArgs:
+            return {}
+
+        # Sort so we can find stuff using TBrowser
+        cols = sorted(resultArgs.keys())
+        modelCols = OrderedDict()
+        for col in cols:
+            modelCols[col] = FloatCol()
+    
         ntupleModel = type("aModel", (TreeModel,), modelCols)
         ntuple = Tree("Ntuple", model=ntupleModel)
         
@@ -61,13 +67,4 @@ class ZZNtupleSaver(ZZResultSaverBase):
         '''
         Fill the ntuple after the buffer is already filled.
         '''
-        print "Filling " + ntuple.GetName()
-        try:
-            print "e1_e2_Mass = " + str(ntuple["e1_e2_Mass"])
-        except:
-            pass
-        try:
-            print "m1_m2_Mass = " + str(ntuple["m1_m2_Mass"])
-        except:
-            pass
         ntuple.Fill()
