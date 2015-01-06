@@ -103,6 +103,14 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%s_%s_MassFSR' : self.massFunction,
             }
 
+        self.flavoredCalcVars['m'] = {
+            '%sRelPFIsoDBDefaultFSR' : self.muonRelPFIsoDBFSRFunction,
+            }
+
+        self.flavoredCalcVars['e'] = {
+            '%sRelPFIsoRhoFSR' : self.eleRelPFIsoRhoFSRFunction,
+            }
+
         obj4M = ['m' + str(i+1) for i in range(4)]
         obj4E = ['e' + str(i+1) for i in range(4)]
         obj2E2M = ['e' + str(i+1) for i in range(2)] + ['m' + str(i+1) for i in range(2)]
@@ -141,6 +149,8 @@ class ZZNtupleFSR(ZZNtupleSaver):
                     temp[var%objs] = {}
 
         for obj in objects:
+            if obj[0] not in self.flavoredCopyVars:
+                continue
             for var in self.flavoredCopyVars[obj[0]]:
                 temp[var%obj] = {}
 
@@ -150,7 +160,9 @@ class ZZNtupleFSR(ZZNtupleSaver):
                     temp[var%objs] = {'f':func(*objs)}
 
         for obj in objects:
-            for var, func in self.flavoredCalcVars[obj[0]]:
+            if obj[0] not in self.flavoredCalcVars:
+                continue
+            for var, func in self.flavoredCalcVars[obj[0]].iteritems():
                 temp[var%obj] = {'f':func(obj)}
 
         return temp
@@ -337,6 +349,86 @@ class ZZNtupleFSR(ZZNtupleSaver):
         partner2 = self.getZPartner(lep2)
         
         return lambda row: self.deltaRBothFSR(row, lep1, partner1, lep2, partner2)
+
+
+    def muonRelPFIsoDBFSRFunction(self, mu):
+        '''
+        Return a function that calculates delta beta- and FSR-corrected 
+        Relative PF isolation for this muon. Uses the FSR photon paired with
+        its FSA Z candidate (if applicable).
+        '''
+        partner = self.getZPartner(mu)
+        
+        return lambda row: self.muonRelPFIsoDBFSR(row, mu, partner)
+
+
+    def muonRelPFIsoDBFSR(self, row, mu, partner):
+        '''
+        Return delta-beta- and FSR-corrected relative PF isolation for this 
+        muon, using the FSR candidate paired with it and partner.
+        '''
+        if not self.isFSRLepton(row, mu, partner):
+            return objVar(row, "RelPFIsoDBDefault", mu)
+
+        deltaRFSR = sqrt( (objVar(row, "Eta", mu) - nObjVar(row, "FSREta", mu, partner)) ** 2 +
+                          (objVar(row, "Phi", mu) - nObjVar(row, "FSRPhi", mu, partner)) ** 2 
+        )
+        
+        if deltaRFSR > 0.4:
+            return objVar(row, "RelPFIsoDBDefault", mu)
+
+        chHadIso = objVar(row, "PFChargedIso", mu)
+        neutHadIso = objVar(row, "PFNeutralIso", mu)
+        phoIso = objVar(row, "PFPhotonIso", mu)
+        puHadIso = 0.5 * objVar(row, "PFPUChargedIso", mu)
+        ptFSR = nObjVar(row, "FSRPt", mu, partner)
+        pt = self.getP4WithFSR(row, mu, partner).Pt()
+
+        iso = (chHadIso + 
+               max(0., neutHadIso + phoIso - ptFSR - puHadIso)
+               )
+
+        return iso/pt # rel iso
+
+
+    def eleRelPFIsoRhoFSRFunction(self, ele):
+        '''
+        Return a function that calculates rho- and FSR-corrected relative
+        PF isolation for this electron. Uses the FSR photon paired with
+        its FSA Z candidate (if applicable).
+        '''
+        partner = self.getZPartner(ele)
+        
+        return lambda row: self.eleRelPFIsoRhoFSR(row, ele, partner)
+
+
+    def eleRelPFIsoRhoFSR(self, row, ele, partner):
+        '''
+        Return rho- and FSR-corrected relative PF isolation for this 
+        electron, using the FSR candidate paired with it and partner.
+        '''
+        if not self.isFSRLepton(row, ele, partner):
+            return objVar(row, "RelPFIsoRho", ele)
+
+        deltaRFSR = sqrt( (objVar(row, "Eta", ele) - nObjVar(row, "FSREta", ele, partner)) ** 2 +
+                          (objVar(row, "Phi", ele) - nObjVar(row, "FSRPhi", ele, partner)) ** 2 
+        )
+        
+        if deltaRFSR > 0.4:
+            return objVar(row, "RelPFIsoDBDefault", ele)
+
+        chHadIso = objVar(row, "PFChargedIso", ele)
+        neutHadIso = objVar(row, "PFNeutralIso", ele)
+        phoIso = objVar(row, "PFPhotonIso", ele)
+        puHadIso= objVar(row, "Rho", ele) * objVar(row, "EffectiveArea2012Data", ele)
+        ptFSR = nObjVar(row, "FSRPt", ele, partner)
+        pt = self.getP4WithFSR(row, ele, partner).Pt()
+
+        iso = (chHadIso + 
+               max(0., neutHadIso + phoIso - ptFSR - puHadIso)
+               )
+
+        return iso/pt # rel iso
 
 
     def getZPartner(self, lep):
