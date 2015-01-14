@@ -225,7 +225,7 @@ class PlotZZ(object):
         return minWidth
 
         
-    def makeLegend(self, channel, variable, bounds=[0.6, 0.5, 0.9, 0.8]):
+    def makeLegend(self, channel, variable, bounds=[0.7, 0.6, 0.95, 0.9]):
         '''
         Returns a legend for all samples in this channel for variable. 
         The label on the sample is sampleInfo[sample]["shortName"]
