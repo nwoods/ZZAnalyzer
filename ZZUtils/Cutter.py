@@ -1,17 +1,17 @@
 '''
 
-Base class to do cuts in ZZ analysis. In practice, analyses will 
+Base class to do cuts in ZZ analysis. In practice, analyses will
     typically use a daughter class of Cutter. Cutter can do most
-    of the cuts one wants from a bare template, but most analyses
-    will do *something* unusual that requires special methods and
-    so forth. Cutter can read cut information in from a bare
+    of the cuts one wants from a bare template, but has the ability to
+    do cuts that are simply programmed as functions.
+    Cutter can read cut information in from a bare
     cut dictionary and cutflow collections.OrderedDict, but daughter
-    classes are expected to overload the getCutTemplate(*args) and 
+    classes are expected to overload the getCutTemplate(*args) and
     setupCutFlow methods
 
-The goal is to have everything in one place, so that when a cut needs 
-    to be changed, we're not stuck searching through  the selection  
-    software and hard coding the new variables, and if we have two 
+The goal is to have everything in one place, so that when a cut needs
+    to be changed, we're not stuck searching through the selection
+    software and hard coding the new variables, and if we have two
     sets of cuts (e.g. one for the HZZ analysis, one for the SMP ZZ
     analysis) we don't have to maintain two versions of the selection
     code or change things back and forth by hand. Instead, just change
@@ -19,43 +19,67 @@ The goal is to have everything in one place, so that when a cut needs
 
 The structure of the dictionary should be:
 
->>> cuts[cut]['cuts'][variable] = (value, lessThanCut)
->>> cuts[cut]['mode'] = mode
+>>> cuts[cut]['cuts'][variable] = (value, lessThanCut) # if type is 'base'
+>>> cuts[cut]['cuts'][variable] = 'NameOfSomeOtherCut' # type is 'caller'
+>>> cuts[cut]['logic'] = 'and/or/other'
+>>> cuts[cut]['objects'] = 'numberOfObjectsAsAString'
+>>> cuts[cut]['type'] = 'base/caller'
 
-    where variable is the name of the variable stored in the ntuple,  
-    lessThanCut is True if var < value passes the cut, false if 
-    var >= value does, and mode can be 'and' or 'or' depending
-    on whether all conditions must be true, or just one of them,
-    'other' if the cut must be specially calculated, or '2obj' if
-    the cut is on a composite object (e.g. Z mass). In the case of
-    'other', the dictionary structure will change, but it won't matter
-    because it must also call a special function to do the cut. A 
-    '#' and anything after it in a variable name will be ignored, 
-    allowing the same variable to be cut twice (e.g. 60.<Zmass<120.).
+    where variable is the name of the variable stored in the ntuple,
+    lessThanCut is True if var < value passes the cut, False if
+    var >= value does. A '#' and anything after it in a variable
+    name will be ignored, allowing the same variable to be cut
+    twice (e.g. 60.<Zmass<120.). The string TYPE will be replaced by
+    the name of a particle ('e1', etc.) Logic can be 'and' or 'or' depending
+    on whether all conditions must be true, or just one of them, or
+    'other' if the cut must be specially calculated by a function.
+    In the case of 'other', the rest of the dictionary structure may
+    change, but it won't matter because it must also call a special
+    function to do the cut. 'objects' points to a string giving the
+    number of objects cut on ('1', '4', etc.). 'pairs' is a special
+    value that will apply the cut on all possible pairs of objects.
+
+The type of a cut may be 'base', for cuts that just take a value
+    from the ntuple and cut on it, or 'caller' for cuts that call other
+    cuts.
 
 Booleans that should be True should be entered as (1, False), booleans
     that should be False should be entered as (1, True). If you enter
     a boolean as (0, False), it will always evaluate to True because
     lessThanCut=False returns true for var >= cut
 
-Optionally, 
+Cuts whose logic is 'other' must be defined in the function
+    setupOtherCuts(self). It should return a dictionary containing
+    functions that perform the cuts on a row and the specified number
+    of objects, e.g., for a cut on second lepton pt:
 
->>> cuts[cut]['options'] = option
+>>> def setupOtherCuts(self):
+>>>     template = self.getCutTemplate()
+>>>     others = {}
+>>>     others['L2Pt'] = lambda row, *obj: self.ptCutTwoObjects(template['L2Pt;], row, *obj)
+>>>     return others
 
-    may be used to pass in a special operator. The only one currently
-    supported is absVARIABLE, which will place the cut on the absolute
-    value of VARIABLE. E.G., 'absEta' will cut on absolute value of eta.
-    'absVAR1absVAR2' will use absolute values for VAR1 and VAR2.
+with the necessary functions defined somewhere.
 
-Once a set of cuts is entered, the user shouldn't need to know anything
-    but the name of the analysis, the name of the cut, and the object
-    it's being applied to. Instantiate a cutter with
+The last necessary thing is the order of the cuts, which must be placed
+    in an ordered dict returned by self.setupCutFlow(), e.g.
 
->>> cuts = Cutter.Cutter('AnalysisName')
+>>> def setupCutFlow(self):
+>>>     flow = collections.OrderedDict()
+>>>     flow['Total'] = ('nameOfCut', [*objectNumbers])
+>>>     return flow
 
-    and get the result of a cut with 
+    where 'nameOfCut' is a cut (base or caller) from the template and
+    objectNumbers are the indices of the objects to cut on, e.g. [1,2]
+    if the cut should be performed on the two leptons from the better Z.
 
->>> result = cuts.doCut(row, 'cutName'[, object[, object2]])
+Once a set of cuts is entered, the user shouldn't need to know anything.
+    Use Cutter.doCut(row, 'cutName'[, object[, object2...]]) to do a
+    particular cut where the needed objects are known, or (more often)
+    just loop through the result of Cutter.setupCutFlow()
+    and do Cutter.analysisCut(row, cut, *allObjects) for all cuts. The
+    results of these are booleans for whether the cut was passed or not.
+
 
 Author: Nate Woods, U. Wisconsin
 
