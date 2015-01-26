@@ -298,9 +298,11 @@ class ZZNtupleFSR(ZZNtupleSaver):
         Return LorentzVector for FSR photon associated with lep and partner
         '''
         p4FSR = LorentzVector()
-        p4FSR.SetPtEtaPhiM(nObjVar(row, "FSRPt", lep, partner),
-                           nObjVar(row, "FSREta", lep, partner),
-                           nObjVar(row, "FSRPhi", lep, partner),
+        # sort so we ask for (e.g.) e1_e2_FSRPt instead of e2_e1_FSRPt
+        leptons = sorted([lep, partner])
+        p4FSR.SetPtEtaPhiM(nObjVar(row, "FSRPt", leptons[0], leptons[1]),
+                           nObjVar(row, "FSREta", leptons[0], leptons[1]),
+                           nObjVar(row, "FSRPhi", leptons[0], leptons[1]),
                            0. # photon massless
                            )
         return p4FSR
@@ -370,8 +372,11 @@ class ZZNtupleFSR(ZZNtupleSaver):
         if not self.isFSRLepton(row, mu, partner):
             return objVar(row, "RelPFIsoDBDefault", mu)
 
-        deltaRFSR = sqrt( (objVar(row, "Eta", mu) - nObjVar(row, "FSREta", mu, partner)) ** 2 +
-                          (objVar(row, "Phi", mu) - nObjVar(row, "FSRPhi", mu, partner)) ** 2 
+        # sort leptons so we don't ask for something like m2_m1_Mass
+        sortedLeps = sorted([mu, partner])
+
+        deltaRFSR = sqrt( (objVar(row, "Eta", mu) - nObjVar(row, "FSREta", *sortedLeps)) ** 2 +
+                          (objVar(row, "Phi", mu) - nObjVar(row, "FSRPhi", *sortedLeps)) ** 2 
         )
         
         if deltaRFSR > 0.4:
@@ -381,7 +386,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
         neutHadIso = objVar(row, "PFNeutralIso", mu)
         phoIso = objVar(row, "PFPhotonIso", mu)
         puHadIso = 0.5 * objVar(row, "PFPUChargedIso", mu)
-        ptFSR = nObjVar(row, "FSRPt", mu, partner)
+        ptFSR = nObjVar(row, "FSRPt", *sortedLeps)
         pt = self.getP4WithFSR(row, mu, partner).Pt()
 
         iso = (chHadIso + 
@@ -410,18 +415,21 @@ class ZZNtupleFSR(ZZNtupleSaver):
         if not self.isFSRLepton(row, ele, partner):
             return objVar(row, "RelPFIsoRho", ele)
 
-        deltaRFSR = sqrt( (objVar(row, "Eta", ele) - nObjVar(row, "FSREta", ele, partner)) ** 2 +
-                          (objVar(row, "Phi", ele) - nObjVar(row, "FSRPhi", ele, partner)) ** 2 
+        # sort leptons so we don't ask for something like e2_e1_Mass
+        sortedLeps = sorted([ele, partner])
+
+        deltaRFSR = sqrt( (objVar(row, "Eta", ele) - nObjVar(row, "FSREta", *sortedLeps)) ** 2 +
+                          (objVar(row, "Phi", ele) - nObjVar(row, "FSRPhi", *sortedLeps)) ** 2 
         )
         
         if deltaRFSR > 0.4:
-            return objVar(row, "RelPFIsoDBDefault", ele)
+            return objVar(row, "RelPFIsoRho", ele)
 
         chHadIso = objVar(row, "PFChargedIso", ele)
         neutHadIso = objVar(row, "PFNeutralIso", ele)
         phoIso = objVar(row, "PFPhotonIso", ele)
         puHadIso= objVar(row, "Rho", ele) * objVar(row, "EffectiveArea2012Data", ele)
-        ptFSR = nObjVar(row, "FSRPt", ele, partner)
+        ptFSR = nObjVar(row, "FSRPt", *sortedLeps)
         pt = self.getP4WithFSR(row, ele, partner).Pt()
 
         iso = (chHadIso + 
