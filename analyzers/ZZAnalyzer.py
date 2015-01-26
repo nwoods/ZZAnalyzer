@@ -25,7 +25,7 @@ assert os.environ["zza"], "Run setup.sh before running analysis"
 
 class ZZAnalyzer(object):
     def __init__(self, channels, cutSet, infile, outfile='./results/output.root', 
-                 resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000):
+                 resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000, cleanRows=False):
         '''
         Channels:    list of strings or single string in the format (e.g.) eemm for 
                          a 2e2mu final state. '4l', 'zz' and 'ZZ' turn into ['eeee' 'eemm' 'mmmm']
@@ -34,6 +34,8 @@ class ZZAnalyzer(object):
         outfile:     string of an output file name, with path
         maxEvents:   stop after this many events processed
         intLumi:     in output text file, report how many events we would expect for this integrated luminosity
+        cleanRows:   if True, redundant rows are ignored so each event is counted only once. 
+                         For now, uses the H->ZZ->4l analysis algorithm
         '''
         # cheat, for now
         self.zMassVar = 'MassFSR'
@@ -86,6 +88,8 @@ class ZZAnalyzer(object):
 
         self.intLumi = intLumi
 
+        self.cleanRows = cleanRows
+
 
     def prepareCutSummary(self):
         '''
@@ -118,10 +122,11 @@ class ZZAnalyzer(object):
             objects = objectTemplate
             needReorder = channel[0][0] != channel[-1][0]
 
-            # For events with more than 4 leptons, FSA Ntuples just have one
-            #     row for each possible combination of objects. We have to know
-            #     which one is the right one
-            wrongRows = self.getRedundantRows(ntuple, channel)
+            if self.cleanRows:
+                # For events with more than 4 leptons, FSA Ntuples just have one
+                #     row for each possible combination of objects. We have to know
+                #     which one is the right one
+                wrongRows = self.getRedundantRows(ntuple, channel)
 
             for row in ntuple:
 
@@ -133,9 +138,10 @@ class ZZAnalyzer(object):
                 # Always pass "TotalRows" because it's always a new row
                 self.passCut(row, channel, "TotalRows")
 
-                # Ignore wrong version of event
-                if self.cutsPassed[channel]['TotalRows'] in wrongRows:
-                    continue
+                if self.cleanRows:
+                    # Ignore wrong version of event
+                    if self.cutsPassed[channel]['TotalRows'] in wrongRows:
+                        continue
 
                 # Report progress every 5000 events
                 if self.cutsPassed[channel]['Total'] % 5000 == 0:
@@ -230,6 +236,7 @@ class ZZAnalyzer(object):
         
         objectTemplate = self.mapObjects(channel)
         objects = objectTemplate
+        # 2e2mu channel always lists ee first, but mm might be the better Z
         needReorder = channel[0][0] != channel[-1][0]
 
         for row in ntuple:
@@ -432,9 +439,10 @@ if __name__ == "__main__":
     parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
     parser.add_argument("resultType", nargs='?', default='ZZFinalHists', type=str, help='Format of output file')
     parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
+    parser.add_argument("--cleanRows", action="store_true", help="Consider only the best row from each event")
     args = parser.parse_args()
 
-    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents)
+    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents, args.cleanRows)
     print "TESTING ZZAnalyzer"
     a.analyze()
     print "TEST COMPLETE"
