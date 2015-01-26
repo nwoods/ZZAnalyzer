@@ -55,6 +55,7 @@ class ZZResultSaverBase(object):
         Given a directory of result objects and a variable, pick the one 
         variable should be saved into.
         '''
+        pass
 
 
     def setupResultObjects(self, resultArgs, *args, **kwargs):
@@ -200,9 +201,8 @@ class ZZResultSaverBase(object):
         varPath should be the path to the variable, including the variable name
         itself last, in the same format as saveRow's *args.
         '''
-        output = self.getDictItem(self.results, *varPath)
-        calculator = self.getDictItem(self.variables, *varPath)
-        self.saveNumber(calculator(row), output)
+        func = self.getDictItem(self.functions, *varPath)
+        func(row)
 
 
     def saveRow(self, row, *pathToVars, **kwargs):
@@ -223,7 +223,8 @@ class ZZResultSaverBase(object):
             elif nested: # if we do want to recurse down
                 self.saveRow(row, *(list(pathToVars)+[var]), nested=True)
                 
-        self.finalizeEvent(self.getDictItem(self.results, *pathToVars), nested)
+        # recursed down here, don't nest the finalize function
+        self.finalizeEvent(self.getDictItem(self.results, *pathToVars), False)
 
 
     def finalizeEvent(self, resultDict, nested=False):
