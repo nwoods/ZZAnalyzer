@@ -21,13 +21,13 @@ from rootpy import ROOT
 ROOT.gROOT.SetBatch(True)
 
 
-def runAnAnalyzer(channels, cutSet, infile, outdir, resultType, maxEvents, intLumi):
+def runAnAnalyzer(channels, cutSet, infile, outdir, resultType, maxEvents, intLumi, cleanRows):
     '''
     Run a ZZAnalyzer.
     Intended for use in threads, such that several processes all do this once.
     '''
     outfile = outdir+'/'+(infile.split('/')[-1])
-    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, resultType, maxEvents, intLumi)
+    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, resultType, maxEvents, intLumi)#, cleanRows)
     analyzer.analyze()
 
 def init_worker():
@@ -56,6 +56,7 @@ parser.add_argument('--nThreads', type=int,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 4.')
 parser.add_argument('--maxEvents', nargs='?', type=int,
                     help='Maximum number of events to run for each sample in each channel.')
+parser.add_argument("--cleanRows", action="store_true", help="Consider only the best row from each event")
 
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
 # or else we get segfault-causing race conditions
@@ -107,7 +108,7 @@ intLumi = args.intLumi
 pool = multiprocessing.Pool(nThreads, init_worker)
 results = []
 for infile in infiles:
-    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, args.resultType, maxEvents, intLumi)))
+    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, args.resultType, maxEvents, intLumi, args.cleanRows)))
 
 # A little magic to make keyboard interrupts work
 try:

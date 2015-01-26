@@ -442,7 +442,7 @@ if __name__ == "__main__":
     parser.add_argument("--cleanRows", action="store_true", help="Consider only the best row from each event")
     args = parser.parse_args()
 
-    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents, args.cleanRows)
+    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents, 1000, args.cleanRows)
     print "TESTING ZZAnalyzer"
     a.analyze()
     print "TEST COMPLETE"
