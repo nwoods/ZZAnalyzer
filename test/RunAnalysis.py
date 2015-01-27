@@ -27,7 +27,7 @@ def runAnAnalyzer(channels, cutSet, infile, outdir, resultType, maxEvents, intLu
     Intended for use in threads, such that several processes all do this once.
     '''
     outfile = outdir+'/'+(infile.split('/')[-1])
-    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, resultType, maxEvents, intLumi)#, cleanRows)
+    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, resultType, maxEvents, intLumi, cleanRows)
     analyzer.analyze()
 
 def init_worker():
