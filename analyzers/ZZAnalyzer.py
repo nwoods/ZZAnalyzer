@@ -25,7 +25,7 @@ assert os.environ["zza"], "Run setup.sh before running analysis"
 
 class ZZAnalyzer(object):
     def __init__(self, channels, cutSet, infile, outfile='./results/output.root', 
-                 resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000, cleanRows=False):
+                 resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000, rowCleaner=''):
         '''
         Channels:    list of strings or single string in the format (e.g.) eemm for 
                          a 2e2mu final state. '4l', 'zz' and 'ZZ' turn into ['eeee' 'eemm' 'mmmm']
@@ -34,8 +34,8 @@ class ZZAnalyzer(object):
         outfile:     string of an output file name, with path
         maxEvents:   stop after this many events processed
         intLumi:     in output text file, report how many events we would expect for this integrated luminosity
-        cleanRows:   if True, redundant rows are ignored so each event is counted only once. 
-                         For now, uses the H->ZZ->4l analysis algorithm
+        rowCleaner:  name of a module to clean out redundant rows. If an empty 
+                         string (or other False boolean), no cleaning is performed.
         '''
         # cheat, for now
         self.zMassVar = 'MassFSR'
@@ -88,7 +88,14 @@ class ZZAnalyzer(object):
 
         self.intLumi = intLumi
 
-        self.cleanRows = cleanRows
+        self.cleanRows = bool(rowCleaner)
+        if self.cleanRows:
+            cleanerpath = os.environ["zza"]+"/ZZUtils/rowCleaners"
+            cleanerf, cleanerfName, cleanerdesc = imp.find_module(rowCleaner, [cleanerpath])
+            assert cleanerf, 'Row cleaner %s does not exist in %s'%(rowCleaner, cleanerpath)
+            cleanermod = imp.load_module(rowCleaner, cleanerf, cleanerfName, cleanerdesc)
+            self.CleanerClass = getattr(cleanermod, rowCleaner)
+
 
 
     def prepareCutSummary(self):
@@ -126,7 +133,7 @@ class ZZAnalyzer(object):
                 # For events with more than 4 leptons, FSA Ntuples just have one
                 #     row for each possible combination of objects. We have to know
                 #     which one is the right one
-                wrongRows = self.getRedundantRows(ntuple, channel)
+                rowCleaner = self.CleanerClass(ntuple, channel, self.cuts, self.sample, self.maxEvents)
 
             for row in ntuple:
 
@@ -140,7 +147,7 @@ class ZZAnalyzer(object):
 
                 if self.cleanRows:
                     # Ignore wrong version of event
-                    if self.cutsPassed[channel]['TotalRows'] in wrongRows:
+                    if rowCleaner.isRedundant(self.cutsPassed[channel]['TotalRows']):
                         continue
 
                 # Report progress every 5000 events
@@ -216,113 +223,113 @@ class ZZAnalyzer(object):
         return objects
 
 
-    def getRedundantRows(self, ntuple, channel):
-        '''
-        Returns a list of row numbers of rows that are the incorrect combinatorial
-        version of the relevant event. The correct row is the one with Z1 closest
-        to on-shell, with the highest scalar Pt sum of the remaining leptons used as a 
-        tiebreaker
-        '''
-        nRow = 0
-        nEvent = 0
-        redundantRows = set()
-
-        prevRun = -1
-        prevLumi = -1
-        prevEvt = -1
-        prevDZ = 999.
-        prevPtSum = -999.
-        prevRow = -1
-        
-        objectTemplate = self.mapObjects(channel)
-        objects = objectTemplate
-        # 2e2mu channel always lists ee first, but mm might be the better Z
-        needReorder = channel[0][0] != channel[-1][0]
-
-        for row in ntuple:
-            if nEvent == self.maxEvents:
-                print "%s: Found redundant rows for %d %s events, ending"%(self.sample, self.maxEvents, channel)
-                break
-
-            if nRow % 5000 == 0:
-                print "%s: Finding redundant rows %s row %d"%(self.sample, channel, nRow)
-            nRow += 1
-
-            if needReorder:
-                objects = self.orderLeptons(row, channel, objectTemplate)
-
-            # Keep track of events within this function by run, lumi block, and event number
-            run =  evVar(row, 'run')
-            lumi = evVar(row, 'lumi')
-            evt =  evVar(row,'evt')
-            sameEvent = (evt == prevEvt and lumi == prevLumi and run == prevRun)
-
-            if not sameEvent:
-                nEvent += 1
-
-            # The best row for the event is actually the best one *that passes ID cuts*
-            # so we have to treat a row that fails them as automatically bad. But, we can
-            # only do this when the row is actually a duplicate, to keep our cut stats accurate.
-            allGood = True
-            for lepts in [[objects[0],objects[1]],[objects[2],objects[3]]]:
-                if not self.cuts.doCut(row, "GoodZ", *lepts):
-                    allGood = False
-                    break
-                if not self.cuts.doCut(row, "ZIso", *lepts):
-                    allGood = False
-                    break
-
-            if not allGood:
-                if sameEvent:
-                    redundantRows.add(nRow)
-                else:
-                    prevRun = run
-                    prevLumi = lumi
-                    prevEvt = evt
-                    prevDZ = 999.
-                    prevPtSum = -999.
-                    prevRow = nRow
-                continue
-            
-            dZ = self.zCompatibility(row, objects[0], objects[1])
-            ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
-
-            # if this doesn't seem to be a duplicate event, we don't need to do anything but store
-            # its info in case it's the first of several
-            if not sameEvent:
-                prevRun = run
-                prevLumi = lumi
-                prevEvt = evt
-                prevDZ = dZ
-                prevPtSum = ptSum
-                prevRow = nRow
-                continue
-            else:
-                if dZ < prevDZ:
-                    redundantRows.add(prevRow)
-                    prevRun = run
-                    prevLumi = lumi
-                    prevEvt = evt
-                    prevDZ = dZ
-                    prevPtSum = ptSum
-                    prevRow = nRow
-                elif dZ == prevDZ:
-                    if ptSum > prevPtSum:
-                        redundantRows.add(prevRow)
-                        prevRun = run
-                        prevLumi = lumi
-                        prevEvt = evt
-                        prevDZ = dZ
-                        prevPtSum = ptSum
-                        prevRow = nRow
-                    else:
-                        redundantRows.add(nRow)
-                else:
-                    redundantRows.add(nRow)
-        else:
-            print "%s: Found redundant rows for %d %s events, moving to analyzer"%(self.sample, nRow, channel)
-                    
-        return redundantRows
+#     def getRedundantRows(self, ntuple, channel):
+#         '''
+#         Returns a list of row numbers of rows that are the incorrect combinatorial
+#         version of the relevant event. The correct row is the one with Z1 closest
+#         to on-shell, with the highest scalar Pt sum of the remaining leptons used as a 
+#         tiebreaker
+#         '''
+#         nRow = 0
+#         nEvent = 0
+#         redundantRows = set()
+# 
+#         prevRun = -1
+#         prevLumi = -1
+#         prevEvt = -1
+#         prevDZ = 999.
+#         prevPtSum = -999.
+#         prevRow = -1
+#         
+#         objectTemplate = self.mapObjects(channel)
+#         objects = objectTemplate
+#         # 2e2mu channel always lists ee first, but mm might be the better Z
+#         needReorder = channel[0][0] != channel[-1][0]
+# 
+#         for row in ntuple:
+#             if nEvent == self.maxEvents:
+#                 print "%s: Found redundant rows for %d %s events, ending"%(self.sample, self.maxEvents, channel)
+#                 break
+# 
+#             if nRow % 5000 == 0:
+#                 print "%s: Finding redundant rows %s row %d"%(self.sample, channel, nRow)
+#             nRow += 1
+# 
+#             if needReorder:
+#                 objects = self.orderLeptons(row, channel, objectTemplate)
+# 
+#             # Keep track of events within this function by run, lumi block, and event number
+#             run =  evVar(row, 'run')
+#             lumi = evVar(row, 'lumi')
+#             evt =  evVar(row,'evt')
+#             sameEvent = (evt == prevEvt and lumi == prevLumi and run == prevRun)
+# 
+#             if not sameEvent:
+#                 nEvent += 1
+# 
+#             # The best row for the event is actually the best one *that passes ID cuts*
+#             # so we have to treat a row that fails them as automatically bad. But, we can
+#             # only do this when the row is actually a duplicate, to keep our cut stats accurate.
+#             allGood = True
+#             for lepts in [[objects[0],objects[1]],[objects[2],objects[3]]]:
+#                 if not self.cuts.doCut(row, "GoodZ", *lepts):
+#                     allGood = False
+#                     break
+#                 if not self.cuts.doCut(row, "ZIso", *lepts):
+#                     allGood = False
+#                     break
+# 
+#             if not allGood:
+#                 if sameEvent:
+#                     redundantRows.add(nRow)
+#                 else:
+#                     prevRun = run
+#                     prevLumi = lumi
+#                     prevEvt = evt
+#                     prevDZ = 999.
+#                     prevPtSum = -999.
+#                     prevRow = nRow
+#                 continue
+#             
+#             dZ = self.zCompatibility(row, objects[0], objects[1])
+#             ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
+# 
+#             # if this doesn't seem to be a duplicate event, we don't need to do anything but store
+#             # its info in case it's the first of several
+#             if not sameEvent:
+#                 prevRun = run
+#                 prevLumi = lumi
+#                 prevEvt = evt
+#                 prevDZ = dZ
+#                 prevPtSum = ptSum
+#                 prevRow = nRow
+#                 continue
+#             else:
+#                 if dZ < prevDZ:
+#                     redundantRows.add(prevRow)
+#                     prevRun = run
+#                     prevLumi = lumi
+#                     prevEvt = evt
+#                     prevDZ = dZ
+#                     prevPtSum = ptSum
+#                     prevRow = nRow
+#                 elif dZ == prevDZ:
+#                     if ptSum > prevPtSum:
+#                         redundantRows.add(prevRow)
+#                         prevRun = run
+#                         prevLumi = lumi
+#                         prevEvt = evt
+#                         prevDZ = dZ
+#                         prevPtSum = ptSum
+#                         prevRow = nRow
+#                     else:
+#                         redundantRows.add(nRow)
+#                 else:
+#                     redundantRows.add(nRow)
+#         else:
+#             print "%s: Found redundant rows for %d %s events, moving to analyzer"%(self.sample, nRow, channel)
+#                     
+#         return redundantRows
        
  
     def orderLeptons(self, row, channel, objects):
@@ -439,7 +446,8 @@ if __name__ == "__main__":
     parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
     parser.add_argument("resultType", nargs='?', default='ZZFinalHists', type=str, help='Format of output file')
     parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
-    parser.add_argument("--cleanRows", action="store_true", help="Consider only the best row from each event")
+    parser.add_argument("--cleanRows", nargs='?', type=str, default='',
+                        help="Name of module to clean extra rows from each event. Without this option, no cleaning is performed.")
     args = parser.parse_args()
 
     a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents, 1000, args.cleanRows)

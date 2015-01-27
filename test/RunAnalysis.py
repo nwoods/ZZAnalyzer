@@ -56,7 +56,8 @@ parser.add_argument('--nThreads', type=int,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 4.')
 parser.add_argument('--maxEvents', nargs='?', type=int,
                     help='Maximum number of events to run for each sample in each channel.')
-parser.add_argument("--cleanRows", action="store_true", help="Consider only the best row from each event")
+parser.add_argument("--cleanRows", nargs='?', type=str, default='',
+                    help="Name of module to clean extra rows from each event. Without this option, no cleaning is performed.")
 
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
 # or else we get segfault-causing race conditions
