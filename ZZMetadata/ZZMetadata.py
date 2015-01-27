@@ -146,3 +146,12 @@ sampleInfo["DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball_Summer12DR53X_PUS10
     'isSignal' : False,
     'color' : EColor.kBlue,
 }
+
+sampleInfo["HZZSync"] = {
+    'xsec' : 43.62 * 0.000294,
+    'n' : 10400,
+    'isData' : False,
+    'shortName' : 'ggH->ZZ->4l',
+    'isSignal' : True,
+    'color' : EColor.kRed,
+}
