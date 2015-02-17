@@ -40,6 +40,9 @@ parser.add_argument('intLumi', type=float, nargs='?', default=19710.,
 parser.add_argument('--logy', action="store_true", help='Plot with log scale on y axis.')
 parser.add_argument('--stacks', action='store_true', 
                     help='Plot two stacks (signal overlayed on top of background) instead of plotting samples separately as points.')
+parser.add_argument('--norm', action='store_true', 
+                    help='Nomalize all samples to the total number of events.')
+
 
 args = parser.parse_args()
 
@@ -111,6 +114,8 @@ for infile in infiles:
                 # ignore some cuts, rename others
                 if cut == "TotalRows" or cut == "Overlap" or cut == "Lepton1Pt" or cut == "4lMass":
                     continue
+                if "SIP" in cut or "ID" in cut or "PairMass" in cut or "Lepton2Pt" in cut:
+                    continue
 
                 cutCount += 1
 
@@ -121,15 +126,23 @@ for infile in infiles:
                     elif cut == "Lepton2Pt":
                         cut = "Lepton Pt"
                     elif cut == "Z1Mass":
-                        cut = "Z1 Mass"
+                        cut = "Z_{1} Mass"
                     elif cut == "Z2Mass":
-                        cut = "Z2 Mass"
+                        cut = "Z_{2} Mass"
                     elif cut == "LeptonPairMass":
-                        cut = "2l Mass"
+                        cut = "QCD Veto"
                     elif cut == "4lMass":
                         cut = "4l Mass"
                     elif "GoodZ" in cut:
                         cut = cut.replace("oodZ","ood Z")
+                    elif cut == "Z1Kinematics":
+                        cut = "Z_{1} ID"
+                    elif cut == "Z2Kinematics":
+                        cut = "Z_{2} ID"
+                    elif cut == "Z1PV":
+                        cut = "Z_{1} Vertex"
+                    elif cut == "Z2PV":
+                        cut = "Z_{2} Vertex"
 
                     cutNames[cutCount] = cut
 
@@ -159,6 +172,7 @@ for channel in numbers:
                 histos[channel][sample].SetMarkerColor(sampleInfo[sample]['color'])
                 histos[channel][sample].SetMarkerSize(2)
                 histos[channel][sample].SetLineColor(sampleInfo[sample]['color'])
+                histos[channel][sample].SetLineWidth(2)
             if channel == "eeee":
                 evType = "4e"
             elif channel == "eemm":
@@ -168,7 +182,10 @@ for channel in numbers:
             else:
                 evType = channel
             histos[channel][sample].SetTitle("Cut Flow Summary %s "%evType)
-            histos[channel][sample].GetYaxis().SetTitle("%s Events"%evType)
+            if args.norm:
+                histos[channel][sample].GetYaxis().SetTitle("Fraction of %s Events"%evType)
+            else:
+                histos[channel][sample].GetYaxis().SetTitle("%s Events"%evType)
             
         # Make sure the errors get scaled correctly
         histos[channel][sample].Sumw2()
@@ -193,7 +210,10 @@ if args.logy:
     c.SetLogy()
 
 for channel in numbers:
-    leg = ROOT.TLegend(0.65, 0.6, 0.9, 0.9)
+    if args.norm:
+        leg = ROOT.TLegend(0.12, 0.15, 0.37, 0.4)
+    else:
+        leg = ROOT.TLegend(0.65, 0.65, 0.9, 0.9)
     leg.SetTextSize(0.03)
 
     channelName = '4l'
@@ -204,13 +224,16 @@ for channel in numbers:
     elif channel == 'mmmm':
         channelName = '4#mu'
 
-    allSamples = [s for s in histos[channel]]
+    allSamples = sorted([s for s in histos[channel]])
     if args.stacks:
         # sort histograms by size of the last bin so they stack sensibly. Break ties by putting samples with smaller maxima on the bottom
         allSamples.sort(key=lambda s: histos[channel][s].GetMinimum() + histos[channel][s].GetMaximum()/10000000.)
         # Make stacks
         stackB = ROOT.THStack('background', "ZZ#rightarrow%s Cut Flow Summary"%channelName)
         stackS = ROOT.THStack('signal', "ZZ#rightarrow%s Cut Flow Summary"%channelName)
+
+    # We'll make just one histogram out of all the 8TeV samples
+    zz8TeVComboExists = False
 
     drawnYet = False
     sigs = []
@@ -226,12 +249,29 @@ for channel in numbers:
                 stackB.Add(histos[channel][sample])
                 bkgs.append(sample)
         else:
+            if "PHYS14" in sample:
+                histos[channel][sample].SetMarkerStyle(20)
+            elif "Spring14" in sample:
+                histos[channel][sample].SetMarkerStyle(21)
+            else:
+                histos[channel][sample].SetMarkerStyle(22)
+
+            if '8TeV' in sample and 'ZZ' in sample:
+                if not zz8TeVComboExists:
+                    zz8TeVCombo = histos[channel][sample].Clone()
+                    zz8TeVComboExists = True
+                else:
+                    zz8TeVCombo.Add(histos[channel][sample])
+                continue
+
             leg.AddEntry(histos[channel][sample], sampleInfo[sample]["shortName"], "LPE")
+            if args.norm:
+                histos[channel][sample].Scale(1./histos[channel][sample].GetBinContent(1))
             if not drawnYet:
-                histos[channel][sample].Draw("e")
+                histos[channel][sample].Draw("hpe")
                 drawnYet = True
             else:
-                histos[channel][sample].Draw("esame")
+                histos[channel][sample].Draw("hpesame")
 
     if args.stacks:
         if args.logy:
@@ -251,6 +291,11 @@ for channel in numbers:
         stackS.Draw("HISTSAMENOCLEAR")
         for s in reversed(sigs+bkgs):
             leg.AddEntry(histos[channel][s], sampleInfo[s]["shortName"], "F")
+    elif zz8TeVComboExists:
+        leg.AddEntry(zz8TeVCombo, "ZZ->4l 8TeV", "LPE")
+        if args.norm:
+            zz8TeVCombo.Scale(1./zz8TeVCombo.GetBinContent(1))
+        zz8TeVCombo.Draw("hpesame")
 
     ROOT.gStyle.SetLineWidth(3)
 
