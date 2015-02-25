@@ -6,7 +6,8 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-import ROOT
+import rootpy.ROOT as ROOT
+from rootpy.plotting import Hist, Canvas
 import argparse
 import glob
 import os
@@ -42,9 +43,13 @@ parser.add_argument('--stacks', action='store_true',
                     help='Plot two stacks (signal overlayed on top of background) instead of plotting samples separately as points.')
 parser.add_argument('--norm', action='store_true', 
                     help='Nomalize all samples to the total number of events.')
+parser.add_argument('--diff', action='store_true', 
+                    help='Plot fraction of events kept from one cut to the next. --norm implied.')
 
 
 args = parser.parse_args()
+
+assert not (args.diff and args.stacks), "You can't stack cut differences!"
 
 infiles = []
 rawInputs = args.inputs[0].split(',')
@@ -153,10 +158,23 @@ for channel in numbers:
     if channel not in histos:
         histos[channel] = {}
     for sample in numbers[channel]:
-        histos[channel][sample] = ROOT.TH1F("hCutFlow%s%s"%(sample,channel), "Cut flow summary %s"%channel, cutCountMax, 0, cutCountMax)
+        if args.diff:
+            nBins = cutCountMax - 1
+        else:
+            nBins = cutCountMax
+        histos[channel][sample] = Hist(nBins, 0, nBins)
         for nCut, n in numbers[channel][sample].iteritems():
-            histos[channel][sample].SetBinContent(nCut, float(n))
-            histos[channel][sample].GetXaxis().SetBinLabel(nCut, cutNames[nCut])
+            if args.diff:
+                if nCut == 1: # initial
+                    continue
+                if numbers[channel][sample][nCut-1] == 0:
+                    histos[channel][sample].SetBinContent(nCut-1, 0)
+                else:
+                    histos[channel][sample].SetBinContent(nCut-1, float(n)/float(numbers[channel][sample][nCut-1]))
+                histos[channel][sample].GetXaxis().SetBinLabel(nCut-1, cutNames[nCut])
+            else:
+                histos[channel][sample].SetBinContent(nCut, float(n))
+                histos[channel][sample].GetXaxis().SetBinLabel(nCut, cutNames[nCut])
 
             if args.stacks:
                 histos[channel][sample].SetLineWidth(4)
@@ -182,7 +200,10 @@ for channel in numbers:
             else:
                 evType = channel
             histos[channel][sample].SetTitle("Cut Flow Summary %s "%evType)
-            if args.norm:
+
+            if args.diff:
+                histos[channel][sample].GetYaxis().SetTitle("Fraction of %s Events Retained"%evType)
+            elif args.norm:
                 histos[channel][sample].GetYaxis().SetTitle("Fraction of %s Events"%evType)
             else:
                 histos[channel][sample].GetYaxis().SetTitle("%s Events"%evType)
@@ -190,7 +211,8 @@ for channel in numbers:
         # Make sure the errors get scaled correctly
         histos[channel][sample].Sumw2()
         # Scale to cross section and lumi
-        histos[channel][sample].Scale(sampleInfo[sample]['xsec'] * args.intLumi / sampleInfo[sample]['n'])
+        if not args.diff:
+            histos[channel][sample].Scale(sampleInfo[sample]['xsec'] * args.intLumi / sampleInfo[sample]['n'])
 
     # Make sure the viewing range is big enough to see all the histograms
     if not args.stacks:
@@ -205,12 +227,12 @@ for channel in numbers:
 # don't draw in a graphical window right now
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
-c = ROOT.TCanvas("foo", "foo")#, 1200, 1200)
+c = Canvas()#ROOT.TCanvas("foo", "foo")#, 1200, 1200)
 if args.logy:
     c.SetLogy()
 
 for channel in numbers:
-    if args.norm:
+    if args.norm or args.diff:
         leg = ROOT.TLegend(0.12, 0.15, 0.37, 0.4)
     else:
         leg = ROOT.TLegend(0.65, 0.65, 0.9, 0.9)
@@ -257,21 +279,45 @@ for channel in numbers:
                 histos[channel][sample].SetMarkerStyle(22)
 
             if '8TeV' in sample and 'ZZ' in sample:
+                if args.diff and \
+                   ((channel == "eeee" and "4e" not in sample) or \
+                   (channel == "eemm" and "2e2m" not in sample) or \
+                   (channel == "mmmm" and "4m" not in sample)):
+                    continue
                 if not zz8TeVComboExists:
+                    if channel == "Total" and args.diff:
+                        totalZZ8TeVXSec = sampleInfo[sample]['xsec']
+                        histos[channel][sample].Scale(totalZZ8TeVXSec)
                     zz8TeVCombo = histos[channel][sample].Clone()
                     zz8TeVComboExists = True
                 else:
+                    if channel == "Total":
+                        histos[channel][sample].Scale(sampleInfo[sample]['xsec'])
+                        totalZZ8TeVXSec += sampleInfo[sample]['xsec']
                     zz8TeVCombo.Add(histos[channel][sample])
                 continue
 
-            leg.AddEntry(histos[channel][sample], sampleInfo[sample]["shortName"], "LPE")
-            if args.norm:
+            if args.stacks:
+                legStyle = "F"
+            if args.diff:
+                legStyle = "P"
+            else:
+                legStyle = "LPE"
+
+            leg.AddEntry(histos[channel][sample], sampleInfo[sample]["shortName"], legStyle)
+            if args.norm and not args.diff:
                 histos[channel][sample].Scale(1./histos[channel][sample].GetBinContent(1))
+            drawArgs = "p"
+            if not args.diff:
+                drawArgs = "he%s"%drawArgs
             if not drawnYet:
-                histos[channel][sample].Draw("hpe")
+                if args.diff:
+                    histos[channel][sample].SetMaximum(1.05)
+                    histos[channel][sample].SetMinimum(0.)
+                histos[channel][sample].Draw(drawArgs)
                 drawnYet = True
             else:
-                histos[channel][sample].Draw("hpesame")
+                histos[channel][sample].Draw("%ssame"%drawArgs)
 
     if args.stacks:
         if args.logy:
@@ -290,12 +336,14 @@ for channel in numbers:
         stackB.Draw("HIST")
         stackS.Draw("HISTSAMENOCLEAR")
         for s in reversed(sigs+bkgs):
-            leg.AddEntry(histos[channel][s], sampleInfo[s]["shortName"], "F")
+            leg.AddEntry(histos[channel][s], sampleInfo[s]["shortName"], legStyle)
     elif zz8TeVComboExists:
-        leg.AddEntry(zz8TeVCombo, "ZZ->4l 8TeV", "LPE")
-        if args.norm:
+        leg.AddEntry(zz8TeVCombo, "ZZ->4l 8TeV", legStyle)
+        if args.norm and not args.diff:
             zz8TeVCombo.Scale(1./zz8TeVCombo.GetBinContent(1))
-        zz8TeVCombo.Draw("hpesame")
+        if args.diff and channel == "Total":
+            zz8TeVCombo.Scale(1/totalZZ8TeVXSec)
+        zz8TeVCombo.Draw("%ssame"%drawArgs)
 
     ROOT.gStyle.SetLineWidth(3)
 

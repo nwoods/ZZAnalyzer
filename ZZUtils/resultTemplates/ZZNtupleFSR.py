@@ -67,6 +67,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sSCEnergy',
             '%sSCEta',
             '%sSCPhi',
+            '%sNearestMuonDR',
             ]
 
         self.flavoredCopyVars['m'] = [

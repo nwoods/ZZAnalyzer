@@ -24,7 +24,7 @@ class ZZFinalHists(ZZHistSaver):
                 'vars' : {
                     '4lMass' : {
                         'f' : self.copyFunc("Mass"),
-                        'params' : [80, 0., 800], 
+                        'params' : [36, 100., 1000], 
                         },
                     '4lPt' : {
                         'f' : self.copyFunc("Pt"),

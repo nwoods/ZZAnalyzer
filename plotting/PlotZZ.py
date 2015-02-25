@@ -371,10 +371,10 @@ if __name__ == "__main__":
 
     for channel in plotter.getChannels()+["Total"]:
         plotter.makePlots(channel, "4lMass", massBins, args.logy)
-        plotter.makePlots(channel, "4lMt", massBins, args.logy)
+#        plotter.makePlots(channel, "4lMt", massBins, args.logy)
         plotter.makePlots(channel, "4lPt", ptBins, args.logy)
-        plotter.makePlots(channel, "4lEta", etaBins, args.logy)
-        plotter.makePlots(channel, "4lPhi", phiBins, args.logy)
+#        plotter.makePlots(channel, "4lEta", etaBins, args.logy)
+#        plotter.makePlots(channel, "4lPhi", phiBins, args.logy)
 
 
 
