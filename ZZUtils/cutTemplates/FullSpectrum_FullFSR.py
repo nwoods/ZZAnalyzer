@@ -32,78 +32,26 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
                     'tripleEPass' : (1,False),
                 },
                 'logic' : 'or',
-                'type' : 'base',
             },
             'Overlap' : { 
-                'cuts' : { 'DRFSR' : (0.1, False), },
-                'objects' : '2',
-                'type' : 'base',
-                'logic' : 'and',
+                'cuts' : { 'DR' : (0.1, False), },
+                'objects' : 'pairs',
+                'logic' : 'objand',
             },
-            'mIso' : { 
-                'cuts' : { 'RelPFIsoDBDefaultFSR' : (0.4, True) },
-                'logic' : 'and',
-                'objects' : '1',
-                'type' : 'base',
-            },
-            'mTightIso' : { 
-                'cuts' : { 'RelPFIsoDBDefaultFSR' : (0.2, True) },
-                'objects' : '1',
-                'logic' : 'and',
-                'type' : 'base',
-            },
-            'eIso' : { 
-                'cuts' : { 'RelPFIsoRhoFSR' : (0.4, True) },
-                'logic' : 'and',
-                'objects' : '1',
-                'type' : 'base',
-            },
-            'eTightIso' : { 
-                'cuts' : { 'RelPFIsoRhoFSR' : (0.2, True) },
-                'logic' : 'and',
-                'objects' : '1',
-                'type' : 'base',
-            },
-            'eSelection' : {
+            'eLooseID' : {
                 'cuts' : {
-                    'PtFSR' : (7., False),
-                    'EtaFSR#POS' : (2.5, True),
-                    'EtaFSR#NEG' : (-2.5, False),
-                    'SIP3D' : (4., True),
+                    'Pt' : (7., False),
+                    'Eta#POS' : (2.5, True),
+                    'Eta#NEG' : (-2.5, False),
+#                    'SIP3D' : (4., True),
                     'PVDXY#POS' : (0.5, True),
                     'PVDZ#POS' : (1., True),
                     'PVDXY#NEG' : (-0.5, False),
                     'PVDZ#NEG' : (-1., False),
                 },
-                'logic' : 'and',
                 'objects' : '1',
-                'type' : 'base'
             },
-            'mSelection' : { 
-                'cuts' : {
-                    'PtFSR' : (5., False),
-                    'EtaFSR#POS' : (2.4, True),
-                    'EtaFSR#NEG' : (-2.4, False),
-                    'SIP3D' : (4., True),
-                    'PVDXY#POS' : (0.5, True),
-                    'PVDZ#POS' : (1., True),
-                    'PVDXY#NEG' : (-0.5, False),
-                    'PVDZ#NEG' : (-1., False),
-                },
-                'logic' : 'and',
-                'objects' : '1',
-                'type' : 'base',
-            },
-            'mID' : { 
-                'cuts' : { 
-                    'IsGlobal' : (1, False),
-                    'IsTracker' : (1, False),
-                },
-                'logic' : 'or',
-                'objects' : '1',
-                'type' : 'base',
-            },
-            'eID' : {
+            'eMVAID' : {
                 'cuts' : {
                     'BDTName' : 'MVANonTrigID',
                     'ptThr' : 10,
@@ -117,14 +65,75 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
                     'highPtHighEta' : (0.6, False),
                 },
                 'objects' : '1',
-                'type' : 'base',
                 'logic' : 'other',
             },
-            'OS' : {
-                'cuts' : { 'SS' : (1., True) },
-                'logic' : 'and',
-                'objects' : '2',
-                'type' : 'base',
+            'eTightID' : {
+                'cuts' : {
+                    'MVA' : 'eMVAID',
+                    'looseEle' : 'eLooseID',
+                },
+                'objects' : 1,
+            },
+            'mTrkOrGlob' : { 
+                'cuts' : { 
+                    'IsGlobal' : (1, False),
+                    'IsTracker' : (1, False),
+                },
+                'logic' : 'or',
+                'objects' : '1',
+            },
+            'mLooseID' : { 
+                'cuts' : {
+                    'Pt' : (5., False),
+                    'Eta#POS' : (2.4, True),
+                    'Eta#NEG' : (-2.4, False),
+                    'type' : 'mTrkOrGlob',
+                    'PVDXY#POS' : (0.5, True),
+                    'PVDZ#POS' : (1., True),
+                    'PVDXY#NEG' : (-0.5, False),
+                    'PVDZ#NEG' : (-1., False),
+                },
+                'objects' : '1',
+            },
+            'mTightID' : {
+                'cuts' : {
+                    'looseMu' : 'mLooseID',
+                    'IsGlobal' : (1, 'greq'),
+                },
+                'objects' : 1,
+            },
+            'leptonTightID' : {
+                'cuts' : {'id' : 'TYPETightID'},
+                'objects' : 1,
+            },
+            'ZID' : {
+                'cuts' : {
+                    'ID' : 'leptonTightID',
+                },
+                'objects' : 2,
+                'logic' : 'objand',
+            },
+            'GoodZ' : {
+                'cuts' : {
+                    'SS' : (1, "<"),
+                    'idsel' : 'ZID',
+                },
+                'objects' : 2,
+            },            
+            'mIso' : { 
+                'cuts' : { 'RelPFIsoDBDefaultFSR' : (0.4, True) },
+                'objects' : '1',
+            },
+            'eIso' : { 
+                'cuts' : { 'RelPFIsoRhoFSR' : (0.4, True) },
+                'objects' : '1',
+            },
+            'ZIso' : {
+                'cuts' : {
+                    'isolation' : 'TYPEIso',
+                },
+                'objects' : 2,
+                'logic' : 'objand',
             },
             'Z1Mass' : {
                 'cuts' : { 
@@ -132,17 +141,34 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
                     'MassFSR#upper' : (120., True),
                 },
                 'objects' : '2',
-                'type' : 'base',
-                'logic' : 'and',
             },
             'Z2Mass' : {
                 'cuts' : { 
-                    'MassFSR#lower' : (12., False),
-                    'MassFSR#upper' : (120., True),
+                    'MassFSR#lower' : (12., 'greaterthan'),
+                    'MassFSR#upper' : (120., 'less'),
+                },
+                'objects' : 2,
+            },
+            'Lepton1Pt' : {
+                'cuts' : {
+                    'PtFSR' : (20., 'greq'),
                 },
                 'objects' : '2',
-                'type' : 'base',
-                'logic' : 'and',
+                'logic' : 'objor',
+            },                    
+            'LeptonPairPt' : {
+                'cuts' : {
+                    'PtFSR' : (10., '>='),
+                },
+                'objects' : '2',
+                'logic' : 'objand',
+            },
+            'Lepton2Pt' : { # make sure some pair of two leptons both pass the l2 pt cut
+                'cuts' : {
+                    'goodPair' : 'LeptonPairPt',
+                },
+                'logic' : 'objor',
+                'objects' : 'pairs',
             },
             'LeptonPairMass' : {
                 'cuts' : {
@@ -150,87 +176,17 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
                     'SS' : (1, True), # Must be opposite sign, same flavor not required
                 },
                 'objects' : '2',
-                'type' : 'base',
                 'logic' : 'or',
-            },
-            'Lepton1Pt' : {
-                'cuts' : {
-                    'PtFSR' : (20., False),
-                },
-                'logic' : 'and',
-                'objects' : '1',
-                'type' : 'base',
-            },                    
-            'Lepton2Pt' : {
-                'cuts' : {
-                    'PtFSR' : (10., False),
-                },
-                'logic' : 'and',
-                'objects' : '1',
-                'type' : 'base',
-            },
-            '4lMass' : {
-                'cuts' : { 'MassFSR' : (0., False), },
-                'logic' : 'and',
-                'type' : 'base',
-            },
-
-            # Cuts that call other cuts
-            'NoOverlap' : {
-                'cuts' : { 'ovrlp' : 'Overlap' },
-                'objects' : 'pairs',
-                'logic' : 'and',
-                'type' : 'caller',
-                },
-            'ZID' : {
-                'cuts' : {
-                    'ID' : 'TYPEID',
-                    'select' : 'TYPESelection',
-                },
-                'objects' : '2',
-                'logic' : 'and',
-                'type' : 'caller',
-            },
-            'GoodZ' : {
-                'cuts' : {
-                    'OS' : 'OS',
-                    'idsel' : 'ZID',
-                },
-                'logic' : 'and',
-                'objects' : 'pairs',
-                'type' : 'caller',
-            },            
-            'ZIso' : {
-                'cuts' : {
-                    'iso' : 'TYPEIso'
-                },
-                'logic' : 'and',
-                'objects' : '2',
-                'type' : 'caller',
-            },
-            'L1Pt' : {
-                'cuts' : {
-                    'l1pt' : 'Lepton1Pt',
-                },
-                'logic' : 'or',
-                'objects' : '2',
-                'type' : 'caller',
-            },
-            'L2Pt' : {
-                'cuts' : {
-                    'Pt' : 'Lepton2Pt',
-                },
-                'logic' : 'other',
-                'objects' : '4',
-                'type' : 'caller',
             },
             'QCDVeto' : {
                 'cuts' : {
-                    'lpm' : 'LeptonPairMass',
+                    'invMass' : 'LeptonPairMass',
                 },
-                'logic' : 'and',
+                'logic' : 'objand',
                 'objects' : 'pairs',
-                'type' : 'caller',
+            },
+            '4lMass' : {
+                'cuts' : { 'MassFSR' : (0., False), },
             },
         }
 
@@ -244,15 +200,15 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
         flow = OrderedDict()
         flow['Total'] = ('true', [])
         flow['Trigger'] = ('Trigger', [])
-        flow['Overlap'] = ('NoOverlap', [])
+        flow['Overlap'] = ('Overlap', [])
         flow['GoodZ1'] = ('GoodZ', [1,2])
         flow['Z1Iso'] = ('ZIso', [1,2])
         flow['Z1Mass'] = ('Z1Mass', [1,2])
         flow['GoodZ2'] = ('GoodZ', [3,4])
         flow['Z2Iso'] = ('ZIso', [3,4])
         flow['Z2Mass'] = ('Z2Mass', [3,4])
-        flow['Lepton1Pt'] = ('L1Pt', [1,3])
-        flow['Lepton2Pt'] = ('L2Pt', [1,2,3,4])
+        flow['Lepton1Pt'] = ('Lepton1Pt', [1,3])
+        flow['Lepton2Pt'] = ('Lepton2Pt', [1,2,3,4])
         flow['LeptonPairMass'] = ('QCDVeto', [1,2,3,4])
         flow['4lMass'] = ('4lMass', [])
         
@@ -265,8 +221,7 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
         '''
         temp = self.getCutTemplate()
         others = {}
-        others['eID'] = lambda row, obj: self.eIDTight2012(temp['eID'], row, obj)
-        others['L2Pt'] = lambda row, *obj: self.ptCutTwoObjects(temp['L2Pt'], row, *obj)
+        others['eMVAID'] = lambda row, obj: self.eIDTight2012(temp['eMVAID'], row, obj)
 
         return others
 
