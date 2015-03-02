@@ -43,7 +43,7 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
                     'Pt' : (7., False),
                     'Eta#POS' : (2.5, True),
                     'Eta#NEG' : (-2.5, False),
-#                    'SIP3D' : (4., True),
+                    'SIP3D' : (4., True),
                     'PVDXY#POS' : (0.5, True),
                     'PVDZ#POS' : (1., True),
                     'PVDXY#NEG' : (-0.5, False),
@@ -88,6 +88,7 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
                     'Eta#POS' : (2.4, True),
                     'Eta#NEG' : (-2.4, False),
                     'type' : 'mTrkOrGlob',
+                    'SIP3D' : (4., True),
                     'PVDXY#POS' : (0.5, True),
                     'PVDZ#POS' : (1., True),
                     'PVDXY#NEG' : (-0.5, False),
@@ -98,7 +99,7 @@ class FullSpectrum_FullFSR(Cutter.Cutter):
             'mTightID' : {
                 'cuts' : {
                     'looseMu' : 'mLooseID',
-                    'IsGlobal' : (1, 'greq'),
+#                    'IsPFMuon' : (1, 'greq'),
                 },
                 'objects' : 1,
             },
