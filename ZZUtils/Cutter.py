@@ -243,50 +243,23 @@ class Cutter(object):
         logicFun = all if requireAll else any
 
         if objLogic:
-        # pick a function to make the list of objects to loop over
-            if pairwise:
-                objListFun = lambda *obj: [sorted(ob) for ob in itertools.combinations(obj,2)]
-            else:
-                objListFun = lambda *obj: obj
-            
             if pairwise:
                 return lambda row, *obj: logicFun([all(cut(row, *sorted(ob)) for cut in cutFuns) for ob in itertools.combinations(obj,2)])
             else:
                 return lambda row, *obj: logicFun([all(cut(row, ob) for cut in cutFuns) for ob in obj])
         else:
             if nObjects == 0:
+                if len(cutFuns) == 1:
+                    return lambda row: cutFuns[0](row)
                 return lambda row: logicFun([cut(row) for cut in cutFuns])
             elif nObjects == 1:
+                if len(cutFuns) == 1:
+                    return lambda row, obj: cutFuns[0](row, obj)
                 return lambda row, obj: logicFun([cut(row, obj) for cut in cutFuns])
             else:
+                if len(cutFuns) == 1:
+                    return lambda row, *obj: cutFuns[0](row, *obj)
                 return lambda row, *obj: logicFun([cut(row, *sorted(obj)) for cut in cutFuns])
-
-
-#         if cutDict['objects'] == 'pairs':
-#             if requireAll:
-#                 return lambda row, *obj: all([self.doCut(row, cut, *sorted(ob)) for foo, cut in cutDict['cuts'].iteritems() for ob in itertools.combinations(obj,2)])
-#             else:
-#                 return lambda row, *obj: any(
-#                     [all(self.doCut(row, cut, *sorted(ob)) for foo, cut in cutDict['cuts'].iteritems()) for ob in itertools.combinations(obj,2)])
-# 
-#         if cutDict['objects'] == 'sfpairs':
-#             if requireAll:
-#                 return lambda row, *obj: all([(self.doCut(row, cut, *sorted(ob)) if ob[0][0] == ob[1][0] else True) for foo, cut in cutDict['cuts'].iteritems() for ob in itertools.combinations(obj,2)])
-#             else:
-#                 return lambda row, *obj: any([all((self.doCut(row, cut, *sorted(ob)) if ob[0][0] == ob[1][0] else True) for foo, cut in cutDict['cuts'].iteritems()) for ob in itertools.combinations(obj,2)])
-# 
-#         # otherwise, it's just the number of objects used
-#         try:
-#             nObjects = int(cutDict['objects'])
-#         except ValueError:
-#             print "Number of objects must be an integer"
-#             raise
-# 
-#         if requireAll:
-#             return lambda row, *obj: all([self.doCut(row, self.getCutName(cut,ob), ob) for foo, cut in cutDict['cuts'].iteritems() for ob in obj])
-#         else:
-#             return lambda row, *obj: any([all(self.doCut(row, self.getCutName(cut,ob), ob) for foo, cut in cutDict['cuts'].iteritems()) for ob in obj])
-# 
 
     
     def getCutLegFunction(self, cutName, cutParams, nObjects):
@@ -347,42 +320,6 @@ class Cutter(object):
         '''
         return cut.replace("TYPE", ob[0])
 
-
-#     def baseEvCut(self, cutDict):
-#         '''
-#         Return a function that does one event-level cut.
-#         cutDict is template[cut] or at least in the same format
-#         '''
-#         requireAll = cutDict['logic'] == 'and'
-#         if requireAll:
-#             return lambda row: all([self.cutEvVar(row, var.split("#")[0], val[0], val[1]) for var, val in cutDict['cuts'].iteritems()])
-#         else:
-#             return lambda row: any([self.cutEvVar(row, var.split("#")[0], val[0], val[1]) for var, val in cutDict['cuts'].iteritems()])
-# 
-# 
-#     def baseObjCut(self, cutDict):
-#         '''
-#         Return a function that does one event-level cut.
-#         cutDict is template[cut] or at least in the same format
-#         '''
-#         requireAll = cutDict['logic'] == 'and'
-#         if requireAll:
-#             return lambda row, obj: all([self.cutObjVar(row, var.split("#")[0], val[0], val[1], obj) for var, val in cutDict['cuts'].iteritems()])
-#         else:
-#             return lambda row, obj: any([self.cutObjVar(row, var.split("#")[0], val[0], val[1], obj) for var, val in cutDict['cuts'].iteritems()])
-# 
-# 
-#     def baseNObjCut(self, cutDict):
-#         '''
-#         Return a function that does one event-level cut.
-#         cutDict is template[cut] or at least in the same format
-#         '''
-#         requireAll = cutDict['logic'] == 'and'
-#         if requireAll:
-#             return lambda row, *obj: all([self.cutNObjVar(row, var.split("#")[0], val[0], val[1], *obj) for var, val in cutDict['cuts'].iteritems()])
-#         else:
-#             return lambda row, *obj: any([self.cutNObjVar(row, var.split("#")[0], val[0], val[1], *obj) for var, val in cutDict['cuts'].iteritems()])
-# 
 
     def cutEvVar(self, row, var, val, wantLessThan):
         '''
