@@ -259,7 +259,7 @@ class Cutter(object):
             else:
                 if len(cutFuns) == 1:
                     return lambda row, *obj: cutFuns[0](row, *obj)
-                return lambda row, *obj: logicFun([cut(row, *sorted(obj)) for cut in cutFuns])
+                return lambda row, *obj: logicFun([cut(row, *obj) for cut in cutFuns])
 
     
     def getCutLegFunction(self, cutName, cutParams, nObjects):
@@ -281,7 +281,11 @@ class Cutter(object):
             if nObjects == 0:
                 return lambda row: self.doCut(row, cutParams)
             elif nObjects == 1:
-                return lambda row, obj: self.doCut(row, self.getCutName(cutParams, obj), obj)
+                if cutParams[:4] == "TYPE":
+                    strippedName = cutParams.replace("TYPE","")
+                    return lambda row, obj: self.doCut(row, obj[0]+strippedName, obj)
+                else:
+                    return lambda row, obj: self.doCut(row, cutParams, obj)
             else:
                 return lambda row, *obj: self.doCut(row, cutParams, *obj)
 
@@ -306,19 +310,14 @@ class Cutter(object):
                 print "Note that it's always >=, whether your string indicates that or not."
                 raise ValueError
 
+        thisCut = cutName.split("#")[0]
+
         if nObjects == 0:
-            return lambda row: self.cutEvVar(row, cutName.split("#")[0], cutParams[0], wantLessThan)
+            return lambda row: self.cutEvVar(row, thisCut, cutParams[0], wantLessThan)
         elif nObjects == 1:
-            return lambda row, obj: self.cutObjVar(row, cutName.split("#")[0], cutParams[0], wantLessThan, obj)
+            return lambda row, obj: self.cutObjVar(row, thisCut, cutParams[0], wantLessThan, obj)
         else:
-            return lambda row, *obj: self.cutNObjVar(row, cutName.split("#")[0], cutParams[0], wantLessThan, *obj)
-
-
-    def getCutName(self, cut, ob):
-        '''
-        Replaces 'TYPE' with the object type (e.g. TYPEIso becomes eIso or mIso)
-        '''
-        return cut.replace("TYPE", ob[0])
+            return lambda row, *obj: self.cutNObjVar(row, thisCut, cutParams[0], wantLessThan, *obj)
 
 
     def cutEvVar(self, row, var, val, wantLessThan):
@@ -358,51 +357,4 @@ class Cutter(object):
             print "Failed"
             
         
-
-#     def doCut(self, row, cutName, obj='', obj2=''):
-#         '''
-#         Returns true if obj passes cuts[cutName]
-#         obj2 is ignored unless the cut's mode is '2obj'
-# 
-#         It turns out that we get the desired less/greaterOrEqual behavior with
-#                 variable<cut XNOR lessThanCut
-#             which is most easily expressed as
-#                 variable<cut == lessThanCut
-# 
-#         If no objects are supplied, it will just give back the global variable with 
-#             the appropriate name
-#         '''
-# 
-# 
-# 
-#         assert cutName in self.cuts, 'Incorrect cut name %s'%cutName
-# 
-#         if 'options' not in self.cuts[cutName]:
-#             if self.cuts[cutName]['mode'] == '2obj':
-#                 passList = [((getattr(row, getVar2(obj, obj2, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
-#                             self.cuts[cutName]['cuts'].iteritems()]
-#             elif self.cuts[cutName]['mode'] == 'other':
-# #                if cutName == 'eID' and ('2012' in self.cutSet or '8TeV' in self.cutSet):
-#                 return self.eIDTight2012(row, obj)
-# #                raise NameError('Special cut %s is not yet defined for cutSet %s'%(cutName,self.cutSet))
-#             else:
-#                 passList = [((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1]) for var, cut in \
-#                             self.cuts[cutName]['cuts'].iteritems()]
-# 
-#             if self.cuts[cutName]['mode'] == 'or':
-#                 return any(passList)
-#             return all(passList)
-#         else:
-#             assert 'abs' in self.cuts[cutName]['options'], "Unknown option %s"%self.cuts[cutName]['options']
-#             absolutes = self.cuts[cutName]['options'].split('abs')
-#             passList = []
-#             for var, cut in self.cuts[cutName]['cuts'].iteritems():
-#                 if var in absolutes:
-#                     passList.append((abs(getattr(row, getVar(obj, var.split('#')[0]))) < cut[0]) == cut[1])
-#                 else:
-#                     passList.append((getattr(row, getVar(obj, var.split('#')[0])) < cut[0]) == cut[1])
-#             if self.cuts[cutName]['mode'] == 'or':
-#                 return any(passList)
-#             return all(passList)
-
 
