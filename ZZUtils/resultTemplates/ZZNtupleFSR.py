@@ -43,6 +43,10 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'eMuPass',
             'muEPass',
             'tripleEPass',
+            'pvZ',
+            'pvndof',
+            'pvRho',
+            'pvIsFake',
             ]
 
         self.copyVars[1] = [
@@ -67,12 +71,15 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sSCEnergy',
             '%sSCEta',
             '%sSCPhi',
+            '%sMissingHits',
+            '%sNearestMuonDR',
             ]
 
         self.flavoredCopyVars['m'] = [
             '%sIsGlobal',
             '%sIsTracker',
             '%sRelPFIsoDBDefault',
+            '%sIsPFMuon',
             ]
 
         self.copyVars[2] = [
