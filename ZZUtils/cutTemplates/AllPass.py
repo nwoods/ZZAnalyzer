@@ -14,7 +14,7 @@ from ZZHelpers import *
 
 class AllPass(Cutter.Cutter):
     def __init__(self):
-        super(AllPass, self).__init__("FullSpectrumFSR")
+        super(AllPass, self).__init__("AllPass")
 
 
     def getCutTemplate(self,*args):
