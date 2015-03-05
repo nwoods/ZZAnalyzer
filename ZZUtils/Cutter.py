@@ -21,8 +21,8 @@ The structure of the dictionary should be:
 
 >>> cuts[cut]['cuts'][variable] = (value, lessThanCut) # if type is 'base'
 >>> cuts[cut]['cuts'][variable] = 'NameOfSomeOtherCut' # type is 'caller'
->>> cuts[cut]['logic'] = 'and/or/other/objand/objor'
->>> cuts[cut]['objects'] = 'numberOfObjectsAsAString'
+>>> cuts[cut]['logic'] = 'and'/'or'/'other'/'objand'/'objor'
+>>> cuts[cut]['objects'] = nObjects/'pairs'/'ignore'
 >>> cuts[cut]['type'] = 'base/caller'
 
     where variable is the name of the variable stored in the ntuple,
@@ -38,9 +38,11 @@ The structure of the dictionary should be:
     the cut result is the (and/or) of all the results for all the objects.
     In the case of 'other', the rest of the dictionary structure may
     change, but it won't matter because it must also call a special
-    function to do the cut. 'objects' points to a string giving the
-    number of objects cut on ('1', '4', etc.). 'pairs' is a special
+    function to do the cut. 'objects' points the
+    number of objects cut on. 'pairs' is a special
     value that will apply the cut on all possible pairs of objects.
+    If 'objects' is 'ignore', the cut will accept any number of
+    objects as input, but ignore them and do an event-level cut.
 
 The type of a cut may be 'base', for cuts that just take a value
     from the ntuple and cut on it, or 'caller' for cuts that call other
@@ -83,6 +85,12 @@ Once a set of cuts is entered, the user shouldn't need to know anything.
     and do Cutter.analysisCut(row, cut, *allObjects) for all cuts. The
     results of these are booleans for whether the cut was passed or not.
 
+A few simple, common cuts are provided by default. 'true' always returns
+    True, 'SameFlavor' returns whether the objects are the same type 
+    (electron, muon etc.). 'DifferentFlavor' does the opposite.
+    'IsElectron' and 'IsMuon' tell you if the 
+    object is an electron or a muon, respectively.
+
 
 Author: Nate Woods, U. Wisconsin
 
@@ -103,9 +111,13 @@ class Cutter(object):
 
         self.cuts = self.setupCuts(self.cutSet)
         
-        # Add an always-true cut because it's vaguely useful
+        # Add a few always-useful cuts
         if 'true' not in self.cuts:
             self.cuts['true'] = lambda *args: True
+        self.cuts['SameFlavor'] = lambda row, obj1, obj2: obj1[0]==obj2[0]
+        self.cuts['DifferentFlavor'] = lambda row, obj1, obj2: obj1[0]!=obj2[0]
+        self.cuts['IsElectron'] = lambda row, obj: obj[0]=='e'
+        self.cuts['IsMuon'] = lambda row, obj: obj[0]=='m'
 
 
     def setupOtherCuts(self):
@@ -221,10 +233,15 @@ class Cutter(object):
         requireAll = 'and' in cutDict['logic']
         
         pairwise = False
+        ignoreObjects = False
         if 'objects' in cutDict:
             if isinstance(cutDict['objects'], str) and 'pairs' in cutDict['objects']:
                 pairwise = True
                 nObjects = 2
+            elif isinstance(cutDict['objects'], str) and 'ignore' in cutDict['objects']:
+                # to allow us to pass objects to a cut that doesn't use any
+                ignoreObjects = True
+                nObjects = -1 # just set to junk
             else:
                 try:
                     nObjects = int(cutDict['objects'])
@@ -238,7 +255,7 @@ class Cutter(object):
             nObjects = 1
 
         # it will be faster to make a list of functions now and loop over it with a generator expression later
-        cutFuns = [self.getCutLegFunction(leg, legParams, nObjects) for leg, legParams in cutDict['cuts'].iteritems()]
+        cutFuns = [self.getCutLegFunction(leg, legParams, nObjects, ignoreObjects) for leg, legParams in cutDict['cuts'].iteritems()]
         # the any function or the all fuction, depending on what we need
         logicFun = all if requireAll else any
 
@@ -262,7 +279,7 @@ class Cutter(object):
                 return lambda row, *obj: logicFun([cut(row, *obj) for cut in cutFuns])
 
     
-    def getCutLegFunction(self, cutName, cutParams, nObjects):
+    def getCutLegFunction(self, cutName, cutParams, nObjects, ignoreObjects=False):
         '''
         Get the function to do a single leg of a single cut. If cutName is the
         name of a variable, the function will cut on that, and will look for 
@@ -278,7 +295,9 @@ class Cutter(object):
         '''
         
         if isinstance(cutParams, str):
-            if nObjects == 0:
+            if ignoreObjects:
+                return lambda row, *obj: self.doCut(row, cutParams)
+            elif nObjects == 0:
                 return lambda row: self.doCut(row, cutParams)
             elif nObjects == 1:
                 if cutParams[:4] == "TYPE":
@@ -312,7 +331,9 @@ class Cutter(object):
 
         thisCut = cutName.split("#")[0]
 
-        if nObjects == 0:
+        if ignoreObjects:
+            return lambda row, *obj: self.cutEvVar(row, thisCut, cutParams[0], wantLessThan)
+        elif nObjects == 0:
             return lambda row: self.cutEvVar(row, thisCut, cutParams[0], wantLessThan)
         elif nObjects == 1:
             return lambda row, obj: self.cutObjVar(row, thisCut, cutParams[0], wantLessThan, obj)
