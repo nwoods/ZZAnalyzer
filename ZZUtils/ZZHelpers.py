@@ -39,3 +39,24 @@ def deltaR(eta1, phi1, eta2, phi2):
 
 
 Z_MASS = 91.1876
+
+
+def zCompatibility(row, obj1, obj2, useFSR=True):
+    '''
+    Distance from the nominal Z mass for this pair of objects. Does not check 
+    for OSSF.
+    '''
+    if useFSR:
+        mVar = "MassFSR"
+    else:
+        mVar = "Mass"
+    m = nObjVar(row, mVar, obj1, obj2)
+
+    return zMassDist(m)
+
+
+def zMassDist(mass):
+    '''
+    Absolute distance of this number from the nominal Z mass.
+    '''
+    return abs(mass - Z_MASS)
