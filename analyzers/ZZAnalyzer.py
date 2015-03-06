@@ -101,12 +101,12 @@ class ZZAnalyzer(object):
     def prepareCutSummary(self):
         '''
         Prepare dictionary with number of events passing each cut for each channel.
-        Adds first item for number of rows before the combinatorics cut.
+        If redundant row cleaning is done, an extra item will be added later (not here)
         '''
         self.cutsPassed = {}
         for channel in self.channels:
             self.cutsPassed[channel] = {}
-            for cut in ['TotalRows']+self.cutOrder:
+            for cut in self.cutOrder:
                 self.cutsPassed[channel][cut] = 0
 
 
@@ -116,7 +116,7 @@ class ZZAnalyzer(object):
         self.outFile
         '''
 
-        inFile = root_open(self.inFile) # ROOT.TFile.Open(self.inFile)
+        inFile = root_open(self.inFile)
         assert bool(inFile), 'No file %s'%self.inFile
 
         for channel in self.channels:
@@ -132,27 +132,41 @@ class ZZAnalyzer(object):
             if self.cleanRows:
                 # For events with more than 4 leptons, FSA Ntuples just have one
                 #     row for each possible combination of objects. We have to know
-                #     which one is the right one
-                rowCleaner = self.CleanerClass(ntuple, channel, self.cuts, self.sample, self.maxEvents)
+                #     which one is the right one. Can do this before or after other cuts
+                rowCleaner = self.CleanerClass(channel, self.cuts)
+                cleanAfter = rowCleaner.cleanAfter()
 
-            for row in ntuple:
+                if cleanAfter:
+                    self.cutsPassed[channel]["SelectBest"] = 0
+                else:
+                    self.cutsPassed[channel]["TotalRows"] = 0 # hold number of rows pre-cleaning
+                    for iRow, row in enumerate(ntuple):
+                        if iRow == self.maxEvents:
+                            break
+                        if (iRow % 5000) == 0:
+                            print "%s: Finding redundant rows for %s row %d"%(self.sample, channel, iRow)
+                        rowCleaner.bookRow(row, iRow)
+            else:
+                cleanAfter = False
 
+            # Loop through and do the cuts
+            for iRow, row in enumerate(ntuple):
                 # If we've hit maxEvents, we're done
-                if self.cutsPassed[channel]['Total'] == self.maxEvents:
-                    print "%s: Reached %d %s events, ending"%(self.sample, self.maxEvents, channel)
+                if iRow == self.maxEvents:
+                    print "%s: Reached %d %s rows, ending"%(self.sample, self.maxEvents, channel)
                     break
 
-                # Always pass "TotalRows" because it's always a new row
-                self.passCut(row, channel, "TotalRows")
-
                 if self.cleanRows:
-                    # Ignore wrong version of event
-                    if rowCleaner.isRedundant(self.cutsPassed[channel]['TotalRows']):
-                        continue
+                    if not cleanAfter:
+                        # Always pass "TotalRows" because it's always a new row
+                        self.passCut(row, channel, "TotalRows")
+                        # Ignore wrong version of event (if we're cleaning now)
+                        if rowCleaner.isRedundant(iRow):
+                            continue
 
-                # Report progress every 5000 events
-                if self.cutsPassed[channel]['Total'] % 5000 == 0:
-                    print "%s: Processing %s event %d"%(self.sample, channel, self.cutsPassed[channel]["Total"])
+                # Report progress every 5000 rows
+                if iRow % 5000 == 0:
+                    print "%s: Processing %s row %d"%(self.sample, channel, iRow)
                 
                 if needReorder:
                     objects = self.orderLeptons(row, channel, objectTemplate)
@@ -167,9 +181,24 @@ class ZZAnalyzer(object):
                         break
 
                 if evPass:
-                    self.results.saveRow(row, channel, nested=True)
+                    if cleanAfter: # Don't save yet, still might get cleaned
+                        rowCleaner.bookRow(row, iRow)
+                    else:
+                        self.results.saveRow(row, channel, nested=True)
             else:
-                print "%s: Done with %s (%d events)"%(self.sample, channel, self.cutsPassed[channel]['Total'])
+                print "%s: Done with %s (%d rows)"%(self.sample, channel, iRow+1)
+
+            if cleanAfter:
+                for iRow, row in enumerate(ntuple):
+                    if iRow == self.maxEvents:
+                        break
+                    if rowCleaner.isRedundant(iRow):
+                        continue
+                    else:
+                        self.passCut(row, channel, "SelectBest")
+                        self.results.saveRow(row, channel, nested=True)
+                        
+                    
                 
         print "%s: Done with all channels, saving results as %s"%(self.sample, self.outFile)
 
@@ -223,115 +252,6 @@ class ZZAnalyzer(object):
         return objects
 
 
-#     def getRedundantRows(self, ntuple, channel):
-#         '''
-#         Returns a list of row numbers of rows that are the incorrect combinatorial
-#         version of the relevant event. The correct row is the one with Z1 closest
-#         to on-shell, with the highest scalar Pt sum of the remaining leptons used as a 
-#         tiebreaker
-#         '''
-#         nRow = 0
-#         nEvent = 0
-#         redundantRows = set()
-# 
-#         prevRun = -1
-#         prevLumi = -1
-#         prevEvt = -1
-#         prevDZ = 999.
-#         prevPtSum = -999.
-#         prevRow = -1
-#         
-#         objectTemplate = self.mapObjects(channel)
-#         objects = objectTemplate
-#         # 2e2mu channel always lists ee first, but mm might be the better Z
-#         needReorder = channel[0][0] != channel[-1][0]
-# 
-#         for row in ntuple:
-#             if nEvent == self.maxEvents:
-#                 print "%s: Found redundant rows for %d %s events, ending"%(self.sample, self.maxEvents, channel)
-#                 break
-# 
-#             if nRow % 5000 == 0:
-#                 print "%s: Finding redundant rows %s row %d"%(self.sample, channel, nRow)
-#             nRow += 1
-# 
-#             if needReorder:
-#                 objects = self.orderLeptons(row, channel, objectTemplate)
-# 
-#             # Keep track of events within this function by run, lumi block, and event number
-#             run =  evVar(row, 'run')
-#             lumi = evVar(row, 'lumi')
-#             evt =  evVar(row,'evt')
-#             sameEvent = (evt == prevEvt and lumi == prevLumi and run == prevRun)
-# 
-#             if not sameEvent:
-#                 nEvent += 1
-# 
-#             # The best row for the event is actually the best one *that passes ID cuts*
-#             # so we have to treat a row that fails them as automatically bad. But, we can
-#             # only do this when the row is actually a duplicate, to keep our cut stats accurate.
-#             allGood = True
-#             for lepts in [[objects[0],objects[1]],[objects[2],objects[3]]]:
-#                 if not self.cuts.doCut(row, "GoodZ", *lepts):
-#                     allGood = False
-#                     break
-#                 if not self.cuts.doCut(row, "ZIso", *lepts):
-#                     allGood = False
-#                     break
-# 
-#             if not allGood:
-#                 if sameEvent:
-#                     redundantRows.add(nRow)
-#                 else:
-#                     prevRun = run
-#                     prevLumi = lumi
-#                     prevEvt = evt
-#                     prevDZ = 999.
-#                     prevPtSum = -999.
-#                     prevRow = nRow
-#                 continue
-#             
-#             dZ = self.zCompatibility(row, objects[0], objects[1])
-#             ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
-# 
-#             # if this doesn't seem to be a duplicate event, we don't need to do anything but store
-#             # its info in case it's the first of several
-#             if not sameEvent:
-#                 prevRun = run
-#                 prevLumi = lumi
-#                 prevEvt = evt
-#                 prevDZ = dZ
-#                 prevPtSum = ptSum
-#                 prevRow = nRow
-#                 continue
-#             else:
-#                 if dZ < prevDZ:
-#                     redundantRows.add(prevRow)
-#                     prevRun = run
-#                     prevLumi = lumi
-#                     prevEvt = evt
-#                     prevDZ = dZ
-#                     prevPtSum = ptSum
-#                     prevRow = nRow
-#                 elif dZ == prevDZ:
-#                     if ptSum > prevPtSum:
-#                         redundantRows.add(prevRow)
-#                         prevRun = run
-#                         prevLumi = lumi
-#                         prevEvt = evt
-#                         prevDZ = dZ
-#                         prevPtSum = ptSum
-#                         prevRow = nRow
-#                     else:
-#                         redundantRows.add(nRow)
-#                 else:
-#                     redundantRows.add(nRow)
-#         else:
-#             print "%s: Found redundant rows for %d %s events, moving to analyzer"%(self.sample, nRow, channel)
-#                     
-#         return redundantRows
-       
- 
     def orderLeptons(self, row, channel, objects):
         '''
         Put best (closest to nominal mass) Z candidate first. 
@@ -398,34 +318,53 @@ class ZZAnalyzer(object):
         Same name as outfile but .txt instead of .root.
         '''
         totals = {}
-        expectedTotals = {}
+#         expectedTotals = {}
         # factor to translate n events in MC to m events in data
-        for cut in ['TotalRows']+self.cutOrder:
+        for cut in self.cutOrder:
             totals[cut] = 0
-            expectedTotals[cut] = 0.
+#             expectedTotals[cut] = 0.
 
         with open(self.outFile.replace('.root','.txt'), 'w') as f:
             for channel in self.channels:
-                if self.cutsPassed[channel]['Total'] != self.maxEvents:
-                    expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi / sampleInfo[self.sample]['n']
-                else:
-                    # estimate fraction that would have passed to be nPassedTot/nEvents ~ nPassed * nRowsTot / (nRows * nEvents)
-                    # must make this approximation because we don't know what fraction of the sample was cut out
-                    #     by the ntuplizer
-                    expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi * \
-                                     self.ntupleSize[channel] / \
-                                     (self.cutsPassed[channel]['TotalRows'] * sampleInfo[self.sample]['n'])
+                for cleanerCut in ["TotalRows", "SelectBest"]:
+                    if cleanerCut in self.cutsPassed[channel] and cleanerCut not in totals:
+                        totals[cleanerCut] = 0
+#                         expectedTotals[cleanerCut] = 0
+                        break
+#                 if self.cutsPassed[channel]['Total'] != self.maxEvents:
+#                     expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi / sampleInfo[self.sample]['n']
+#                 else:
+#                     # estimate fraction that would have passed to be nPassedTot/nEvents ~ nPassed * nRowsTot / (nRows * nEvents)
+#                     # must make this approximation because we don't know what fraction of the sample was cut out
+#                     #     by the ntuplizer
+#                     expectedFactor = sampleInfo[self.sample]['xsec'] * self.intLumi * \
+#                                      self.ntupleSize[channel] / \
+#                                      (self.cutsPassed[channel]['TotalRows'] * sampleInfo[self.sample]['n'])
 
-                f.write("\n%-32s in %0.0f pb^-1\n"%(channel+':',self.intLumi))
-                for cut in ['TotalRows']+self.cutOrder:
-                    expected = self.cutsPassed[channel][cut] * expectedFactor
-                    f.write("%16s : %-9d :      %0.2f\n"%(cut, self.cutsPassed[channel][cut], expected))
+                f.write("\n%-32s\n"%channel) # in %0.0f pb^-1\n"%(channel+':',self.intLumi))
+                if "TotalRows" in self.cutsPassed[channel]:
+                    listOfCuts = ['TotalRows']+self.cutOrder
+                elif "SelectBest" in self.cutsPassed[channel]:
+                    listOfCuts = self.cutOrder+["SelectBest"]
+                else:
+                    listOfCuts = self.cutOrder
+                for cut in listOfCuts:
+#                     expected = self.cutsPassed[channel][cut] * expectedFactor
+                    f.write("%16s : %-9d\n"%(cut, self.cutsPassed[channel][cut]))
+                    # :      %0.2f\n"%(cut, self.cutsPassed[channel][cut], expected))
                     totals[cut] += self.cutsPassed[channel][cut]
-                    expectedTotals[cut] += expected
+#                     expectedTotals[cut] += expected
                                                      
-            f.write("\n%-32s in %0.0f pb^-1\n"%('Total:',self.intLumi))
-            for cut in ['TotalRows']+self.cutOrder:
-                f.write("%16s : %-9d :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
+            if "TotalRows" in self.cutsPassed[channel]:
+                listOfCuts = ['TotalRows']+self.cutOrder
+            elif "SelectBest" in self.cutsPassed[channel]:
+                listOfCuts = self.cutOrder+["SelectBest"]
+            else:
+                listOfCuts = self.cutOrder
+            f.write("Total:\n")
+#             f.write("\n%-32s in %0.0f pb^-1\n"%('Total:',self.intLumi))
+            for cut in self.cutOrder:
+                f.write("%16s : %-9d\n"%(cut, totals[cut])) # :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
     
 
 

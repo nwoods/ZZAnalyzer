@@ -11,115 +11,54 @@ from ZZHelpers import * # evVar, objVar, nObjVar, Z_MASS
 
 
 class HZZ4l2012Cleaner(ZZRowCleanerBase):
-    def __init__(self, ntuple, channel, cutter, sampleName, maxEvents=float('inf')):
-        super(HZZ4l2012Cleaner, self).__init__(ntuple, channel, cutter, sampleName, maxEvents)
+    def __init__(self, channel, cutter):
+
+        self.cleanAtEnd = False # do cleaning first
+        self.prevDZ = 999.
+        self.prevPtSum = -999.
+
+        super(HZZ4l2012Cleaner, self).__init__(channel, cutter)
 
 
-    def getRedundantRows(self):
+    def isNewBest(self, row, newEvent):
         '''
-        Returns a set of row numbers of rows that are the incorrect combinatorial
-        version of the relevant event. The correct row is the one with Z1 closest
-        to on-shell, with the highest scalar Pt sum of the remaining leptons used as a 
-        tiebreaker
+        Returns True if this row is better than previous rows from the same
+        event it has just seen. The correct row is the one with Z1 closest
+        to on-shell, with the highest scalar Pt sum of the remaining leptons
+        used as a tiebreaker. Only Zs whose leptons pass ID are considered
+        (if no rows from an event pass ID, the first is considered best). 
         '''
-        nRow = 0
-        nEvent = 0
-        redundantRows = set()
-
-        prevRun = -1
-        prevLumi = -1
-        prevEvt = -1
-        prevDZ = 999.
-        prevPtSum = -999.
-        prevRow = -1
+        # To store appropriate info, we always need to do the ID+iso check
 
         # make a copy in case we have to reorder
         objects = self.objectTemplate
         
-        for row in self.ntuple:
-            if nEvent == self.maxEvents:
-                print "%s: Found redundant rows for %d %s events"%(self.sampleName, self.maxEvents, self.channel)
+        if self.needReorder:
+            objects = orderLeptons(row, self.channel, self.objectTemplate)
+
+        allGood = True
+        for lepts in [[objects[0],objects[1]],[objects[2],objects[3]]]:
+            if not self.cuts.doCut(row, "GoodZ", *lepts):
+                allGood = False
+                break
+            if not self.cuts.doCut(row, "ZIso", *lepts):
+                allGood = False
                 break
 
-            if nRow % 5000 == 0:
-                print "%s: Finding redundant rows %s row %d"%(self.sampleName, self.channel, nRow)
-            nRow += 1
-
-            if self.needReorder:
-                objects = orderLeptons(row, self.channel, self.objectTemplate)
-
-            # Keep track of events within this function by run, lumi block, and event number
-            run =  evVar(row, 'run')
-            lumi = evVar(row, 'lumi')
-            evt =  evVar(row,'evt')
-            sameEvent = (evt == prevEvt and lumi == prevLumi and run == prevRun)
-
-            if not sameEvent:
-                nEvent += 1
-
-            # The best row for the event is actually the best one *that passes ID cuts*
-            # so we have to treat a row that fails them as automatically bad. But, we can
-            # only do this when the row is actually a duplicate, to keep our cut stats accurate.
-            allGood = True
-            for lepts in [[objects[0],objects[1]],[objects[2],objects[3]]]:
-                if not self.cuts.doCut(row, "GoodZ", *lepts):
-                    allGood = False
-                    break
-                if not self.cuts.doCut(row, "ZIso", *lepts):
-                    allGood = False
-                    break
-
-            if not allGood:
-                if sameEvent:
-                    redundantRows.add(nRow)
-                else:
-                    prevRun = run
-                    prevLumi = lumi
-                    prevEvt = evt
-                    prevDZ = 999.
-                    prevPtSum = -999.
-                    prevRow = nRow
-                continue
-            
+        if allGood:
             dZ = zCompatibility(row, objects[0], objects[1])
             ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
-
-            # if this doesn't seem to be a duplicate event, we don't need to do anything but store
-            # its info in case it's the first of several
-            if not sameEvent:
-                prevRun = run
-                prevLumi = lumi
-                prevEvt = evt
-                prevDZ = dZ
-                prevPtSum = ptSum
-                prevRow = nRow
-                continue
-            else:
-                if dZ < prevDZ:
-                    redundantRows.add(prevRow)
-                    prevRun = run
-                    prevLumi = lumi
-                    prevEvt = evt
-                    prevDZ = dZ
-                    prevPtSum = ptSum
-                    prevRow = nRow
-                elif dZ == prevDZ:
-                    if ptSum > prevPtSum:
-                        redundantRows.add(prevRow)
-                        prevRun = run
-                        prevLumi = lumi
-                        prevEvt = evt
-                        prevDZ = dZ
-                        prevPtSum = ptSum
-                        prevRow = nRow
-                    else:
-                        redundantRows.add(nRow)
-                else:
-                    redundantRows.add(nRow)
         else:
-            print "%s: Found redundant rows for %d %s events"%(self.sampleName, nRow, self.channel)
-                    
-        return redundantRows
+            dZ = -999
+            ptSum = -999
+
+        isBest = newEvent or (dZ < self.prevDZ or (dZ == self.prevDZ and ptSum > self.prevPtSum))
+
+        if isBest:
+            self.prevDZ = dZ
+            self.prevPtSum = ptSum
+        
+        return isBest
        
  
 def orderLeptons(row, channel, objects):
