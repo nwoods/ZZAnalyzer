@@ -144,7 +144,6 @@ class ZZAnalyzer(object):
                             print "%s: Finding redundant rows for %s row %d"%(self.sample, channel, iRow)
                         rowCleaner.bookRow(row, iRow)
                     rowCleaner.finalize()
-                    print len(rowCleaner.bestRows)
             else:
                 cleanAfter = False
 
@@ -355,7 +354,7 @@ class ZZAnalyzer(object):
                 listOfCuts = self.cutOrder
             f.write("Total:\n")
 #             f.write("\n%-32s in %0.0f pb^-1\n"%('Total:',self.intLumi))
-            for cut in self.cutOrder:
+            for cut in listOfCuts:
                 f.write("%16s : %-9d\n"%(cut, totals[cut])) # :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
     
 
