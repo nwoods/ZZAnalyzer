@@ -12,12 +12,10 @@ from ZZHelpers import * # evVar, objVar, nObjVar, Z_MASS
 
 class HZZ4l2012Cleaner(ZZRowCleanerBase):
     def __init__(self, channel, cutter):
-
+        super(HZZ4l2012Cleaner, self).__init__(channel, cutter)
         self.cleanAtEnd = False # do cleaning first
         self.prevDZ = 999.
         self.prevPtSum = -999.
-
-        super(HZZ4l2012Cleaner, self).__init__(channel, cutter)
 
 
     def isNewBest(self, row, newEvent):
