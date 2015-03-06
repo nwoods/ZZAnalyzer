@@ -47,7 +47,7 @@ class HZZ4l2012Cleaner(ZZRowCleanerBase):
             dZ = zCompatibility(row, objects[0], objects[1])
             ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
         else:
-            dZ = -999
+            dZ = 999
             ptSum = -999
 
         isBest = newEvent or (dZ < self.prevDZ or (dZ == self.prevDZ and ptSum > self.prevPtSum))
