@@ -73,6 +73,13 @@ class ZZRowCleanerBase(object):
         return self.cleanAtEnd
 
 
+    def finalize(self):
+        '''
+        Save the correct row for the last event, so we don't forget it.
+        '''
+        self.bestRows.add(self.prevIdx)
+
+
     def bookRow(self, row, idx):
         '''
         If this row is from the same event as the previous, check 
