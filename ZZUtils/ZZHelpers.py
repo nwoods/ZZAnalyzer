@@ -60,3 +60,18 @@ def zMassDist(mass):
     Absolute distance of this number from the nominal Z mass.
     '''
     return abs(mass - Z_MASS)
+
+
+def zCompatibility_checkSign(row, ob1, ob2, useFSR=True):
+    '''
+    Absolute distance from Z mass. 1000 if same sign.
+    '''
+    if nObjVar(row, 'SS', ob1, ob2):
+        return 1000
+    if useFSR:
+        zMassVar = "MassFSR"
+    else:
+        zMassVar = "Mass"
+    return abs(nObjVar(row, zMassVar, ob1, ob2) - Z_MASS)
+
+
