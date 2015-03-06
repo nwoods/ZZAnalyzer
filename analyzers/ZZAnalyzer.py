@@ -37,9 +37,6 @@ class ZZAnalyzer(object):
         rowCleaner:  name of a module to clean out redundant rows. If an empty 
                          string (or other False boolean), no cleaning is performed.
         '''
-        # cheat, for now
-        self.zMassVar = 'MassFSR'
-
         if type(channels) == str:
             if channels == '4l' or channels == 'zz' or channels == 'ZZ':
                 self.channels = ['eeee', 'eemm', 'mmmm']
@@ -146,6 +143,8 @@ class ZZAnalyzer(object):
                         if (iRow % 5000) == 0:
                             print "%s: Finding redundant rows for %s row %d"%(self.sample, channel, iRow)
                         rowCleaner.bookRow(row, iRow)
+                    rowCleaner.finalize()
+                    print len(rowCleaner.bestRows)
             else:
                 cleanAfter = False
 
@@ -187,6 +186,8 @@ class ZZAnalyzer(object):
                         self.results.saveRow(row, channel, nested=True)
             else:
                 print "%s: Done with %s (%d rows)"%(self.sample, channel, iRow+1)
+                if cleanAfter:
+                    rowCleaner.finalize()
 
             if cleanAfter:
                 for iRow, row in enumerate(ntuple):
@@ -262,21 +263,12 @@ class ZZAnalyzer(object):
         if channel == 'eeee' or channel == 'mmmm':
             return objects
 
-        dM1 = self.zCompatibility(row,objects[0],objects[1])
-        dM2 = self.zCompatibility(row,objects[2],objects[3])
+        dM1 = zCompatibility_checkSign(row,objects[0],objects[1], True)
+        dM2 = zCompatibility_checkSign(row,objects[2],objects[3], True)
         
         if dM1 > dM2:
             return objects[2:] + objects[:2]
         return objects
-
-
-    def zCompatibility(self, row, ob1, ob2):
-        '''
-        Absolute distance from Z mass. 1000 if same sign.
-        '''
-        if nObjVar(row, 'SS', ob1, ob2):
-            return 1000
-        return abs(nObjVar(row, self.zMassVar, ob1, ob2) - Z_MASS)
 
 
     def getOSSF(self, row, channel, objects=[]):
