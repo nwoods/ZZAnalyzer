@@ -84,6 +84,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
 
         self.copyVars[2] = [
             '%s_%s_Mass',
+            '%s_%s_MassFSR',
             '%s_%s_Pt',
             '%s_%s_PtFSR',
             '%s_%s_Eta',
@@ -107,7 +108,6 @@ class ZZNtupleFSR(ZZNtupleSaver):
 
         self.calcVars[2] = {
             '%s_%s_DRFSR' : self.deltaRFunction,
-            '%s_%s_MassFSR' : self.massFunction,
             }
 
         self.flavoredCalcVars['m'] = {
@@ -226,23 +226,23 @@ class ZZNtupleFSR(ZZNtupleSaver):
         return p4 + p4FSR
 
 
-    def dileptonMassBothFSR(self, row, lep1, partner1, lep2, partner2):
-        '''
-        Returns invariant mass of lep1 and lep2, including FSR photons for
-        either. Partner1 and partner2 are the other leptons in the two
-        Z candidates, for purposes of finding FSR photons.
-        Doesn't check to see if lep1 and lep2 are partners.
-        '''
-        if self.isFSRLepton(row, lep1, partner1):
-            p4_1 = self.getP4WithFSR(row, lep1, partner1)
-        else:
-            p4_1 = self.getLeptonP4(row, lep1)
-        if self.isFSRLepton(row, lep2, partner2):
-            p4_2 = self.getP4WithFSR(row, lep2, partner2)
-        else:
-            p4_2 = self.getLeptonP4(row, lep2)
-
-        return (p4_1 + p4_2).M()
+#     def dileptonMassBothFSR(self, row, lep1, partner1, lep2, partner2):
+#         '''
+#         Returns invariant mass of lep1 and lep2, including FSR photons for
+#         either. Partner1 and partner2 are the other leptons in the two
+#         Z candidates, for purposes of finding FSR photons.
+#         Doesn't check to see if lep1 and lep2 are partners.
+#         '''
+#         if self.isFSRLepton(row, lep1, partner1):
+#             p4_1 = self.getP4WithFSR(row, lep1, partner1)
+#         else:
+#             p4_1 = self.getLeptonP4(row, lep1)
+#         if self.isFSRLepton(row, lep2, partner2):
+#             p4_2 = self.getP4WithFSR(row, lep2, partner2)
+#         else:
+#             p4_2 = self.getLeptonP4(row, lep2)
+# 
+#         return (p4_1 + p4_2).M()
 
 
     def deltaRZPairFSR(self, row, lep1, lep2):
@@ -326,21 +326,21 @@ class ZZNtupleFSR(ZZNtupleSaver):
         return lambda row: self.getVarFSR(row, var, lep, partner)
 
 
-    def massFunction(self, lep1, lep2):
-        '''
-        Returns a function to get the invariant mass of lep1 and lep2 with 
-        the FSR photons matched to the corresponding Zs included where 
-        appropriate. 
-        '''
-        partner1 = self.getZPartner(lep1)
-        # if they are partners, this is already in the ntuple
-        if partner1 == lep2:
-            return lambda row: nObjVar(row, "MassFSR", lep1, lep2)
-
-        # Otherwise, we have to find the FSR cands and calculate ourselves
-        partner2 = self.getZPartner(lep2)
-        
-        return lambda row: self.dileptonMassBothFSR(row, lep1, partner1, lep2, partner2)
+#     def massFunction(self, lep1, lep2):
+#         '''
+#         Returns a function to get the invariant mass of lep1 and lep2 with 
+#         the FSR photons matched to the corresponding Zs included where 
+#         appropriate. 
+#         '''
+#         partner1 = self.getZPartner(lep1)
+#         # if they are partners, this is already in the ntuple
+#         if partner1 == lep2:
+#             return lambda row: nObjVar(row, "MassFSR", lep1, lep2)
+# 
+#         # Otherwise, we have to find the FSR cands and calculate ourselves
+#         partner2 = self.getZPartner(lep2)
+#         
+#         return lambda row: self.dileptonMassBothFSR(row, lep1, partner1, lep2, partner2)
 
 
     def deltaRFunction(self, lep1, lep2):
@@ -435,7 +435,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
         chHadIso = objVar(row, "PFChargedIso", ele)
         neutHadIso = objVar(row, "PFNeutralIso", ele)
         phoIso = objVar(row, "PFPhotonIso", ele)
-        puHadIso= objVar(row, "Rho", ele) * objVar(row, "EffectiveArea2012Data", ele)
+        puHadIso= objVar(row, "Rho", ele) * objVar(row, "EffectiveAreaPHYS14", ele)
         ptFSR = nObjVar(row, "FSRPt", *sortedLeps)
         pt = self.getP4WithFSR(row, ele, partner).Pt()
 
