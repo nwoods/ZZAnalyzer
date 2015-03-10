@@ -96,13 +96,13 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # Lepton ID
             'eLooseID' : {
                 'cuts' : {
-                    'Pt' : (7., False),
-                    'Eta#POS' : (2.5, True),
-                    'Eta#NEG' : (-2.5, False),
-                    'PVDXY#POS' : (0.5, True),
-                    'PVDZ#POS' : (1., True),
-                    'PVDXY#NEG' : (-0.5, False),
-                    'PVDZ#NEG' : (-1., False),
+                    'Pt' : (7., ">="),
+                    'Eta#POS' : (2.5, "<"),
+                    'Eta#NEG' : (-2.5, ">="),
+                    'PVDXY#POS' : (0.5, "<"),
+                    'PVDZ#POS' : (1., "<"),
+                    'PVDXY#NEG' : (-0.5, ">="),
+                    'PVDZ#NEG' : (-1., ">="),
                     'MissingHits' : (2, "<"),
                 },
                 'objects' : '1',
@@ -113,12 +113,12 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                     'ptThr' : 10,
                     'etaLow' : 0.8,
                     'etaHigh' : 1.479,
-                    'lowPtLowEta' : (0.47, False),
-                    'lowPtMedEta' : (0.004, False),
-                    'lowPtHighEta' : (0.295, False),
-                    'highPtLowEta' : (-0.34, False),
-                    'highPtMedEta' : (-0.65, False),
-                    'highPtHighEta' : (0.6, False),
+                    'lowPtLowEta' : (-0.202, False),
+                    'lowPtMedEta' : (-0.444, False),
+                    'lowPtHighEta' : (0.264, False),
+                    'highPtLowEta' : (-0.110, False),
+                    'highPtMedEta' : (-0.284, False),
+                    'highPtHighEta' : (-0.212, False),
                 },
                 'objects' : '1',
                 'logic' : 'other',
@@ -132,22 +132,22 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             },
             'mTrkOrGlob' : { 
                 'cuts' : { 
-                    'IsGlobal' : (1, False),
-                    'IsTracker' : (1, False),
+                    'IsGlobal' : (1, ">="),
+                    'IsTracker' : (1, ">="),
                 },
                 'logic' : 'or',
                 'objects' : '1',
             },
             'mLooseID' : { 
                 'cuts' : {
-                    'Pt' : (5., False),
-                    'Eta#POS' : (2.4, True),
-                    'Eta#NEG' : (-2.4, False),
+                    'Pt' : (5., ">="),
+                    'Eta#POS' : (2.4, "<"),
+                    'Eta#NEG' : (-2.4, ">="),
                     'type' : 'mTrkOrGlob',
-                    'PVDXY#POS' : (0.5, True),
-                    'PVDZ#POS' : (1., True),
-                    'PVDXY#NEG' : (-0.5, False),
-                    'PVDZ#NEG' : (-1., False),
+                    'PVDXY#POS' : (0.5, "<"),
+                    'PVDZ#POS' : (1., "<"),
+                    'PVDXY#NEG' : (-0.5, ">="),
+                    'PVDZ#NEG' : (-1., ">="),
                 },
                 'objects' : '1',
             },
@@ -273,7 +273,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # QCD suppression (cut on mass of all OS pairs)
             'LeptonPairMass' : {
                 'cuts' : {
-                    'Mass' : (4., ">="),
+                    'MassFSR' : (4., ">="),
                     'SS' : (1, ">="), # If same sign, we don't care about the mass (same flavor not required)
                 },
                 'objects' : 2,
@@ -290,8 +290,8 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # Z1 mass
             'ZMassTight' : {
                 'cuts' : { 
-                    'MassFSR#lower' : (40., False),
-                    'MassFSR#upper' : (120., True),
+                    'MassFSR#lower' : (40., ">="),
+                    'MassFSR#upper' : (120., "<"),
                 },
                 'objects' : 2,
             },
