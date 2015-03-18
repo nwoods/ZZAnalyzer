@@ -26,6 +26,7 @@ class ZZNtupleSaver(ZZResultSaverBase):
         '''
         More stuff may be set up in daughter class __init__ methods.
         '''
+        self.specialVarList = ['copy']
         super(ZZNtupleSaver, self).__init__(fileName, channels, *args, **kwargs)
 
 
@@ -35,6 +36,13 @@ class ZZNtupleSaver(ZZResultSaverBase):
         '''
         setattr(tree, var, num)
 
+        
+    def specialVars(self):
+        '''
+        The "variable" copy is special (giving the ntuple and branches to copy)
+        and should be passed right through to the object builder.
+        '''
+        return self.specialVarList
 
 
     def setupResultObjects(self, resultArgs, *args, **kwargs):
@@ -44,15 +52,48 @@ class ZZNtupleSaver(ZZResultSaverBase):
         if not resultArgs:
             return {}
 
-        # Sort so we can find stuff using TBrowser
-        cols = sorted(resultArgs.keys())
-        modelCols = OrderedDict()
-        for col in cols:
+        cols = []
+        # default values of copy variables
+        copyFrom = False # will be an ntuple if copying
+        copyOnly = None # will be a list of branches to copy if needed
+        copyExcept = None # will be a list of branches *not* to copy if needed
+
+        if 'copy' in resultArgs:
+            copyVars = resultArgs.pop('copy')
+            copyFrom = copyVars.pop('ntuple')
+            if 'only' in copyVars:
+                assert 'except' not in copyVars, \
+                    "Can't have both an only list and an except list for ntuple %s!"%copyFrom.GetName()
+                copyOnly = copyVars['only']
+                cols += copyOnly
+            elif 'except' in copyVars:
+                copyExcept = copyVars['except']
+                for b in copyFrom.iterbranchnames():
+                    if b not in copyExcept:
+                        cols.append(b)
+            else: # otherwise, just copy everything
+                cols += copyFrom.branchnames
+
+        # Everything else in resultArgs should be new branches
+        cols += resultArgs.keys()
+
+        modelCols = {}
+
+        # Sort so entries are in alphabetical order in TBrowser
+        for col in sorted(cols):
             modelCols[col] = FloatCol()
     
         ntupleModel = type("aModel", (TreeModel,), modelCols)
         ntuple = Tree("Ntuple", model=ntupleModel)
         
+        if bool(copyFrom):
+            # This seems to be required to initialize the buffer. No idea why.
+            for row in copyFrom:
+                break
+
+            # Set copying branches to point to the input ntuple's buffer
+            ntuple.set_buffer(copyFrom._buffer, copyOnly, copyExcept)
+
         return {'Ntuple' : ntuple}
 
                      

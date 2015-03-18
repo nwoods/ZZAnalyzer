@@ -15,11 +15,12 @@ from itertools import combinations
 
 
 class ZZNtupleFSR(ZZNtupleSaver):
-    def __init__(self, fileName, channels, *args, **kwargs):
+    def __init__(self, fileName, channels, inputNtuples, *args, **kwargs):
         self.copyVars = [[],[],[]] # 0, 1, and 2- lepton variables
         self.calcVars = [{},{},{}] # dictionary of function-makers for 0, 1 and 2-lepton calculated variables
         self.flavoredCopyVars = {'e':[],'m':[]}
         self.flavoredCalcVars = {'e':{},'m':{}}
+        self.inputs = inputNtuples
         super(ZZNtupleFSR, self).__init__(fileName, channels, *args, **kwargs)
 
 
@@ -107,7 +108,6 @@ class ZZNtupleFSR(ZZNtupleSaver):
             }
 
         self.calcVars[2] = {
-            '%s_%s_DRFSR' : self.deltaRFunction,
             }
 
         self.flavoredCalcVars['m'] = {
@@ -126,17 +126,17 @@ class ZZNtupleFSR(ZZNtupleSaver):
         template = {
             'mmmm' : {
                 'final' : {
-                    'vars' : self.templateForObjects(obj4M),
+                    'vars' : self.templateForObjects('mmmm', obj4M),
                     },
                 },
             'eemm' : {
                 'final' : {
-                    'vars' : self.templateForObjects(obj2E2M),
+                    'vars' : self.templateForObjects('eemm', obj2E2M),
                     },
                 },
             'eeee' : {
                 'final' : {
-                    'vars' : self.templateForObjects(obj4E),
+                    'vars' : self.templateForObjects('eeee', obj4E),
                     },
                 },
             }
@@ -144,22 +144,22 @@ class ZZNtupleFSR(ZZNtupleSaver):
         return template
 
 
-    def templateForObjects(self, objects):
+    def templateForObjects(self, channel, objects):
         '''
-        Takes list of objects, returns a variable template for it.
+        Takes a channel and list of objects, returns a variable template for it.
         '''
-        temp = {}
+        temp = {'copy' : {'ntuple' : self.inputs[channel], 'only' : []}}
 
         for n, varList in enumerate(self.copyVars):
             for objs in combinations(objects, n):
                 for var in varList:
-                    temp[var%objs] = {}
+                    temp['copy']['only'].append(var%objs)
 
         for obj in objects:
             if obj[0] not in self.flavoredCopyVars:
                 continue
             for var in self.flavoredCopyVars[obj[0]]:
-                temp[var%obj] = {}
+                temp['copy']['only'].append(var%obj)
 
         for n, funcs in enumerate(self.calcVars):
             for var, func in funcs.iteritems():
@@ -226,11 +226,34 @@ class ZZNtupleFSR(ZZNtupleSaver):
         return p4 + p4FSR
 
 
-#     def dileptonMassBothFSR(self, row, lep1, partner1, lep2, partner2):
+#     def deltaRZPairFSR(self, row, lep1, lep2):
 #         '''
-#         Returns invariant mass of lep1 and lep2, including FSR photons for
-#         either. Partner1 and partner2 are the other leptons in the two
-#         Z candidates, for purposes of finding FSR photons.
+#         Finds FSR-included delta R between lep1 and lep2 assuming they are a 
+#         Z pair (so we include 1 FSR photon at most).
+#         '''
+#         sortedLeps = sorted([lep1, lep2]) # avoid asking for (e.g.) "e2_e1_Pt"
+#         fsrEta = nObjVar(row, "FSREta", *sortedLeps)
+#         if fsrEta == -999: # no FSR
+#             return nObjVar(row, "DR", *sortedLeps)
+#         
+#         if self.isFSRLepton(row, lep1, lep2):
+#             match = lep1
+#             other = lep2
+#         else:
+#             match = lep2
+#             other = lep1
+# 
+#         p4_1 = self.getP4WithFSR(row, match, other)
+#         p4_2 = self.getLeptonP4(row, other)
+# 
+#         return p4_1.DeltaR(p4_2)
+#             
+# 
+#     def deltaRBothFSR(self, row, lep1, partner1, lep2, partner2):
+#         '''
+#         Returns deltaR between lep1 and lep2 with FSR corrections included
+#         for both. partner1 and partner2 are the other leptons in the Z 
+#         candidates for lep1 and lep2, for purposes of finding FSR photons.
 #         Doesn't check to see if lep1 and lep2 are partners.
 #         '''
 #         if self.isFSRLepton(row, lep1, partner1):
@@ -242,49 +265,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
 #         else:
 #             p4_2 = self.getLeptonP4(row, lep2)
 # 
-#         return (p4_1 + p4_2).M()
-
-
-    def deltaRZPairFSR(self, row, lep1, lep2):
-        '''
-        Finds FSR-included delta R between lep1 and lep2 assuming they are a 
-        Z pair (so we include 1 FSR photon at most).
-        '''
-        sortedLeps = sorted([lep1, lep2]) # avoid asking for (e.g.) "e2_e1_Pt"
-        fsrEta = nObjVar(row, "FSREta", *sortedLeps)
-        if fsrEta == -999: # no FSR
-            return nObjVar(row, "DR", *sortedLeps)
-        
-        if self.isFSRLepton(row, lep1, lep2):
-            match = lep1
-            other = lep2
-        else:
-            match = lep2
-            other = lep1
-
-        p4_1 = self.getP4WithFSR(row, match, other)
-        p4_2 = self.getLeptonP4(row, other)
-
-        return p4_1.DeltaR(p4_2)
-            
-
-    def deltaRBothFSR(self, row, lep1, partner1, lep2, partner2):
-        '''
-        Returns deltaR between lep1 and lep2 with FSR corrections included
-        for both. partner1 and partner2 are the other leptons in the Z 
-        candidates for lep1 and lep2, for purposes of finding FSR photons.
-        Doesn't check to see if lep1 and lep2 are partners.
-        '''
-        if self.isFSRLepton(row, lep1, partner1):
-            p4_1 = self.getP4WithFSR(row, lep1, partner1)
-        else:
-            p4_1 = self.getLeptonP4(row, lep1)
-        if self.isFSRLepton(row, lep2, partner2):
-            p4_2 = self.getP4WithFSR(row, lep2, partner2)
-        else:
-            p4_2 = self.getLeptonP4(row, lep2)
-
-        return p4_1.DeltaR(p4_2)
+#         return p4_1.DeltaR(p4_2)
             
 
     def getLeptonP4(self, row, lep):
@@ -343,21 +324,21 @@ class ZZNtupleFSR(ZZNtupleSaver):
 #         return lambda row: self.dileptonMassBothFSR(row, lep1, partner1, lep2, partner2)
 
 
-    def deltaRFunction(self, lep1, lep2):
-        '''
-        Returns a function to get deltaR between lep1 and lep2 with 
-        the FSR photons matched to the corresponding Zs included where 
-        appropriate. 
-        '''
-        partner1 = self.getZPartner(lep1)
-        # if they are partners, this is already in the ntuple
-        if partner1 == lep2:
-            return lambda row: self.deltaRZPairFSR(row, lep1, lep2)
-
-        # Otherwise, we have to find the FSR cands and calculate ourselves
-        partner2 = self.getZPartner(lep2)
-        
-        return lambda row: self.deltaRBothFSR(row, lep1, partner1, lep2, partner2)
+#     def deltaRFunction(self, lep1, lep2):
+#         '''
+#         Returns a function to get deltaR between lep1 and lep2 with 
+#         the FSR photons matched to the corresponding Zs included where 
+#         appropriate. 
+#         '''
+#         partner1 = self.getZPartner(lep1)
+#         # if they are partners, this is already in the ntuple
+#         if partner1 == lep2:
+#             return lambda row: self.deltaRZPairFSR(row, lep1, lep2)
+# 
+#         # Otherwise, we have to find the FSR cands and calculate ourselves
+#         partner2 = self.getZPartner(lep2)
+#         
+#         return lambda row: self.deltaRBothFSR(row, lep1, partner1, lep2, partner2)
 
 
     def muonRelPFIsoDBFSRFunction(self, mu):
