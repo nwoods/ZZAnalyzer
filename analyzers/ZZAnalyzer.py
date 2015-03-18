@@ -24,7 +24,7 @@ Z_MASS = 91.1876
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
 class ZZAnalyzer(object):
-    def __init__(self, channels, cutSet, infile, outfile='./results/output.root', 
+    def __init__(self, channels, cutSet, inFile, outfile='./results/output.root', 
                  resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000, rowCleaner=''):
         '''
         Channels:    list of strings or single string in the format (e.g.) eemm for 
@@ -59,6 +59,24 @@ class ZZAnalyzer(object):
 
         self.outFile = outfile
 
+        self.cutOrder = self.cuts.getCutList()
+
+        self.sample = inFile.split('/')[-1].replace('.root','')        
+        self.inFile = root_open(inFile)
+        assert bool(inFile), 'No file %s'%self.inFile
+
+        self.maxEvents = maxEvents
+        # if we don't use all the events, we need to know how many we would have done in the whole thing
+        if self.maxEvents < float('inf'):
+            self.ntupleSize = {}
+
+        self.ntuples = {}
+        for channel in self.channels:
+            self.ntuples[channel] = self.inFile.Get(channel+'/final/Ntuple')
+
+            if self.maxEvents < float('inf'):
+                self.ntupleSize[channel] = self.ntuples[channel].GetEntries()
+
         self.resultType = resultType
         resultpath = os.environ["zza"]+"/ZZUtils/resultTemplates"
         resf, resfName, resdesc = imp.find_module(resultType, [resultpath])
@@ -66,22 +84,9 @@ class ZZAnalyzer(object):
         resmod = imp.load_module(resultType, resf, resfName, resdesc)
         resultclass = getattr(resmod, resultType)
 
-        self.results = resultclass(self.outFile, self.channels)
-
-        self.cutOrder = self.cuts.getCutList()
-
-        self.inFile = infile
-
-        self.sample = self.inFile.split('/')[-1].replace('.root','')
-        
-        self.maxEvents = maxEvents
-        # if we don't use all the events, we need to know how many we would have done in the whole thing
-        if self.maxEvents < float('inf'):
-            self.ntupleSize = {}
+        self.results = resultclass(self.outFile, self.channels, self.ntuples)
 
         self.prepareCutSummary()
-
-#        self.getHistoDict(self.channels)
 
         self.intLumi = intLumi
 
@@ -112,16 +117,8 @@ class ZZAnalyzer(object):
         For a given file, do the whole analysis and output the results to 
         self.outFile
         '''
-
-        inFile = root_open(self.inFile)
-        assert bool(inFile), 'No file %s'%self.inFile
-
         for channel in self.channels:
-            ntuple = inFile.Get(channel+'/final/Ntuple')
-
-            if self.maxEvents < float('inf'):
-                self.ntupleSize[channel] = ntuple.GetEntries()
-
+        
             objectTemplate = self.mapObjects(channel)
             objects = objectTemplate
             needReorder = channel[0][0] != channel[-1][0]
@@ -137,7 +134,7 @@ class ZZAnalyzer(object):
                     self.cutsPassed[channel]["SelectBest"] = 0
                 else:
                     self.cutsPassed[channel]["TotalRows"] = 0 # hold number of rows pre-cleaning
-                    for iRow, row in enumerate(ntuple):
+                    for iRow, row in enumerate(self.ntuples[channel]):
                         if iRow == self.maxEvents:
                             break
                         if (iRow % 5000) == 0:
@@ -148,7 +145,7 @@ class ZZAnalyzer(object):
                 cleanAfter = False
 
             # Loop through and do the cuts
-            for iRow, row in enumerate(ntuple):
+            for iRow, row in enumerate(self.ntuples[channel]):
                 # If we've hit maxEvents, we're done
                 if iRow == self.maxEvents:
                     print "%s: Reached %d %s rows, ending"%(self.sample, self.maxEvents, channel)
@@ -189,7 +186,7 @@ class ZZAnalyzer(object):
                     rowCleaner.finalize()
 
             if cleanAfter:
-                for iRow, row in enumerate(ntuple):
+                for iRow, row in enumerate(self.ntuples[channel]):
                     if iRow == self.maxEvents:
                         break
                     if rowCleaner.isRedundant(iRow):
@@ -202,7 +199,7 @@ class ZZAnalyzer(object):
                 
         print "%s: Done with all channels, saving results as %s"%(self.sample, self.outFile)
 
-        inFile.close()
+        self.inFile.close()
 
         self.results.save()
 

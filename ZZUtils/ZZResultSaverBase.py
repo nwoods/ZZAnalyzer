@@ -37,8 +37,8 @@ class ZZResultSaverBase(object):
         self.channels = channels
         self.directories = []
         self.keepTotal = kwargs.get('keepTotal',False) or 'Total' in channels
-        self.template = self.setupTemplate(*args, **kwargs)
-        self.results, self.functions = self.setupResults(*args, **kwargs)
+        self.template = self.setupTemplate()
+        self.results, self.functions = self.setupResults()
 
 
     def saveNumber(self, result, number, var=''):
@@ -75,6 +75,24 @@ class ZZResultSaverBase(object):
         Not always needed (e.g., histograms are all set after being filled).
         '''
         pass
+
+
+    def specialVars(self):
+        '''
+        Virtual.
+        Returns a list of special variables that are skipped when making
+        functions. E.g., one might skip an item in the variables list that is
+        not a variable, but rather parameters for creating the result object.
+        '''
+        return []
+
+
+    def write(self, resultObject):
+        '''
+        Possibley virtual.
+        Writes a given result object to disk.
+        '''
+        resultObject.Write()
 
 
     def getDictItem(self, theDict, *args):
@@ -159,11 +177,15 @@ class ZZResultSaverBase(object):
 
         resultArgs = {}
         for var, varDef in varTemp.iteritems():
+            # Allow daughter classes to pass special items through to the object builder
+            if var in self.specialVars():
+                resultArgs[var] = varDef
+                continue
             if 'f' in varDef:
                 variables[var] = varDef.get('f')
             else:
                 variables[var] = self.copyFunc(var, *args, **kwargs)
-            resultArgs[var] = varDef.get('params', None)
+            resultArgs[var] = varDef.get('params', {})
 
         results = self.setupResultObjects(resultArgs, *args, **kwargs)
 
@@ -246,10 +268,23 @@ class ZZResultSaverBase(object):
         return lambda row: evVar(row, var)
 
 
+    def writeObjects(self, result):
+        '''
+        Recursive function to write everything to file.
+        '''
+        if isinstance(result, dict):
+            for var, res in result.iteritems():
+                self.writeObjects(res)
+        else:
+            self.write(result)
+
+
     def save(self, *args):
         '''
-        Save output file
+        Write all objects and save output file
         '''
+        self.writeObjects(self.results)
+                
         self.outFile.close()
 
 
