@@ -130,13 +130,21 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                 },
                 'objects' : 1,
             },
+            'TrackerMuon' : {
+                'cuts' : {
+                    'IsTracker' : (1, ">="),
+                    'MatchedStations' : (1, ">="), # Equivalent to tkmu arbitration
+                },
+                'logic' : 'or',
+                'objects' : 1,
+            },
             'mTrkOrGlob' : { 
                 'cuts' : { 
                     'IsGlobal' : (1, ">="),
-                    'IsTracker' : (1, ">="),
+                    'tkMu' : 'TrackerMuon',
                 },
                 'logic' : 'or',
-                'objects' : '1',
+                'objects' : 1,
             },
             'mLooseID' : { 
                 'cuts' : {
@@ -295,6 +303,15 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                 },
                 'objects' : 2,
             },
+
+            # 4l Mass
+            '4lMass' : {
+                'cuts' : {
+                    'MassFSR' : (70., ">="),
+                },
+            },
+
+            # Smart Cut
             'SmartCut' : {
                 'logic' : 'other',
             },
@@ -324,6 +341,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
         flow['Lepton2Pt'] = ('Lepton2Pt', [1,2,3,4])
         flow['QCDVeto'] = ('QCDVeto', [1,2,3,4])
         flow['Z1Mass'] = ('ZMassTight', [1,2])
+        flow['4lMass'] = ('4lMass', [])
         flow['SmartCut'] = ('SmartCut', [1,2,3,4])
         
         return flow
