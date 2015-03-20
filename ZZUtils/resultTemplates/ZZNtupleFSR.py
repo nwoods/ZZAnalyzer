@@ -99,24 +99,24 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%s_%s_FSRPhi',
             '%s_%s_SS',
             '%s_%s_DR',
-            ]
+        ]
 
         self.calcVars[1] = {
             '%sPtFSR' : lambda lep: self.varFunctionWithPartner("Pt", lep),
             '%sEtaFSR' : lambda lep: self.varFunctionWithPartner("Eta", lep),
             '%sPhiFSR' : lambda lep: self.varFunctionWithPartner("Phi", lep),
-            }
+        }
 
         self.calcVars[2] = {
-            }
+        }
 
         self.flavoredCalcVars['m'] = {
             '%sRelPFIsoDBDefaultFSR' : self.muonRelPFIsoDBFSRFunction,
-            }
+        }
 
         self.flavoredCalcVars['e'] = {
             '%sRelPFIsoRhoFSR' : self.eleRelPFIsoRhoFSRFunction,
-            }
+        }
 
         obj4M = ['m' + str(i+1) for i in range(4)]
         obj4E = ['e' + str(i+1) for i in range(4)]
