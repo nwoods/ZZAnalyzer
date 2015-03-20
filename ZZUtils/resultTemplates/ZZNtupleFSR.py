@@ -81,6 +81,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sIsTracker',
             '%sRelPFIsoDBDefault',
             '%sIsPFMuon',
+            '%sMatchedStations',
             ]
 
         self.copyVars[2] = [
