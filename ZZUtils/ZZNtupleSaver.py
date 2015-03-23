@@ -14,7 +14,7 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from rootpy.tree import Tree, TreeModel, FloatCol
+from rootpy.tree import Tree, TreeModel, FloatCol, IntCol
 from ZZResultSaverBase import ZZResultSaverBase
 from ZZHelpers import * # evVar, objVar, nObjVar
 from collections import OrderedDict
@@ -81,7 +81,11 @@ class ZZNtupleSaver(ZZResultSaverBase):
 
         # Sort so entries are in alphabetical order in TBrowser
         for col in sorted(cols):
-            modelCols[col] = FloatCol()
+            if col == 'run' or col == 'lumi' or col == 'evt':
+                # These are not floats
+                modelCols[col] = IntCol()
+            else:
+                modelCols[col] = FloatCol()
     
         ntupleModel = type("aModel", (TreeModel,), modelCols)
         ntuple = Tree("Ntuple", model=ntupleModel)
