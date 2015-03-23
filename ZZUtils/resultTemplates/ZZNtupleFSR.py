@@ -48,6 +48,9 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'pvndof',
             'pvRho',
             'pvIsFake',
+            'vbfNJets',
+            'vbfj1pt',
+            'vbfj2pt',
             ]
 
         self.copyVars[1] = [
@@ -64,6 +67,10 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sPhi',
             '%sPt',
             '%sSIP3D',
+            '%sPFChargedIso',
+            '%sPFNeutralIso',
+            '%sPFPhotonIso',
+            '%sRho',
             ]
 
         self.flavoredCopyVars['e'] = [ 
