@@ -51,6 +51,8 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'vbfNJets',
             'vbfj1pt',
             'vbfj2pt',
+            'jet1Pt',
+            'jet2Pt',
             ]
 
         self.copyVars[1] = [
@@ -89,6 +91,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sRelPFIsoDBDefault',
             '%sIsPFMuon',
             '%sMatchedStations',
+            '%sPFPUChargedIso',
             ]
 
         self.copyVars[2] = [
@@ -108,6 +111,10 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%s_%s_SS',
             '%s_%s_DR',
         ]
+
+        self.calcVars[0] = {
+            'nJets' : lambda *obj: lambda row: self.countJets(row, 4),
+        }
 
         self.calcVars[1] = {
             '%sPtFSR' : lambda lep: self.varFunctionWithPartner("Pt", lep),
@@ -445,3 +452,15 @@ class ZZNtupleFSR(ZZNtupleSaver):
         partner = lep[0] + str(partnerNum)
 
         return partner
+
+        
+    def countJets(self, row, maxJets=4):
+        '''
+        Count the number of jets in the row.
+        '''
+        for nj in range(maxJets):
+            if evVar(row, 'jet%dPt'%(nj+1)) == -999:
+                break
+        return nj
+
+
