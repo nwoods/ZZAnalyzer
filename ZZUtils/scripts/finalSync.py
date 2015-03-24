@@ -2,6 +2,10 @@
 
 Dump candidate information in the approved HZZ4l sync format.
 
+Is most useful when sorted afterwards with a command like
+
+$ sort -t : -k 1n -k 2n -k 3n
+
 Author: N. Woods, U. Wisconsin
 
 '''
@@ -35,10 +39,10 @@ def getCandInfo(z1Var, z2Var, row):
     mZ1 = evVar(row, z1Var)
     mZ2 = evVar(row, z2Var)
     kd = 0 #evVar(row, 'KD')
-    nJets = evVar(row, 'vbfNJets')
-    j1pt = max(-1.,evVar(row, 'vbfj1pt'))
-    j2pt = max(-1.,evVar(row, 'vbfj2pt'))
-    return ("%d:%d:%d:%.2f:%.2f:%.2f:%.3f:%d:%.f2:%.2f\n"%(run, lumi, evt, mass, mZ1, mZ2, kd, nJets, j1pt, j2pt))
+    nJets = evVar(row, 'nJets')
+    j1pt = max(-1.,evVar(row, 'jet1Pt'))
+    j2pt = max(-1.,evVar(row, 'jet2Pt'))
+    return ("%d:%d:%d:%.2f:%.2f:%.2f:%.3f:%d:%.2f:%.2f\n"%(run, lumi, evt, mass, mZ1, mZ2, kd, nJets, j1pt, j2pt))
 
 
 parser = argparse.ArgumentParser(description='Dump information about the 4l candidates in an ntuple to a text file, for synchronization.')
