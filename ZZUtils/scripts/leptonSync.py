@@ -3,6 +3,10 @@
 Dump lepton information in the approved HZZ4l sync format.
 Only does each lepton once regardless of number of rows. Sorts by pt.
 
+Is most useful when sorted afterwards with a command like
+
+$ sort -t : -k 1n -k 2n -k 3n -k5nr leptonSync.txt
+
 Author: N. Woods, U. Wisconsin
 
 '''
@@ -25,19 +29,20 @@ class LeptonCollection(object):
             self.chHadIso = objVar(row, 'PFChargedIso', name)
             self.neutHadIso = objVar(row, 'PFNeutralIso', name)
             self.phoIso = objVar(row, 'PFPhotonIso', name)
-            self.rho = objVar(row, 'Rho', name)
+            self.puCorr = 0 # daughter class must define
             self.combRelIso = -1 # Daughter class must define
             self.bdt = 0 # daughter class must define (if electron)
             self.pdgId = 0 # daughter class must define
         def dumpInfo(self, run, lumi, evt):
             return ("%d:%d:%d:%d:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.2f:%.3f:%.3f\n"%(run, lumi, evt, self.pdgId, self.pt, self.eta, \
                                                                                self.phi, self.sip, self.chHadIso, self.neutHadIso, \
-                                                                               self.phoIso, self.rho, self.combRelIso, self.bdt))
+                                                                               self.phoIso, self.puCorr, self.combRelIso, self.bdt))
     class Muon(Lepton):
         def __init__(self, name, row, pt=0):
             super(LeptonCollection.Muon, self).__init__(name, row, pt)
             self.combRelIso = objVar(row, 'RelPFIsoDBDefault', name)
             self.pdgId = -13 * objVar(row, "Charge", name)
+            self.puCorr = objVar(row, "PFPUChargedIso", name)
 
     class Electron(Lepton):
         def __init__(self, name, row, pt=0):
@@ -45,6 +50,7 @@ class LeptonCollection(object):
             self.combRelIso = objVar(row, 'RelPFIsoRho', name)
             self.bdt = objVar(row, 'MVANonTrigID', name)
             self.pdgId = -11 * objVar(row, "Charge", name)
+            self.puCorr = objVar(row, 'Rho', name)
                                                         
                      
     def __init__(self, run, lumi, evt):
