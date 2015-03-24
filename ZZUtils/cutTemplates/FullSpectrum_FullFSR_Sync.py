@@ -223,7 +223,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                 'objects' : 1,
             },
             'eIso' : { 
-                'cuts' : { 'RelPFIsoRhoFSR' : (0.4, "<") },
+                'cuts' : { 'RelPFIsoRhoFSR' : (0.5, "<") },
                 'objects' : 1,
             },
             'LeptonIso' : {
@@ -401,4 +401,4 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             zACompatibility = altZCompatibility[1]
             zBMass = altZMass[0]
 
-        return not (zACompatibility < z1Compatibility and zBMass > 12)
+        return not (zACompatibility < z1Compatibility and zBMass < 12)
