@@ -27,6 +27,8 @@ class ZZNtupleSaver(ZZResultSaverBase):
         More stuff may be set up in daughter class __init__ methods.
         '''
         self.specialVarList = ['copy']
+        # A few variables are saved as ints by FSA
+        self.intVarList = set(['run', 'evt', 'lumi', 'isdata', 'pvIsValid', 'pvIsFake'])
         super(ZZNtupleSaver, self).__init__(fileName, channels, *args, **kwargs)
 
 
@@ -81,7 +83,7 @@ class ZZNtupleSaver(ZZResultSaverBase):
 
         # Sort so entries are in alphabetical order in TBrowser
         for col in sorted(cols):
-            if col == 'run' or col == 'lumi' or col == 'evt':
+            if col in self.intVarList:
                 # These are not floats
                 modelCols[col] = IntCol()
             else:
