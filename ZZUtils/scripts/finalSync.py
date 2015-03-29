@@ -38,6 +38,13 @@ def getCandInfo(z1Var, z2Var, row):
     mass = evVar(row, 'MassFSR')
     mZ1 = evVar(row, z1Var)
     mZ2 = evVar(row, z2Var)
+
+    # eemm channel may have masses swapped
+    if zMassDist(mZ1) > zMassDist(mZ2):
+        temp = mZ2
+        mZ2 = mZ1
+        mZ1 = temp
+
     kd = 0 #evVar(row, 'KD')
     nJets = evVar(row, 'nJets')
     j1pt = max(-1.,evVar(row, 'jet1Pt'))
