@@ -326,8 +326,8 @@ class ZZNtupleFSR(ZZNtupleSaver):
 
         for leps in [[lep1, partner1],[lep2, partner2]]:
             if self.isFSRLepton(row, *leps):
-                fsrP4[leps[0]] = self.getFSRP4(row, lep1, partner1)
-                
+                fsrP4[leps[0]] = self.getFSRP4(row, *leps)
+
         if len(fsrP4) == 0:
             return nObjVar(row, "Mass", lep1, lep2)
 
