@@ -39,57 +39,58 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             ###    (has muon AND passes mu triggers) OR
             ###    (has electron AND passes e triggers) OR
             ###    (has electron and muon AND passes cross triggers)
-            'MuTriggers' : {
-                'cuts' : {
-                    'doubleMuPass' : (1, ">="),
-                },
-                'objects' : 'ignore',
-                'logic' : 'or'
-            },
-            'ETriggers' : {
-                'cuts' : {
-                    'doubleEPass' : (1, ">="), 
-                    'tripleEPass' : (1, ">="),
-                },
-                'logic' : 'or',
-                'objects' : 'ignore',
-            },
-            'CrossTriggers' : {
-                'cuts' : {
-                    'eMuPass' : (1, ">="),
-                    'muEPass' : (1, ">="),
-                },
-                'logic' : 'or',
-                'objects' : 'ignore',
-            },
-            'MuHLTPaths' : {
-                'cuts' : {
-                    'aMuon' : 'IsMuon',
-                    'muTrg' : 'MuTriggers',
-                },
-                'logic' : 'objor', # we just need one muon to pull this off
-            },
-            'EHLTPaths' : {
-                'cuts' : {
-                    'anElectron' : 'IsElectron',
-                    'eTrg' : 'ETriggers',
-                },
-                'logic' : 'objor', # we just need one electron to pull this off
-            },
-            'CrossHLTPaths' : {
-                'cuts' : {
-                    'muPlusE' : 'DifferentFlavor',
-                    'xTrg' : 'CrossTriggers',
-                },
-                'objects' : 2, # we'll pass leptons 1 and 3 in
-            },
+#             'MuTriggers' : {
+#                 'cuts' : {
+#                     'doubleMuPass' : (1, ">="),
+#                 },
+#                 'objects' : 'ignore',
+#                 'logic' : 'or'
+#             },
+#             'ETriggers' : {
+#                 'cuts' : {
+#                     'doubleEPass' : (1, ">="), 
+#                     'tripleEPass' : (1, ">="),
+#                 },
+#                 'logic' : 'or',
+#                 'objects' : 'ignore',
+#             },
+#             'CrossTriggers' : {
+#                 'cuts' : {
+#                     'eMuPass' : (1, ">="),
+#                     'muEPass' : (1, ">="),
+#                 },
+#                 'logic' : 'or',
+#                 'objects' : 'ignore',
+#             },
+#             'MuHLTPaths' : {
+#                 'cuts' : {
+#                     'aMuon' : 'IsMuon',
+#                     'muTrg' : 'MuTriggers',
+#                 },
+#                 'logic' : 'objor', # we just need one muon to pull this off
+#             },
+#             'EHLTPaths' : {
+#                 'cuts' : {
+#                     'anElectron' : 'IsElectron',
+#                     'eTrg' : 'ETriggers',
+#                 },
+#                 'logic' : 'objor', # we just need one electron to pull this off
+#             },
+#             'CrossHLTPaths' : {
+#                 'cuts' : {
+#                     'muPlusE' : 'DifferentFlavor',
+#                     'xTrg' : 'CrossTriggers',
+#                 },
+#                 'objects' : 2, # we'll pass leptons 1 and 3 in
+#             },
             'Trigger' : {
                 'cuts' : {
-                    'mu' : 'MuHLTPaths',
-                    'e' : 'EHLTPaths',
-                    'x' : 'CrossHLTPaths',
+                    'doubleEPass' : (1, ">="),
+                    'tripleEPass' : (1, ">="),
+                    'doubleMuPass' : (1, ">="),
+                    'muEPass' : (1, ">="),
+                    'eMuPass' : (1, ">="),
                 },
-                'objects' : 2,
                 'logic' : 'or',
             },
 
@@ -258,14 +259,14 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # pt of the first and second leptons
             'Lepton1Pt' : {
                 'cuts' : {
-                    'PtFSR' : (20., '>='),
+                    'Pt' : (20., '>='),
                 },
                 'objects' : 2, # only need to test leptons 1 and 3 in FSA ordering
                 'logic' : 'objor',
             },                    
             'LeptonPairPt' : {
                 'cuts' : {
-                    'PtFSR' : (10., '>='),
+                    'Pt' : (10., '>='),
                 },
                 'objects' : 2,
                 'logic' : 'objand',
@@ -281,7 +282,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # QCD suppression (cut on mass of all OS pairs)
             'LeptonPairMass' : {
                 'cuts' : {
-                    'MassFSR' : (4., ">="),
+                    'Mass' : (4., ">="),
                     'SS' : (1, ">="), # If same sign, we don't care about the mass (same flavor not required)
                 },
                 'objects' : 2,
@@ -327,7 +328,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
         flow = OrderedDict()
         flow['Total'] = ('true', [])
         flow['Vertex'] = ('Vertex', [])
-        flow['Trigger'] = ('Trigger', [1,3]) # we can tell the channel from the first and third leptons
+        flow['Trigger'] = ('Trigger', [])
         flow['LeptonID'] = ('GoodLeptons', [1,2,3,4])
         flow['CrossCleaning'] = ('CrossCleaning', [1,2,3,4])
         flow['SIP'] = ('SIP', [1,2,3,4])
