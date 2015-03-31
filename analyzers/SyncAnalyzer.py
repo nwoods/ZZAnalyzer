@@ -43,10 +43,10 @@ class SyncAnalyzer(ZZAnalyzer):
         '''
         if cut == self.cutOrder[0]:
             self.currentRowInfo = (evVar(row, 'run'), evVar(row, 'lumi'), evVar(row, 'evt'))
-            if self.currentRowInfo in self.interesting:
+            if self.currentRowInfo in self.interesting and self.interesting[self.currentRowInfo] == -999:
                 self.interesting[self.currentRowInfo] = 0
 
-        if self.currentRowInfo in self.interesting:
+        if self.currentRowInfo in self.interesting and self.interesting[self.currentRowInfo] < len(self.cutOrder) - 1:
             # We only care if this is the cut after the furthest cut yet achieved
             if self.cutOrder[self.interesting[self.currentRowInfo]+1] == cut:
                 self.interesting[self.currentRowInfo] += 1
@@ -63,6 +63,7 @@ class SyncAnalyzer(ZZAnalyzer):
             rowID = (evVar(row, 'run'), evVar(row, 'lumi'), evVar(row, 'evt'))
             if rowID in self.interesting:
                 self.interesting[rowID] = 999
+            
                 
         super(SyncAnalyzer, self).passCut(row, channel, cut)
 
