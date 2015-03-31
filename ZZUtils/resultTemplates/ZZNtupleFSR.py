@@ -53,6 +53,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'vbfj2pt',
             'jet1Pt',
             'jet2Pt',
+            'nJets',
             ]
 
         self.copyVars[1] = [
@@ -113,16 +114,13 @@ class ZZNtupleFSR(ZZNtupleSaver):
         ]
 
         self.calcVars[0] = {
-            'nJets' : lambda *obj: lambda row: self.countJets(row, 4),
         }
 
         self.calcVars[1] = {
-            '%sPtFSR' : lambda lep: self.varFunctionWithPartner("Pt", lep),
-            '%sEtaFSR' : lambda lep: self.varFunctionWithPartner("Eta", lep),
-            '%sPhiFSR' : lambda lep: self.varFunctionWithPartner("Phi", lep),
         }
 
         self.calcVars[2] = {
+            '%s_%s_MassFSR' : self.massFunction,
         }
 
         self.flavoredCalcVars['m'] = {
@@ -162,6 +160,10 @@ class ZZNtupleFSR(ZZNtupleSaver):
     def templateForObjects(self, channel, objects):
         '''
         Takes a channel and list of objects, returns a variable template for it.
+        For variables that must be calculated, if None is found instead of a
+        lambda or other calculator function, the variable is copied instead of
+        calculated (or allow the functions that generate the calculators to
+        decide intelligently if a variable already exists).
         '''
         temp = {'copy' : {'ntuple' : self.inputs[channel], 'only' : []}}
 
@@ -179,13 +181,22 @@ class ZZNtupleFSR(ZZNtupleSaver):
         for n, funcs in enumerate(self.calcVars):
             for var, func in funcs.iteritems():
                 for objs in combinations(objects, n):
-                    temp[var%objs] = {'f':func(*objs)}
+                    allObj = list(objs)+objects
+                    f = func(*allObj)
+                    if f is None:
+                        temp['copy']['only'].append(var%objs)
+                    else:
+                        temp[var%objs] = {'f':f}
 
         for obj in objects:
             if obj[0] not in self.flavoredCalcVars:
                 continue
             for var, func in self.flavoredCalcVars[obj[0]].iteritems():
-                temp[var%obj] = {'f':func(obj)}
+                f = func(obj, objects)
+                if f is None:
+                    temp['copy']['only'].append(var%obj)
+                else:
+                    temp[var%obj] = {'f':f}
 
         return temp
 
@@ -202,10 +213,10 @@ class ZZNtupleFSR(ZZNtupleSaver):
             return False
         fsrPhi = nObjVar(row, "FSRPhi", *sortedLeps)
 
-        dR = sqrt((objVar(row, "Eta", lep) - fsrEta)**2 + \
-                  (objVar(row, "Phi", lep) - fsrPhi)**2)
-        dRPartner = sqrt((objVar(row, "Eta", partner) - fsrEta)**2 + \
-                         (objVar(row, "Phi", partner) - fsrPhi)**2)
+        dR = deltaR(objVar(row, "Eta", lep), objVar(row, "Phi", lep),
+                    fsrEta, fsrPhi)
+        dRPartner = deltaR(objVar(row, "Eta", partner), objVar(row, "Phi", partner), 
+                    fsrEta, fsrPhi)
 
         return (dR < dRPartner)
 
@@ -239,48 +250,6 @@ class ZZNtupleFSR(ZZNtupleSaver):
         p4FSR = self.getFSRP4(row, lep, partner)
 
         return p4 + p4FSR
-
-
-#     def deltaRZPairFSR(self, row, lep1, lep2):
-#         '''
-#         Finds FSR-included delta R between lep1 and lep2 assuming they are a 
-#         Z pair (so we include 1 FSR photon at most).
-#         '''
-#         sortedLeps = sorted([lep1, lep2]) # avoid asking for (e.g.) "e2_e1_Pt"
-#         fsrEta = nObjVar(row, "FSREta", *sortedLeps)
-#         if fsrEta == -999: # no FSR
-#             return nObjVar(row, "DR", *sortedLeps)
-#         
-#         if self.isFSRLepton(row, lep1, lep2):
-#             match = lep1
-#             other = lep2
-#         else:
-#             match = lep2
-#             other = lep1
-# 
-#         p4_1 = self.getP4WithFSR(row, match, other)
-#         p4_2 = self.getLeptonP4(row, other)
-# 
-#         return p4_1.DeltaR(p4_2)
-#             
-# 
-#     def deltaRBothFSR(self, row, lep1, partner1, lep2, partner2):
-#         '''
-#         Returns deltaR between lep1 and lep2 with FSR corrections included
-#         for both. partner1 and partner2 are the other leptons in the Z 
-#         candidates for lep1 and lep2, for purposes of finding FSR photons.
-#         Doesn't check to see if lep1 and lep2 are partners.
-#         '''
-#         if self.isFSRLepton(row, lep1, partner1):
-#             p4_1 = self.getP4WithFSR(row, lep1, partner1)
-#         else:
-#             p4_1 = self.getLeptonP4(row, lep1)
-#         if self.isFSRLepton(row, lep2, partner2):
-#             p4_2 = self.getP4WithFSR(row, lep2, partner2)
-#         else:
-#             p4_2 = self.getLeptonP4(row, lep2)
-# 
-#         return p4_1.DeltaR(p4_2)
             
 
     def getLeptonP4(self, row, lep):
@@ -322,21 +291,74 @@ class ZZNtupleFSR(ZZNtupleSaver):
         return lambda row: self.getVarFSR(row, var, lep, partner)
 
 
-#     def massFunction(self, lep1, lep2):
-#         '''
-#         Returns a function to get the invariant mass of lep1 and lep2 with 
-#         the FSR photons matched to the corresponding Zs included where 
-#         appropriate. 
-#         '''
-#         partner1 = self.getZPartner(lep1)
-#         # if they are partners, this is already in the ntuple
-#         if partner1 == lep2:
-#             return lambda row: nObjVar(row, "MassFSR", lep1, lep2)
-# 
-#         # Otherwise, we have to find the FSR cands and calculate ourselves
-#         partner2 = self.getZPartner(lep2)
-#         
-#         return lambda row: self.dileptonMassBothFSR(row, lep1, partner1, lep2, partner2)
+    def massFunction(self, *args):
+        '''
+        Returns a function to get the invariant mass of lep1 and lep2 with 
+        the FSR photons matched to the corresponding Zs included where 
+        appropriate. 
+        Arguments should go like (lep1, lep2, arrayOfAllLeps)
+        '''
+        lep1 = args[0]
+        lep2 = args[1]
+        allObj = args[2:]
+
+        partner1 = self.getZPartner(lep1)
+        # if they are partners, this is already in the ntuple
+        if partner1 == lep2:
+            return None
+
+        # Otherwise, we have to find the FSR cands and calculate ourselves
+        partner2 = self.getZPartner(lep2)
+        
+        return lambda row: self.dileptonMassBothFSR(row, lep1, partner1, lep2, partner2)
+
+
+    def dileptonMassBothFSR(self, row, lep1, partner1, lep2, partner2):
+        '''
+        Returns invariant mass of lep1 and lep2, including FSR photons for
+        either. Partner1 and partner2 are the other leptons in the two
+        Z candidates, for purposes of finding FSR photons.
+        Doesn't check to see if lep1 and lep2 are partners.
+        Photon is only included if it brings the pair closer to nominal Z mass.
+        If two photons could work, it picks one via the original FSR algorithm.
+        '''
+        fsrP4 = {}
+
+        for leps in [[lep1, partner1],[lep2, partner2]]:
+            if self.isFSRLepton(row, *leps):
+                fsrP4[leps[0]] = self.getFSRP4(row, lep1, partner1)
+                
+        if len(fsrP4) == 0:
+            return nObjVar(row, "Mass", lep1, lep2)
+
+        lepP4 = {lep1:self.getLeptonP4(row, lep1), lep2:self.getLeptonP4(row, lep2)}
+
+        for lep in [lep1, lep2]:
+            if lep not in fsrP4:
+                continue
+            pho = fsrP4[lep]
+            mWith = (lepP4[lep1]+lepP4[lep2]+pho).M()
+            mWithout = (lepP4[lep1]+lepP4[lep2]).M()
+            if zMassDist(mWith) > zMassDist(mWithout):
+                fsrP4.pop(lep)
+
+        if len(fsrP4) == 0:
+            return nObjVar(row, "Mass", lep1, lep2)
+        if len(fsrP4) == 1:
+            for l, pho in fsrP4.iteritems():
+                return (lepP4[lep1]+lepP4[lep2]+pho).M()
+
+        if fsrP4[lep1].Pt() > 4 and fsrP4[lep1].Pt() > fsrP4[lep2]:
+            return (lepP4[lep1]+lepP4[lep2]+fsrP4[lep1]).M()
+        if fsrP4[lep2].Pt() > 4:
+            return (lepP4[lep1]+lepP4[lep2]+fsrP4[lep2]).M()
+        
+        dr1 = deltaR(lepP4[lep1].Eta(), lepP4[lep1].Phi(), fsrP4[lep1].Eta(), fsrP4[lep1].Phi())
+        dr2 = deltaR(lepP4[lep2].Eta(), lepP4[lep2].Phi(), fsrP4[lep2].Eta(), fsrP4[lep2].Phi())
+
+        if dr1 < dr2:
+            return (lepP4[lep1]+lepP4[lep2]+fsrP4[lep1]).M()
+        return (lepP4[lep1]+lepP4[lep2]+fsrP4[lep2]).M()
 
 
 #     def deltaRFunction(self, lep1, lep2):
@@ -356,90 +378,125 @@ class ZZNtupleFSR(ZZNtupleSaver):
 #         return lambda row: self.deltaRBothFSR(row, lep1, partner1, lep2, partner2)
 
 
-    def muonRelPFIsoDBFSRFunction(self, mu):
+    def muonRelPFIsoDBFSRFunction(self, mu, allObj):
         '''
         Return a function that calculates delta beta- and FSR-corrected 
-        Relative PF isolation for this muon. Uses the FSR photon paired with
-        its FSA Z candidate (if applicable).
+        relative PF isolation for this muon. Uses the FSR photon paired with
+        either primary Z candidate (if applicable).
+        Arguments should go like (mu, arrayOfAllObjects)
         '''
         partner = self.getZPartner(mu)
+
+        otherZLeps = []
+        for ob in allObj:
+            if ob != mu and ob != partner:
+                otherZLeps.append(ob)
+        otherZLeps = sorted(otherZLeps)
         
-        return lambda row: self.muonRelPFIsoDBFSR(row, mu, partner)
+        return lambda row: self.muonRelPFIsoDBFSR(row, mu, partner, otherZLeps)
 
 
-    def muonRelPFIsoDBFSR(self, row, mu, partner):
+    def muonRelPFIsoDBFSR(self, row, mu, partner, otherZLeps):
         '''
         Return delta-beta- and FSR-corrected relative PF isolation for this 
         muon, using the FSR candidate paired with it and partner.
         '''
-        if not self.isFSRLepton(row, mu, partner):
-            return objVar(row, "RelPFIsoDBDefault", mu)
+        # sort leptons so we don't ask for something like m2_m1_Mass (otherZLeps should already be sorted)
+        thisZLeps = sorted([mu, partner])
 
-        # sort leptons so we don't ask for something like m2_m1_Mass
-        sortedLeps = sorted([mu, partner])
-
-        deltaRFSR = sqrt( (objVar(row, "Eta", mu) - nObjVar(row, "FSREta", *sortedLeps)) ** 2 +
-                          (objVar(row, "Phi", mu) - nObjVar(row, "FSRPhi", *sortedLeps)) ** 2 
-        )
+        # find distance from mu to photons (if they exist)
+        ptFSR1 = nObjVar(row, "FSRPt", *thisZLeps)
+        if ptFSR1 > 0:
+            p4FSR1 = self.getFSRP4(row, mu, partner)
+            deltaRFSR1 = deltaR(objVar(row, "Eta", mu), objVar(row, "Phi", mu), p4FSR1.Eta(), p4FSR1.Phi())
+        else:
+            deltaRFSR1 = 999
+        ptFSR2 = nObjVar(row, "FSRPt", *otherZLeps)
+        if ptFSR2 > 0:
+            p4FSR2 = self.getFSRP4(row, *otherZLeps)
+            deltaRFSR2 = deltaR(objVar(row, "Eta", mu), objVar(row, "Phi", mu), p4FSR2.Eta(), p4FSR2.Phi())
+        else:
+            deltaRFSR2 = 999
         
-        if deltaRFSR > 0.4:
+        if deltaRFSR1 > 0.4 and deltaRFSR2 > 0.4:
             return objVar(row, "RelPFIsoDBDefault", mu)
+            
+        ptFSR = 0
+        if deltaRFSR1 < 0.4:
+            ptFSR += p4FSR1.Pt()
+        if deltaRFSR2 < 0.4:
+            ptFSR += p4FSR2.Pt()
 
         chHadIso = objVar(row, "PFChargedIso", mu)
         neutHadIso = objVar(row, "PFNeutralIso", mu)
         phoIso = objVar(row, "PFPhotonIso", mu)
         puHadIso = 0.5 * objVar(row, "PFPUChargedIso", mu)
-        ptFSR = nObjVar(row, "FSRPt", *sortedLeps)
-        pt = self.getP4WithFSR(row, mu, partner).Pt()
 
         iso = (chHadIso + 
                max(0., neutHadIso + phoIso - ptFSR - puHadIso)
                )
 
-        return iso/pt # rel iso
+        return iso/objVar(row, "Pt", mu) # rel iso using pt of lepton only, no FSR
 
 
-    def eleRelPFIsoRhoFSRFunction(self, ele):
+    def eleRelPFIsoRhoFSRFunction(self, ele, allObj):
         '''
-        Return a function that calculates rho- and FSR-corrected relative
-        PF isolation for this electron. Uses the FSR photon paired with
-        its FSA Z candidate (if applicable).
+        Return a function that calculates rho- and FSR-corrected 
+        relative PF isolation for this electron. Uses the FSR photon paired with
+        either primary Z candidate (if applicable).
         '''
         partner = self.getZPartner(ele)
+
+        otherZLeps = []
+        for ob in allObj:
+            if ob != ele and ob != partner:
+                otherZLeps.append(ob)
+        otherZLeps = sorted(otherZLeps)
         
-        return lambda row: self.eleRelPFIsoRhoFSR(row, ele, partner)
+        return lambda row: self.eleRelPFIsoRhoFSR(row, ele, partner, otherZLeps)
 
 
-    def eleRelPFIsoRhoFSR(self, row, ele, partner):
+    def eleRelPFIsoRhoFSR(self, row, ele, partner, otherZLeps):
         '''
         Return rho- and FSR-corrected relative PF isolation for this 
         electron, using the FSR candidate paired with it and partner.
         '''
-        if not self.isFSRLepton(row, ele, partner):
-            return objVar(row, "RelPFIsoRho", ele)
+        # sort leptons so we don't ask for something like m2_m1_Mass (otherZLeps should already be sorted)
+        thisZLeps = sorted([ele, partner])
 
-        # sort leptons so we don't ask for something like e2_e1_Mass
-        sortedLeps = sorted([ele, partner])
-
-        deltaRFSR = sqrt( (objVar(row, "Eta", ele) - nObjVar(row, "FSREta", *sortedLeps)) ** 2 +
-                          (objVar(row, "Phi", ele) - nObjVar(row, "FSRPhi", *sortedLeps)) ** 2 
-        )
+        # find distance from mu to photons (if they exist)
+        ptFSR1 = nObjVar(row, "FSRPt", *thisZLeps)
+        if ptFSR1 > 0:
+            p4FSR1 = self.getFSRP4(row, ele, partner)
+            deltaRFSR1 = deltaR(objVar(row, "Eta", ele), objVar(row, "Phi", ele), p4FSR1.Eta(), p4FSR1.Phi())
+        else:
+            deltaRFSR1 = 999
+        ptFSR2 = nObjVar(row, "FSRPt", *otherZLeps)
+        if ptFSR2 > 0:
+            p4FSR2 = self.getFSRP4(row, *otherZLeps)
+            deltaRFSR2 = deltaR(objVar(row, "Eta", ele), objVar(row, "Phi", ele), p4FSR2.Eta(), p4FSR2.Phi())
+        else:
+            deltaRFSR2 = 999
         
-        if deltaRFSR > 0.4:
+        if deltaRFSR1 > 0.4 and deltaRFSR2 > 0.4:
             return objVar(row, "RelPFIsoRho", ele)
+            
+        ptFSR = 0
+        if deltaRFSR1 < 0.4:
+            ptFSR += p4FSR1.Pt()
+        if deltaRFSR2 < 0.4:
+            ptFSR += p4FSR2.Pt()
 
         chHadIso = objVar(row, "PFChargedIso", ele)
         neutHadIso = objVar(row, "PFNeutralIso", ele)
         phoIso = objVar(row, "PFPhotonIso", ele)
-        puHadIso= objVar(row, "Rho", ele) * objVar(row, "EffectiveAreaPHYS14", ele)
-        ptFSR = nObjVar(row, "FSRPt", *sortedLeps)
-        pt = self.getP4WithFSR(row, ele, partner).Pt()
+        puHadIso = objVar(row, "Rho", ele) * objVar(row, "EffectiveAreaPHYS14", ele)
 
         iso = (chHadIso + 
                max(0., neutHadIso + phoIso - ptFSR - puHadIso)
                )
 
-        return iso/pt # rel iso
+        return iso/objVar(row, "Pt", ele) # rel iso using pt of lepton only, no FSR
 
 
     def getZPartner(self, lep):
