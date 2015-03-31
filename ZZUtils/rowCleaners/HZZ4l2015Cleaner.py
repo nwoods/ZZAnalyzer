@@ -35,7 +35,7 @@ class HZZ4l2015Cleaner(ZZRowCleanerBase):
             objects = orderLeptons(row, self.channel, self.objectTemplate)
 
         dZ = zCompatibility(row, objects[0], objects[1])
-        ptSum = objVar(row, 'PtFSR', objects[2]) + objVar(row, 'PtFSR', objects[3])
+        ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
 
         isBest = newEvent or (dZ < self.prevDZ or (dZ == self.prevDZ and ptSum > self.prevPtSum))
 
