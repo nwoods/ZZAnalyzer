@@ -33,7 +33,7 @@ def nObjVar(row, var, *obj):
 
 def deltaR(eta1, phi1, eta2, phi2):
     dPhi = abs(phi2 - phi1)
-    if dPhi > pi:
+    while dPhi > pi:
         dPhi -= 2*pi
     return sqrt(dPhi**2 + (eta2 - eta1)**2)
 
