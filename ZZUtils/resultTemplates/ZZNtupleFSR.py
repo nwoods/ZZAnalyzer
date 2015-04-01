@@ -93,6 +93,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sIsPFMuon',
             '%sMatchedStations',
             '%sPFPUChargedIso',
+            '%sBestTrackType',
             ]
 
         self.copyVars[2] = [
@@ -422,9 +423,9 @@ class ZZNtupleFSR(ZZNtupleSaver):
             return objVar(row, "RelPFIsoDBDefault", mu)
             
         ptFSR = 0
-        if deltaRFSR1 < 0.4:
+        if deltaRFSR1 < 0.4 and deltaRFSR1 > 0.01:
             ptFSR += p4FSR1.Pt()
-        if deltaRFSR2 < 0.4:
+        if deltaRFSR2 < 0.4 and deltaRFSR2 > 0.01:
             ptFSR += p4FSR2.Pt()
 
         chHadIso = objVar(row, "PFChargedIso", mu)
@@ -482,9 +483,9 @@ class ZZNtupleFSR(ZZNtupleSaver):
             return objVar(row, "RelPFIsoRho", ele)
             
         ptFSR = 0
-        if deltaRFSR1 < 0.4:
+        if deltaRFSR1 < 0.4 and (abs(objVar(row, "SCEta", ele)) < 1.479 or deltaRFSR1 > 0.08):
             ptFSR += p4FSR1.Pt()
-        if deltaRFSR2 < 0.4:
+        if deltaRFSR2 < 0.4 and (abs(objVar(row, "SCEta", ele)) < 1.479 or deltaRFSR2 > 0.08):
             ptFSR += p4FSR2.Pt()
 
         chHadIso = objVar(row, "PFChargedIso", ele)
