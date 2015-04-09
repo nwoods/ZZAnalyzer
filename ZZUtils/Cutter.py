@@ -261,22 +261,22 @@ class Cutter(object):
 
         if objLogic:
             if pairwise:
-                return lambda row, *obj: logicFun([all(cut(row, *sorted(ob)) for cut in cutFuns) for ob in itertools.combinations(obj,2)])
+                return lambda row, *obj: logicFun(all(cut(row, *sorted(ob)) for cut in cutFuns) for ob in itertools.combinations(obj,2))
             else:
-                return lambda row, *obj: logicFun([all(cut(row, ob) for cut in cutFuns) for ob in obj])
+                return lambda row, *obj: logicFun(all(cut(row, ob) for cut in cutFuns) for ob in obj)
         else:
             if nObjects == 0:
                 if len(cutFuns) == 1:
                     return lambda row: cutFuns[0](row)
-                return lambda row: logicFun([cut(row) for cut in cutFuns])
+                return lambda row: logicFun(cut(row) for cut in cutFuns)
             elif nObjects == 1:
                 if len(cutFuns) == 1:
                     return lambda row, obj: cutFuns[0](row, obj)
-                return lambda row, obj: logicFun([cut(row, obj) for cut in cutFuns])
+                return lambda row, obj: logicFun(cut(row, obj) for cut in cutFuns)
             else:
                 if len(cutFuns) == 1:
                     return lambda row, *obj: cutFuns[0](row, *obj)
-                return lambda row, *obj: logicFun([cut(row, *obj) for cut in cutFuns])
+                return lambda row, *obj: logicFun(cut(row, *obj) for cut in cutFuns)
 
     
     def getCutLegFunction(self, cutName, cutParams, nObjects, ignoreObjects=False):
