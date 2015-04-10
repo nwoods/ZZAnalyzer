@@ -147,6 +147,14 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                 'logic' : 'or',
                 'objects' : 1,
             },
+            'BestTrackType' : { # just can't be type 2 (standalone)
+                'cuts' : {
+                    'BestTrackType#ONE' : (2, "<"),
+                    'BestTrackType#OTHER' : (3, ">="),
+                },
+                'objects' : 1,
+                'logic' : 'or',
+            },
             'mLooseID' : { 
                 'cuts' : {
                     'Pt' : (5., ">="),
@@ -157,6 +165,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                     'PVDZ#POS' : (1., "<"),
                     'PVDXY#NEG' : (-0.5, ">="),
                     'PVDZ#NEG' : (-1., ">="),
+                    'BestTrack' : 'BestTrackType',
                 },
                 'objects' : '1',
             },
