@@ -84,8 +84,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sSCEta',
             '%sSCPhi',
             '%sMissingHits',
-            '%sNearestMuonDR',
-            '%sNearestMuonDRLoose',
+            '%sNearestMuonDROldSIP',
             '%sNearestMuonDRTight',
             ]
 

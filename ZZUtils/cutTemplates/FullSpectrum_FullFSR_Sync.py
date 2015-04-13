@@ -190,7 +190,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # Cross Cleaning
             'eCrossClean' : {
                 'cuts' : {
-                    'NearestMuonDR' : (0.05, ">="),
+                    'NearestMuonDROldSIP' : (0.05, ">="),
                 },
                 'objects' : 1,
             },

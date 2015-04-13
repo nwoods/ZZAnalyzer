@@ -6,6 +6,10 @@ Is most useful when sorted afterwards with a command like
 
 $ sort -t : -k 1n -k 2n -k 3n
 
+It's often useful to get a list of run:lumi:evt only, with something like
+
+$ cut -d ':' -f -3
+
 Author: N. Woods, U. Wisconsin
 
 '''
@@ -45,7 +49,7 @@ def getCandInfo(z1Var, z2Var, row):
         mZ2 = mZ1
         mZ1 = temp
 
-    kd = 0 #evVar(row, 'KD')
+    kd = evVar(row, 'D_bkg')
     nJets = evVar(row, 'nJets')
     j1pt = max(-1.,evVar(row, 'jet1Pt'))
     j2pt = max(-1.,evVar(row, 'jet2Pt'))
