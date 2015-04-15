@@ -167,7 +167,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                     'PVDZ#NEG' : (-1., ">="),
                     'BestTrack' : 'BestTrackType',
                 },
-                'objects' : '1',
+                'objects' : 1,
             },
             'mTightID' : {
                 'cuts' : {
@@ -190,7 +190,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # Cross Cleaning
             'eCrossClean' : {
                 'cuts' : {
-                    'NearestMuonDROldSIP' : (0.05, ">="),
+                    'NearestMuonDR' : (0.05, ">="),
                 },
                 'objects' : 1,
             },
@@ -395,12 +395,12 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             return True
 
         # Find the proper alternate Z pairing. We already checked that we have 2 OS pairs
-        if nObjVar(row, 'SS', obj[0], obj[2]): # l1 matches l4
+        if nObjVar(row, 'SS', *sorted([obj[0], obj[2]])): # l1 matches l4
             altObj = [obj[0], obj[3], obj[1], obj[2]]
         else: # l1 matches l3
             altObj = [obj[0], obj[2], obj[1], obj[3]]
 
-        altZMass = [nObjVar(row, "MassFSR", *altObj[:2]), nObjVar(row, "MassFSR", *altObj[2:])]
+        altZMass = [nObjVar(row, "MassFSR", *sorted(altObj[:2])), nObjVar(row, "MassFSR", *sorted(altObj[2:]))]
         altZCompatibility = [zMassDist(m) for m in altZMass]
         z1Compatibility = zCompatibility(row, obj[0], obj[1])
 
