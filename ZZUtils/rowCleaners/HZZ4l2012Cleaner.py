@@ -32,7 +32,7 @@ class HZZ4l2012Cleaner(ZZRowCleanerBase):
         objects = self.objectTemplate
         
         if self.needReorder:
-            objects = orderLeptons(row, self.channel, self.objectTemplate)
+            objects = self.cuts.orderLeptons(row, self.channel, self.objectTemplate)
 
         allGood = True
         for lepts in [[objects[0],objects[1]],[objects[2],objects[3]]]:
@@ -59,30 +59,6 @@ class HZZ4l2012Cleaner(ZZRowCleanerBase):
         return isBest
        
  
-def orderLeptons(row, channel, objects):
-    '''
-    Put best (closest to nominal mass) Z candidate first. 
-    FSA does this automatically for 4e and 4mu cases.
-    Assumes 4 leptons, with (l1,l2) and (l3,l4) same-flavor pairs;
-    will have to be overloaded for other final states.
-    '''
-    if channel == 'eeee' or channel == 'mmmm':
-        return objects
 
-    dM1 = zCompatibility(row,objects[0],objects[1])
-    dM2 = zCompatibility(row,objects[2],objects[3])
-    
-    if dM1 > dM2:
-        return objects[2:] + objects[:2]
-    return objects
-
-
-def zCompatibility(row, ob1, ob2):
-    '''
-    Absolute distance from Z mass. 1000 if same sign.
-    '''
-    if nObjVar(row, 'SS', ob1, ob2):
-        return 1000
-    return abs(nObjVar(row, "MassFSR", ob1, ob2) - Z_MASS)
 
 

@@ -26,13 +26,11 @@ class HZZ4l2015Cleaner(ZZRowCleanerBase):
         used as a tiebreaker. Only Zs whose leptons pass ID are considered
         (if no rows from an event pass ID, the first is considered best). 
         '''
-        # To store appropriate info, we always need to do the ID+iso check
-
         # make a copy in case we have to reorder
         objects = self.objectTemplate
         
         if self.needReorder:
-            objects = orderLeptons(row, self.channel, self.objectTemplate)
+            objects = self.cuts.orderLeptons(row, self.channel, self.objectTemplate)
 
         dZ = zCompatibility(row, objects[0], objects[1])
         ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
@@ -44,24 +42,7 @@ class HZZ4l2015Cleaner(ZZRowCleanerBase):
             self.prevPtSum = ptSum
         
         return isBest
-       
- 
-def orderLeptons(row, channel, objects):
-    '''
-    Put best (closest to nominal mass) Z candidate first. 
-    FSA does this automatically for 4e and 4mu cases.
-    Assumes 4 leptons, with (l1,l2) and (l3,l4) same-flavor pairs;
-    will have to be overloaded for other final states.
-    '''
-    if channel == 'eeee' or channel == 'mmmm':
-        return objects
 
-    dM1 = zCompatibility(row,objects[0],objects[1])
-    dM2 = zCompatibility(row,objects[2],objects[3])
-    
-    if dM1 > dM2:
-        return objects[2:] + objects[:2]
-    return objects
 
 
 

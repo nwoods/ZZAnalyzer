@@ -41,9 +41,10 @@ class ZZRowCleanerBase(object):
 
         self.channel = channel
         self.objectTemplate = mapObjects(self.channel)
-        # Sometimes need to check that best Z is listed first
-        self.needReorder = self.objectTemplate[0][0] != self.objectTemplate[-1][0]
+
         self.cuts = cutter
+
+        self.needReorder = self.cuts.needReorder(self.channel)
 
         # Set up information about the previous best row for this event
         self.prevIdx = -1

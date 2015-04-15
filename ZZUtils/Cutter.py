@@ -150,6 +150,13 @@ class Cutter(object):
         return self.cuts[cut](row, *objects)
 
 
+    def negateCut(self, row, cut, *objects):
+        '''
+        The logical opposite of whatever doCut would return here.
+        '''
+        return not self.cuts[cut](row, *objects)
+
+
     def setupCuts(self, *args):
         '''
         Gets a dictionary of cut parameters from a template file or 
@@ -295,18 +302,25 @@ class Cutter(object):
         '''
         
         if isinstance(cutParams, str):
-            if ignoreObjects:
-                return lambda row, *obj: self.doCut(row, cutParams)
-            elif nObjects == 0:
-                return lambda row: self.doCut(row, cutParams)
-            elif nObjects == 1:
-                if cutParams[:4] == "TYPE":
-                    strippedName = cutParams.replace("TYPE","")
-                    return lambda row, obj: self.doCut(row, obj[0]+strippedName, obj)
-                else:
-                    return lambda row, obj: self.doCut(row, cutParams, obj)
+            # If we just want to do the cut, use doCut(row, cut).
+            # If we want to negate the cut, use negateCut(row, cut)
+            if cutParams[0] == '!':
+                cutDoer = self.negateCut
+                cutParams = cutParams[1:]
             else:
-                return lambda row, *obj: self.doCut(row, cutParams, *obj)
+                cutDoer = self.doCut
+            if ignoreObjects:
+                return lambda row, *obj: cutDoer(row, cutParams)
+            elif nObjects == 0:
+                return lambda row: cutDoer(row, cutParams)
+            elif nObjects == 1:
+                if len(cutParams) > 4 and cutParams[:4] == "TYPE":
+                    strippedName = cutParams.replace("TYPE","")
+                    return lambda row, obj: cutDoer(row, obj[0]+strippedName, obj)
+                else:
+                    return lambda row, obj: cutDoer(row, cutParams, obj)
+            else:
+                return lambda row, *obj: cutDoer(row, cutParams, *obj)
 
         # Otherwise, create the cut
         try:
@@ -378,4 +392,30 @@ class Cutter(object):
             print "Failed"
             
         
+    def needReorder(self, channel):
+        '''
+        Return whether or not this channel should have its leptons reordered 
+        with each new row (because FSA put them in the wrong order for some 
+        reason).
+        By default, does this for 2e2mu channel and nothing else. Daughter 
+        classes may override if needed for a control region or whatever.
+        '''
+        return channel[0][0] != channel[-1][0]
 
+
+    def orderLeptons(self, row, channel, objects):
+        '''
+        Put best (closest to nominal mass) Z candidate first. 
+        FSA does this automatically for 4e and 4mu cases.
+        Assumes 4 leptons, with (l1,l2) and (l3,l4) same-flavor pairs;
+        will have to be overloaded for other circumstances (CRs, etc.)
+        '''
+        dM1 = zCompatibility_checkSign(row,objects[0],objects[1], True)
+        dM2 = zCompatibility_checkSign(row,objects[2],objects[3], True)
+        
+        if dM1 > dM2:
+            return objects[2:] + objects[:2]
+        return objects
+
+
+    

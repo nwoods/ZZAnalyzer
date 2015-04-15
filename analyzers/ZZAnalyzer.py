@@ -121,7 +121,7 @@ class ZZAnalyzer(object):
         
             objectTemplate = self.mapObjects(channel)
             objects = objectTemplate
-            needReorder = channel[0][0] != channel[-1][0]
+            needReorder = self.cuts.needReorder(channel)
 
             if self.cleanRows:
                 # For events with more than 4 leptons, FSA Ntuples just have one
@@ -164,7 +164,7 @@ class ZZAnalyzer(object):
                     print "%s: Processing %s row %d"%(self.sample, channel, iRow)
                 
                 if needReorder:
-                    objects = self.orderLeptons(row, channel, objectTemplate)
+                    objects = self.cuts.orderLeptons(row, channel, objectTemplate)
 
                 evPass = True
                 for cut in self.cutOrder:
@@ -246,24 +246,6 @@ class ZZAnalyzer(object):
         
         objects.sort()
 
-        return objects
-
-
-    def orderLeptons(self, row, channel, objects):
-        '''
-        Put best (closest to nominal mass) Z candidate first. 
-        FSA does this automatically for 4e and 4mu cases.
-        Assumes 4 leptons, with (l1,l2) and (l3,l4) same-flavor pairs;
-        will have to be overloaded for other final states.
-        '''
-        if channel == 'eeee' or channel == 'mmmm':
-            return objects
-
-        dM1 = zCompatibility_checkSign(row,objects[0],objects[1], True)
-        dM2 = zCompatibility_checkSign(row,objects[2],objects[3], True)
-        
-        if dM1 > dM2:
-            return objects[2:] + objects[:2]
         return objects
 
 
