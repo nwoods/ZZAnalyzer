@@ -54,7 +54,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'jet1Pt',
             'jet2Pt',
             'nJets',
-            'D_bkg',
+            'D_bkg_kin',
             ]
 
         self.copyVars[1] = [
@@ -84,8 +84,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sSCEta',
             '%sSCPhi',
             '%sMissingHits',
-            '%sNearestMuonDROldSIP',
-            '%sNearestMuonDRTight',
+            '%sNearestMuonDR',
             ]
 
         self.flavoredCopyVars['m'] = [

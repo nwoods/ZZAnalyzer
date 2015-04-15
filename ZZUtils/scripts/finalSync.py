@@ -49,7 +49,7 @@ def getCandInfo(z1Var, z2Var, row):
         mZ2 = mZ1
         mZ1 = temp
 
-    kd = evVar(row, 'D_bkg')
+    kd = evVar(row, 'D_bkg_kin')
     nJets = evVar(row, 'nJets')
     j1pt = max(-1.,evVar(row, 'jet1Pt'))
     j2pt = max(-1.,evVar(row, 'jet2Pt'))
