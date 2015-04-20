@@ -136,7 +136,6 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                     'IsTracker' : (1, ">="),
                     'MatchedStations' : (1, ">="), # Equivalent to tkmu arbitration
                 },
-                'logic' : 'or',
                 'objects' : 1,
             },
             'mTrkOrGlob' : { 
