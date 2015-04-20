@@ -36,6 +36,16 @@ class ControlRegion_Base(FullSpectrum_FullFSR_Sync):
             'logic' : 'objand',
         }
 
+        # Fail either tight ID or isolation
+        temp['FailTightOrIso'] = {
+            'cuts' : {
+                'failID' : '!leptonTightID',
+                'failIso' : '!LeptonIso',
+            },
+            'objects' : 1,
+            'logic' : 'or',
+        }
+
         return temp
 
 

@@ -25,18 +25,11 @@ class ControlRegion_OS_2P2F(ControlRegion_Base):
         '''
         temp = super(ControlRegion_OS_2P2F, self).getCutTemplate(self, *args)
 
-        # Leptons are fake
+        # Leptons are fake (pass loose ID, fail tight ID or isolation)
         temp['FakeID'] = {
             'cuts' : {
                 'loose' : 'leptonLooseID',
-                'butNotTight' : '!leptonTightID',
-            },
-            'logic' : 'objand',
-        }
-
-        temp['AntiIsolation'] = {
-            'cuts' : {
-                'nonIso' : '!LeptonIso',
+                'areFake' : 'FailTightOrIso',
             },
             'logic' : 'objand',
         }
@@ -58,12 +51,12 @@ class ControlRegion_OS_2P2F(ControlRegion_Base):
                 parTemp = list(params)
                 parTemp[1] = [1,2]
                 crFlow['Z1ID'] = tuple(parTemp)
-                crFlow['Z2FakeID'] = ('FakeID', [3,4])
             elif cut == 'Isolation':
                 parTemp = list(params)
                 parTemp[1] = [1,2]
                 crFlow['Z1Iso'] = tuple(parTemp)
-                crFlow['Z2NonIso'] = ('AntiIsolation', [3,4])
+                # Require the other two to be fake
+                crFlow['Z2FakeID'] = ('FakeID', [3,4])
             else:
                 crFlow[cut] = params
 

@@ -29,8 +29,7 @@ class ControlRegion_OS_3P1F(ControlRegion_Base):
         temp['OneFakeLepton'] = {
             'cuts' : {
                 'loose' : 'leptonLooseID',
-                'butNotTight' : '!leptonTightID',
-                'failsIso' : '!LeptonIso',
+                'fake' : 'FailTightOrIso',
             },
             'logic' : 'objor',
         }
