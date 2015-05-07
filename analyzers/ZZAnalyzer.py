@@ -331,7 +331,7 @@ class ZZAnalyzer(object):
                 listOfCuts = self.cutOrder+["SelectBest"]
             else:
                 listOfCuts = self.cutOrder
-            f.write("Total:\n")
+            f.write("Total\n")
 #             f.write("\n%-32s in %0.0f pb^-1\n"%('Total:',self.intLumi))
             for cut in listOfCuts:
                 f.write("%16s : %-9d\n"%(cut, totals[cut])) # :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
