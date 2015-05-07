@@ -43,6 +43,12 @@ parser.add_argument('--stacks', action='store_true',
 
 args = parser.parse_args()
 
+ignore = set(['TotalRows', 'Overlap', 'Vertex', 'CrossCleaning', 'GoodZ1', 'GoodZ2', 'Lepton1Pt', 'SmartCut'])
+rename = {'Total' : 'Init.', 'Lepton2Pt' : 'Lepton p_{T}',
+          'Z1Mass' : 'Z_{1} Mass', 'Z2Mass' : 'Z_{2} Mass',
+          'QCDVeto' : 'QCD Veto', '4lMass' : '4\\ell \\:\\text{Mass}',
+          'Lepton2Pt' : 'Lepton p_{T}', 'SelectBest' : 'Unique'}
+
 infiles = []
 rawInputs = args.inputs[0].split(',')
 for raw in rawInputs:
@@ -54,7 +60,7 @@ for raw in rawInputs:
         if glob.glob(inputs):
             infiles += glob.glob(inputs)
     else:
-        if glob.glob(path+'*.txt'):
+        if glob.glob(inputs+'*.txt'):
             infiles += glob.glob(inputs+'*.txt')
 
 # remove duplicates, just in case
@@ -88,9 +94,13 @@ for infile in infiles:
         cutCount = 0
         # loop over lines
         for line in f:
+            line = line.replace(' ','').replace('\n','')
+            if not line:
+                continue
+
             words = line.split(":")
-#             print "%d (%d): %s (%d)"%(cutCount, cutCountMax, " ".join(words), len(words))
-            if len(words) == 2:
+
+            if len(words) == 1:
                 # Make sure the previous channel had the right number of cuts
                 if cutCount != 0:
                     if cutCountMax == -1:
@@ -100,36 +110,25 @@ for infile in infiles:
                                                                                                              cutCountMax, sample, channel)
                 
                 cutCount = 0
-                channel = words[0].replace(' ','')
+                channel = words[0]
+
                 if channel not in numbers:
                     numbers[channel] = {}
                 if sample not in numbers[channel]:
                     numbers[channel][sample] = {}
-            if len(words) == 3:
+            if len(words) == 2:
                 # Remove whitespace
-                cut = words[0].replace(' ','')
+                cut = words[0]
                 # ignore some cuts, rename others
-                if cut == "TotalRows" or cut == "Overlap" or cut == "Lepton1Pt" or cut == "4lMass":
+                if cut in ignore:
                     continue
 
                 cutCount += 1
 
                 # save the name of the cut, but only if this is the first time through
                 if cutCount > cutCountMax:
-                    if cut == "Total":
-                        cut = "Init."
-                    elif cut == "Lepton2Pt":
-                        cut = "Lepton Pt"
-                    elif cut == "Z1Mass":
-                        cut = "Z1 Mass"
-                    elif cut == "Z2Mass":
-                        cut = "Z2 Mass"
-                    elif cut == "LeptonPairMass":
-                        cut = "2l Mass"
-                    elif cut == "4lMass":
-                        cut = "4l Mass"
-                    elif "GoodZ" in cut:
-                        cut = cut.replace("oodZ","ood Z")
+                    if cut in rename:
+                        cut = rename[cut]
 
                     cutNames[cutCount] = cut
 
@@ -162,13 +161,13 @@ for channel in numbers:
             if channel == "eeee":
                 evType = "4e"
             elif channel == "eemm":
-                evType = "2e2#mu"
+                evType = "2e2\\mu"
             elif channel == "mmmm":
-                evType = "4#mu"
+                evType = "4\\mu"
             else:
                 evType = channel
             histos[channel][sample].SetTitle("Cut Flow Summary %s "%evType)
-            histos[channel][sample].GetYaxis().SetTitle("%s Events"%evType)
+            histos[channel][sample].GetYaxis().SetTitle("%s \\:\\text{Events}"%evType)
             
         # Make sure the errors get scaled correctly
         histos[channel][sample].Sumw2()
@@ -196,18 +195,19 @@ for channel in numbers:
     leg = ROOT.TLegend(0.65, 0.6, 0.9, 0.9)
     leg.SetTextSize(0.03)
 
-    channelName = '4l'
+    channelName = '4\\ell'
     if channel == 'eeee':
         channelName = '4e'
     elif channel == 'eemm':
-        channelName = '2e2#mu'
+        channelName = '2e2\\mu'
     elif channel == 'mmmm':
-        channelName = '4#mu'
+        channelName = '4\\mu'
 
     allSamples = [s for s in histos[channel]]
     if args.stacks:
         # sort histograms by size of the last bin so they stack sensibly. Break ties by putting samples with smaller maxima on the bottom
         allSamples.sort(key=lambda s: histos[channel][s].GetMinimum() + histos[channel][s].GetMaximum()/10000000.)
+        #allSamples.sort(key=lambda s: histos[channel][s].GetMaximum())
         # Make stacks
         stackB = ROOT.THStack('background', "ZZ#rightarrow%s Cut Flow Summary"%channelName)
         stackS = ROOT.THStack('signal', "ZZ#rightarrow%s Cut Flow Summary"%channelName)
@@ -226,7 +226,7 @@ for channel in numbers:
                 stackB.Add(histos[channel][sample])
                 bkgs.append(sample)
         else:
-            leg.AddEntry(histos[channel][sample], sampleInfo[sample]["shortName"], "LPE")
+            leg.AddEntry(histos[channel][sample], sampleInfo[sample]["prettyName"], "LPE")
             if not drawnYet:
                 histos[channel][sample].Draw("e")
                 drawnYet = True
@@ -242,7 +242,7 @@ for channel in numbers:
             stackB.SetMinimum(0.5 * minmin)
         # Have to draw before we can get axes, for some reason
         stackB.Draw()
-        stackB.GetYaxis().SetTitle("%s Events"%channelName)
+        stackB.GetYaxis().SetTitle("%s \\:\\text{Events}"%channelName)
         for i in range(stackB.GetHistogram().GetNbinsX()):
             stackB.GetXaxis().SetBinLabel(i+1, histos[channel][allSamples[0]].GetXaxis().GetBinLabel(i+1))
         stackB.GetXaxis().SetLabelSize(0.04)
@@ -250,13 +250,13 @@ for channel in numbers:
         stackB.Draw("HIST")
         stackS.Draw("HISTSAMENOCLEAR")
         for s in reversed(sigs+bkgs):
-            leg.AddEntry(histos[channel][s], sampleInfo[s]["shortName"], "F")
+            leg.AddEntry(histos[channel][s], sampleInfo[s]["prettyName"], "F")
 
     ROOT.gStyle.SetLineWidth(3)
 
     leg.Draw("same")
 
-    style.setPrelimStyle(c, 'N. Woods', True, 'Preliminary Simulation', 13, args.intLumi)
+    style.setPrelimStyle(c, '',intLumi=args.intLumi)
     
     outFile = "%s/cutSummary_%s.png"%(outdir, channel)
     c.Print(outFile)
