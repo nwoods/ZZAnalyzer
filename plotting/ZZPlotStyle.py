@@ -110,7 +110,7 @@ class ZZPlotStyle(object):
         latex.SetTextSize(0.03)
         latex.SetTextAlign(12)
         latex.DrawLatex(0.01, 0.05, author)
-        latex.DrawLatex(0.01, 0.02, "U. Wisconsin Preliminary Exam")
+#        latex.DrawLatex(0.01, 0.02, "U. Wisconsin Preliminary Exam")
         
 #         # Make frame and tick marks thicker
 #         gStyle.SetFrameLineWidth(3)
