@@ -267,26 +267,3 @@ class ZZFinalHists(ZZHistSaver):
             return mZ1
         return mZ2
 
-
-#     def lepHasFSR(self, row, lep):
-#         '''
-#         Is this lepton the one with FSR?
-#         '''
-#         if int(lep[-1]) % 0:
-#             lep2 = lep
-#             lep1 = "%s%d"%(lep[0],int(lep[-1])-1)
-#         else:
-#             lep1 = lep
-#             lep2 = "%s%d"%(lep[0],int(lep[-1])+1)
-# 
-#         fsrEta = nObjVar(row, "FSREta", lep1, lep2)
-#         if fsrEta < -100: # default no-FSR value is -999
-#             return False
-#         fsrPhi = nObjVar(row, "FSRPhi", lep1, lep2)
-# 
-#         eta = objVar(row, "Eta", lep)
-#         phi = objVar(row, "Phi", lep)
-# 
-#         return deltaR(eta, phi, fsrEta, fsrPhi) < 0.5
-# 
-
