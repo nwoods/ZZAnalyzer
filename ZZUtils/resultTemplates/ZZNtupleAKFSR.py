@@ -56,9 +56,9 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             'jet2Pt',
             'nJets',
             'D_bkg_kin',
-            'MassAK1FSR',
-            'MassAK3FSR',
-            'MassAK5FSR',
+            'MassAKFSR',
+            'MassAKFSRLooseIso',
+            'MassAKFSRNIso',
         ]
 
         self.copyVars[1] = [
@@ -66,9 +66,11 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sCharge',
             '%sEta',
             '%sGenCharge',
-            '%sGenEnergy',
             '%sGenPdgId',
+            '%sGenPt',
+            '%sGenEta',
             '%sGenPhi',
+            '%sGenStatus',
             '%sMass',
             '%sPVDXY',
             '%sPVDZ',
@@ -79,15 +81,15 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sPFNeutralIso',
             '%sPFPhotonIso',
             '%sRho',
-            '%sAK1FSRPt',
-            '%sAK1FSREta',
-            '%sAK1FSRPhi',
-            '%sAK3FSRPt',
-            '%sAK3FSREta',
-            '%sAK3FSRPhi',
-            '%sAK5FSRPt',
-            '%sAK5FSREta',
-            '%sAK5FSRPhi',
+            '%sAKFSRPt',
+            '%sAKFSREta',
+            '%sAKFSRPhi',
+            '%sAKFSRLooseIsoPt',
+            '%sAKFSRLooseIsoEta',
+            '%sAKFSRLooseIsoPhi',
+            '%sAKFSRNIsoPt',
+            '%sAKFSRNIsoEta',
+            '%sAKFSRNIsoPhi',
             ]
 
         self.flavoredCopyVars['e'] = [ 
@@ -98,7 +100,10 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sSCPhi',
             '%sMissingHits',
             '%sNearestMuonDR',
-            ]
+            '%sRelPFIsoRhoAKFSR',
+            '%sRelPFIsoRhoAKFSRLooseIso',
+            '%sRelPFIsoRhoAKFSRNIso',
+        ]
 
         self.flavoredCopyVars['m'] = [
             '%sIsGlobal',
@@ -108,6 +113,9 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sMatchedStations',
             '%sPFPUChargedIso',
             '%sBestTrackType',
+            '%sRelPFIsoDBAKFSR',
+            '%sRelPFIsoDBAKFSRLooseIso',
+            '%sRelPFIsoDBAKFSRNIso',
             ]
 
         self.copyVars[2] = [
@@ -126,28 +134,34 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%s_%s_FSRPhi',
             '%s_%s_SS',
             '%s_%s_DR',
-            '%s_%s_PtAK1FSR',
-            '%s_%s_EtaAK1FSR',
-            '%s_%s_PhiAK1FSR',
-            '%s_%s_MassAK1FSR',
-            '%s_%s_PtAK3FSR',
-            '%s_%s_EtaAK3FSR',
-            '%s_%s_PhiAK3FSR',
-            '%s_%s_MassAK3FSR',
-            '%s_%s_PtAK5FSR',
-            '%s_%s_EtaAK5FSR',
-            '%s_%s_PhiAK5FSR',
-            '%s_%s_MassAK5FSR',
+            '%s_%s_PtAKFSR',
+            '%s_%s_EtaAKFSR',
+            '%s_%s_PhiAKFSR',
+            '%s_%s_MassAKFSR',
+            '%s_%s_PtAKFSRLooseIso',
+            '%s_%s_EtaAKFSRLooseIso',
+            '%s_%s_PhiAKFSRLooseIso',
+            '%s_%s_MassAKFSRLooseIso',
+            '%s_%s_PtAKFSRNIso',
+            '%s_%s_EtaAKFSRNIso',
+            '%s_%s_PhiAKFSRNIso',
+            '%s_%s_MassAKFSRNIso',
         ]
 
         self.calcVars[0] = {
+            'GenMass' : self.gen4lMassFunction,
         }
 
         self.calcVars[1] = {
+            '%sHasGenFSR' : self.hasGenFSRFunction1,
+            '%sPtFSR' : self.ptFSRFunction,
+            '%sPtAKFSR' : self.ptAKFSRFunction,
         }
 
         self.calcVars[2] = {
             '%s_%s_MassFSR' : self.massFunction,
+            '%s_%s_GenMass' : self.genMassFunction,
+            '%s_%s_HasGenFSR' : self.hasGenFSRFunction2,
         }
 
         self.flavoredCalcVars['m'] = {
@@ -264,7 +278,47 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
         # works for "Pt", "Eta", "Phi" & perhaps others
         func = getattr(p4, var) # func = p4.var (the function)
         return func()
+
+
+    def ptFSRFunction(self, obj, *args):
+        '''
+        Creates a function that returns the FSR-corrected pt of an object.
+        '''
+        return self.varFunctionWithPartner("Pt", obj)
+
+        
+    def varFunctionWithPartner(self, var, lep):
+        '''
+        Return a function that gets var for lep, including the FSR photon 
+        found for the FSA Z candidate containing lep (if lep is the lepton
+        that matches).
+        '''
+        partner = self.getZPartner(lep)
+
+        return lambda row: self.getVarFSR(row, var, lep, partner)        
+
+
+    def hasGenFSRFunctionN(self, n, *obj):
+        '''
+        Create a function that finds out whether an n-item composite object 
+        has associated gen-level FSR
+        '''
+        objects = obj[:n]
+        
+        return lambda row: float(any(objVar(row, "GenStatus", ob) != 1 for ob in objects))
             
+
+    def hasGenFSRFunction1(self, *obj):
+        return self.hasGenFSRFunctionN(1, *obj)
+    
+
+    def hasGenFSRFunction2(self, *obj):
+        return self.hasGenFSRFunctionN(2, *obj)
+    
+
+    def hasGenFSRFunction4(self, *obj):
+        return self.hasGenFSRFunctionN(4, *obj)
+    
 
     def getP4WithFSR(self, row, lep, partner):
         '''
@@ -307,17 +361,6 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
         return p4FSR
 
 
-    def varFunctionWithPartner(self, var, lep):
-        '''
-        Return a function that gets var for lep, including the FSR photon 
-        found for the FSA Z candidate containing lep (if lep is the lepton
-        that matches).
-        '''
-        partner = self.getZPartner(lep)
-
-        return lambda row: self.getVarFSR(row, var, lep, partner)
-
-
     def massFunction(self, *args):
         '''
         Returns a function to get the invariant mass of lep1 and lep2 with 
@@ -328,7 +371,7 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
         lep1 = args[0]
         lep2 = args[1]
         allObj = args[2:]
-
+        
         partner1 = self.getZPartner(lep1)
         # if they are partners, this is already in the ntuple
         if partner1 == lep2:
@@ -547,4 +590,68 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
                 break
         return nj
 
+    def genMassFunction(self, *objects):
+        '''
+        Returns a function that takes a row and returns the invariant mass of
+        the gen leptons matched to lep1 and lep2 (or -999 if they don't exist)
+        '''
+        leps = sorted(objects[:2])
 
+        return lambda row: self.genMass(row, *leps)
+
+    
+    def gen4lMassFunction(self, *objects):
+        '''
+        Returns a function that takes a row and returns the invariant mass of
+        the 4 gen leptons matched to the 4 objects (or -999 if they any doesn't exist)
+        '''
+        leps = sorted(objects[:4])
+
+        return lambda row: self.genMass(row, *leps)
+
+    
+    def genMass(self, row, *leps):
+        '''
+        Returns the invariant mass of the gen particles matched to two leptons.
+        If either has no matched gen particle, returns -999.
+        Does not check to see if the leptons are in the right order.
+        '''
+        for lep in leps:
+            if objVar(row, "GenPt", lep) < 0:
+                return -999
+
+
+        p4 = LorentzVector()
+        for lep in leps:
+            thisP4 = LorentzVector()
+            thisP4.SetPtEtaPhiM(objVar(row, "GenPt", lep),
+                                objVar(row, "GenEta", lep),
+                                objVar(row, "GenPhi", lep),
+                                (0.000511 if lep[0]=='e' else 0.1566))
+            p4 += thisP4
+            
+        return p4.M()
+
+
+    def ptAKFSRFunction(self, obj, *args):
+        '''
+        Creates a function that returns the AKFSR-corrected pt of an object.
+        '''
+        return lambda row: self.ptAKFSR(row, obj)
+
+
+    def ptAKFSR(self, row, obj):
+        '''
+        Get the object's pt including AKFSR.
+        '''
+        if objVar(row, "AKFSRPt", obj) <= 0:
+            return objVar(row, "Pt", obj)
+        
+        p4 = self.getLeptonP4(row, obj)
+        p4FSR = LorentzVector()
+        p4FSR.SetPtEtaPhiM(objVar(row, "AKFSRPt", obj),
+                           objVar(row, "AKFSREta", obj),
+                           objVar(row, "AKFSRPhi", obj),
+                           0.)
+
+        return (p4+p4FSR).Pt()
