@@ -33,7 +33,7 @@ class HZZ4lAKFSRCleaner(ZZRowCleanerBase):
         if self.needReorder:
             objects = self.cuts.orderLeptons(row, self.channel, self.objectTemplate)
 
-        dZ = zCompatibility(row, objects[0], objects[1], fsrType='AK')
+        dZ = zCompatibility(row, objects[0], objects[1], fsrType='AKFSR')
         ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
 
         isBest = newEvent or (dZ < self.prevDZ or (dZ == self.prevDZ and ptSum > self.prevPtSum))

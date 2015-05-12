@@ -60,7 +60,7 @@ class FullSpectrum_AKFSR(FullSpectrum_FullFSR_Sync):
 
         altZMass = [nObjVar(row, "MassAKFSR", *sorted(altObj[:2])), nObjVar(row, "MassAKFSR", *sorted(altObj[2:]))]
         altZCompatibility = [zMassDist(m) for m in altZMass]
-        z1Compatibility = zCompatibility(row, obj[0], obj[1], fsrType="AK")
+        z1Compatibility = zCompatibility(row, obj[0], obj[1], fsrType="AKFSR")
 
         if altZCompatibility[0] < altZCompatibility[1]:  # Za is first
             zACompatibility = altZCompatibility[0]
