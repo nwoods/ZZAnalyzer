@@ -29,8 +29,6 @@ import FWCore.ParameterSet.Config as cms
 from DataFormats.FWLite import Handle, Events
 
 
-nPackedFSR = 0
-
 
 
 def fillGenHistos(pho, lep, found):
@@ -156,8 +154,6 @@ def getGenFSR(lep, packedGenPho):
     includes any that also come from that chain.
     Assumes packedGenPho has already been skimmed (contains photons only).
     '''
-    global nPackedFSR
-
     ID = lep.pdgId()
     out = []
     firstAncestor = firstInGenChain(lep)
@@ -187,7 +183,6 @@ def getGenFSR(lep, packedGenPho):
             continue
         if isAncestor(firstAncestor, pho):
             out.append(pho)
-            nPackedFSR += 1
             
     return out
 
@@ -293,13 +288,12 @@ h['foundGenFSRDEta'] = Hist(20, 0., 0.5)
 h['genFSRDPhi'] = Hist(20, 0., 0.5)
 h['foundGenFSRDPhi'] = Hist(20, 0., 0.5)
 
-files  = glob.glob("/hdfs/store/user/nwoods/KEEPPAT_TEST_1/GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6/*.root")
+files  = glob.glob("/hdfs/store/user/nwoods/KEEPPAT_TEST_2/GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6/*.root")
 for fi, fn in enumerate(files):
     files[fi] = "file:"+fn
 
-events = Events("file:packedTest.root")#files) 
+events = Events(files) 
 
-fs4Mu, fs4MuLabel = Handle("edm::OwnVector<PATFinalState,edm::ClonePolicy<PATFinalState> >"), "cleanedFinalStateMuMuMuMu"
 gen, genLabel = Handle("std::vector<reco::GenParticle>"), "prunedGenParticles"
 packedGen, packedGenLabel = Handle("std::vector<pat::PackedGenParticle>"), "packedGenParticles"
 fsMuons, fsMuonsLabel = Handle("std::vector<pat::Muon>"), "muonsRank"
@@ -309,7 +303,6 @@ for iev, ev in enumerate(events):
     if iev % 1000 == 0:
         print "Processing event %d"%iev
 
-    ev.getByLabel(fs4MuLabel, fs4Mu)
     ev.getByLabel(genLabel, gen)
     ev.getByLabel(packedGenLabel, packedGen)
     ev.getByLabel(fsMuonsLabel, fsMuons)
@@ -376,7 +369,6 @@ for iev, ev in enumerate(events):
 print "Done!"
 print "Found   %d of %d gen FSR   (efficiency: %.3f %%)"%(genFSRMatched, genFSRTot, (100. * genFSRMatched) / genFSRTot)
 print "Matched %d of %d found FSR (purity:     %.3f %%)"%(recoFSRMatched, recoFSRTot, (100. * recoFSRMatched) / recoFSRTot)
-print "%d packed gen FSR photons were found"%nPackedFSR
 
 # make plots look halfway decent
 ROOT.gStyle.SetOptStat(0)
@@ -427,102 +419,3 @@ for var in ["Pt", "DR", "DEta", "DPhi"]:
 
 
 
-### OLD, KEPT JUST IN CASE
-
-#         genFSR = getGenFSR(mu)
-#         if not len(genFSR):
-#             continue
-# 
-#         foundLep = False # have we found a matching reco lepton yet?
-#         foundFSR = False # have we found a matching reco photon yet?
-# 
-#         if len(fs4Mu.product()) >= 4: # we can just check the final state reco muons
-#             for fs in fs4Mu.product():
-#                 for i in xrange(4):
-#                     if fs.getDaughterGenParticle(i, 13, 0) == mu and bool(fs.daughterAsMuon(i).userFloat("HZZ4lIDPassTight")):
-#                         foundLep = True
-#                         if foundLep:
-#                             foundFSR = hasRecoFSR(i)
-#                             break
-#                 if foundFSR:
-#                     break
-# 
-#         else: # have to check "orphans" by hand (ugh)
-#             for iReco, reco in enumerate(tightMu):
-#                 if deltaR(mu.eta(), mu.phi(), reco.eta(), reco.phi()) < 0.1: # maybe do better matching later
-#                     foundLep = True
-#                     if len(getOrphanFSR(iReco, tightMu)):
-#                         foundFSR = True
-#                         break
-#                     
-#         # save all the things
-#         if foundLep:
-#             for fsr in genFSR:
-#                 genFSRTot += 1
-#                 if foundFSR: # for now, count as found if we found any reco FSR. May improve later
-#                     genFSRFound += 1
-#                 fillGenHistos(fsr, mu, foundFSR)
-# 
-# 
-#     # Purity of reconstructed FSR
-#     checked = set()
-#     
-#     # if we have final states, there's no need to muck around with orphans
-#     if len(fs4Mu.product()):
-#         for fs in fs4Mu.product():
-#             if not fs:
-#                 continue
-#     
-#             for idx in [[0,1],[2,3]]:
-#                 if not (bool(fs.daughterAsMuon(idx[0]).userFloat("HZZ4lIDPassTight")) and \
-#                             bool(fs.daughterAsMuon(idx[1]).userFloat("HZZ4lIDPassTight"))):
-#                     continue
-#     
-#                 fsr = fs.bestFSROfZ(idx[0], idx[1], "FSRCand")
-#                 if (not fsr) or fsr.isNull() or fsr in checked:
-#                     continue
-#     
-#                 checked.add(fsr)
-#     
-#                 if deltaR(fs.daughter(idx[0]).eta(), fs.daughter(idx[0]).phi(), fsr.eta(), fsr.phi()) < \
-#                         deltaR(fs.daughter(idx[1]).eta(), fs.daughter(idx[1]).phi(), fsr.eta(), fsr.phi()):
-#                     mu = fs.daughter(idx[0])
-#                     genMu = fs.getDaughterGenParticle(idx[0], 13, 0)
-#                 else:
-#                     mu = fs.daughter(idx[1])
-#                     genMu = fs.getDaughterGenParticle(idx[1], 13, 0)
-#     
-#                 if genMu.isNonnull():
-#                     recoFSRTot += 1
-#                     if len(getGenFSR(genMu)) != 0:
-#                         recoFSRMatched += 1
-#                         matched = True
-#                     else:
-#                         matched = False
-#     
-#                     fillRecoHistos(fsr, mu, matched)
-#     else:
-#         # otherwise, do orphans by hand
-#         for iReco, reco in enumerate(tightMu):
-#             for genMu in gen.product():
-#                 if not genMu or not isMuonFiducial(genMu):
-#                     continue
-#                 if deltaR(genMu.eta(), genMu.phi(), reco.eta(), reco.phi()) < 0.1: # maybe do better matching later
-#                     genMatch = genMu
-#                     break
-#             else:
-#                 # no gen match, ignore this muon
-#                 continue
-# 
-#             fsr = getOrphanFSR(iReco, tightMu)
-#             # only care if we have FSR
-#             if not len(fsr):
-#                 continue
-# 
-#             matched = bool(len(getGenFSR(genMu)))
-# 
-#             for pho in fsr:
-#                 recoFSRTot += 1
-#                 if matched:
-#                     recoFSRMatched += 1
-#                 fillRecoHistos(pho, reco, matched)
