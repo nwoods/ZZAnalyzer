@@ -3,7 +3,7 @@ oldargv = sys.argv[:]
 sys.argv = [ '-b-' ]
 from rootpy import ROOT
 from rootpy.io import root_open
-from rootpy.plotting import Hist, Canvas
+from rootpy.plotting import Hist, Hist2D, Canvas
 sys.argv = oldargv
 ROOT.gROOT.SetBatch(True)
 
@@ -31,40 +31,6 @@ from DataFormats.FWLite import Handle, Events
 
 
 
-def fillGenHistos(pho, lep, found):
-    '''
-    Fill histograms for gen-level FSR. If found is True, fills numerator and
-    denominator histograms. Otherwise, just denominators.
-    '''
-    h['genFSRPt'].fill(pho.pt())
-    h['genFSRDR'].fill(deltaR(pho.eta(), pho.phi(), lep.eta(), lep.phi()))
-    h['genFSRDEta'].fill(abs(pho.eta() - lep.eta()))
-    h['genFSRDPhi'].fill(deltaPhi(pho.phi(), lep.phi()))
-
-    if found:
-        h['foundGenFSRPt'].fill(pho.pt())
-        h['foundGenFSRDR'].fill(deltaR(pho.eta(), pho.phi(), lep.eta(), lep.phi()))
-        h['foundGenFSRDEta'].fill(abs(pho.eta() - lep.eta()))
-        h['foundGenFSRDPhi'].fill(deltaPhi(pho.phi(), lep.phi()))
-
-
-def fillRecoHistos(pho, lep, matched):
-    '''
-    Fill histograms for reconstructed FSR. If matched is True, fills numerator and
-    denominator histograms. Otherwise, just denominators.
-    '''
-    h['allFSRPt'].fill(pho.pt())
-    h['allFSRDR'].fill(deltaR(pho.eta(), pho.phi(), lep.eta(), lep.phi()))
-    h['allFSRDEta'].fill(abs(pho.eta() - lep.eta()))
-    h['allFSRDPhi'].fill(deltaPhi(pho.phi(), lep.phi()))
-
-    if matched:
-        h['realFSRPt'].fill(pho.pt())
-        h['realFSRDR'].fill(deltaR(pho.eta(), pho.phi(), lep.eta(), lep.phi()))
-        h['realFSRDEta'].fill(abs(pho.eta() - lep.eta()))
-        h['realFSRDPhi'].fill(deltaPhi(pho.phi(), lep.phi()))
-
-
 def deltaPhi(phi1, phi2):
     dPhi = abs(phi2 - phi1)
     while dPhi > pi:
@@ -75,6 +41,107 @@ def deltaPhi(phi1, phi2):
 def deltaR(eta1, phi1, eta2, phi2):
     dPhi = deltaPhi(phi1, phi2)
     return sqrt(dPhi**2 + (eta2 - eta1)**2)
+
+
+def fillGenHistos(lep, pho, found, foundAKt, foundDREt, recoDREt):
+    '''
+    Fill histograms for gen-level FSR. If found is True, fills numerator and
+    denominator histograms. Otherwise, just denominators.
+    '''
+    dR = deltaR(pho.eta(), pho.phi(), lep.eta(), lep.phi())
+    dREt = dR / pho.et()
+    dPhi = deltaPhi(pho.phi(), lep.phi())
+    h['genFSRPt'].fill(pho.pt())
+    h['genFSRDR'].fill(dR)
+    h['genFSRDEta'].fill(abs(pho.eta() - lep.eta()))
+    h['genFSRDPhi'].fill(dPhi)
+    h['genFSRDREt'].fill(dREt)
+
+    if found:
+        h['foundGenFSRPt'].fill(pho.pt())
+        h['foundGenFSRDR'].fill(dR)
+        h['foundGenFSRDEta'].fill(abs(pho.eta() - lep.eta()))
+        h['foundGenFSRDPhi'].fill(dPhi)
+        h['foundGenFSRDREt'].fill(dREt)
+
+    if foundAKt:
+        h['foundGenAKtFSRPt'].fill(pho.pt())
+        h['foundGenAKtFSRDR'].fill(dR)
+        h['foundGenAKtFSRDEta'].fill(abs(pho.eta() - lep.eta()))
+        h['foundGenAKtFSRDPhi'].fill(dPhi)
+        h['foundGenAKtFSRDREt'].fill(dREt)
+
+    if foundDREt:
+        h['foundGenDREtFSRPt'].fill(recoDREt, pho.pt())
+        h['foundGenDREtFSRDR'].fill(recoDREt, dR)
+        h['foundGenDREtFSRDEta'].fill(recoDREt, abs(pho.eta() - lep.eta()))
+        h['foundGenDREtFSRDPhi'].fill(recoDREt, dPhi)
+        h['foundGenDREtFSRDREt'].fill(dREt)
+
+
+def fillRecoHistos(lep, matched, phoLeg, phoAKt, phoDREt):
+    '''
+    Fill histograms for reconstructed FSR. Matched should evaluate 
+    to True if the matched gen lepton had FSR. If matched is True, 
+    fills numerator and denominator histograms. Otherwise, just 
+    denominators.
+    phoLeg is a list of legacy algorithm reco photons (empty if 
+    there were none).
+    phoAKt is a photon found by the akT algorithm, and should be None
+    if there isn't one. 
+    phoDREt is a photon found by the deltaR/eT algorithm (or None)
+    '''
+    if phoLeg:
+        for pho in phoLeg:
+            dR = deltaR(pho.eta(), pho.phi(), lep.eta(), lep.phi())
+            dREt = dR / pho.et()
+            dPhi = deltaPhi(pho.phi(), lep.phi())
+            h['allFSRPt'].fill(pho.pt())
+            h['allFSRDR'].fill(dR)
+            h['allFSRDEta'].fill(abs(pho.eta() - lep.eta()))
+            h['allFSRDPhi'].fill(dPhi)
+            h['allFSRDREt'].fill(dREt)
+
+            if matched:
+                h['realFSRPt'].fill(pho.pt())
+                h['realFSRDR'].fill(dR)
+                h['realFSRDEta'].fill(abs(pho.eta() - lep.eta()))
+                h['realFSRDPhi'].fill(dPhi)
+                h['realFSRDREt'].fill(dREt)
+
+    if phoAKt:
+        dR = deltaR(phoAKt.eta(), phoAKt.phi(), lep.eta(), lep.phi())
+        dREt = dR / phoAKt.et()
+        dPhi = deltaPhi(phoAKt.phi(), lep.phi())
+        h['allAKtFSRPt'].fill(phoAKt.pt())
+        h['allAKtFSRDR'].fill(dR)
+        h['allAKtFSRDEta'].fill(abs(phoAKt.eta() - lep.eta()))
+        h['allAKtFSRDPhi'].fill(dPhi)
+        h['allAKtFSRDREt'].fill(dREt)
+
+        if matched:
+            h['realAKtFSRPt'].fill(phoAKt.pt())
+            h['realAKtFSRDR'].fill(dR)
+            h['realAKtFSRDEta'].fill(abs(phoAKt.eta() - lep.eta()))
+            h['realAKtFSRDPhi'].fill(dPhi)
+            h['realAKtFSRDREt'].fill(dREt)
+
+    if phoDREt:
+        dR = deltaR(phoDREt.eta(), phoDREt.phi(), lep.eta(), lep.phi())
+        dREt = dR / phoDREt.et()
+        dPhi = deltaPhi(phoDREt.phi(), lep.phi())
+        h['allDREtFSRPt'].fill(dREt, phoDREt.pt())
+        h['allDREtFSRDR'].fill(dREt, dR)
+        h['allDREtFSRDEta'].fill(dREt, abs(phoDREt.eta() - lep.eta()))
+        h['allDREtFSRDPhi'].fill(dREt, dPhi)
+        h['allDREtFSRDREt'].fill(dREt)
+
+        if matched:
+            h['realDREtFSRPt'].fill(dREt, phoDREt.pt())
+            h['realDREtFSRDR'].fill(dREt, dR)
+            h['realDREtFSRDEta'].fill(dREt, abs(phoDREt.eta() - lep.eta()))
+            h['realDREtFSRDPhi'].fill(dREt, dPhi)
+            h['realDREtFSRDREt'].fill(dREt)
 
 
 def firstInGenChain(p):
@@ -148,35 +215,13 @@ def getGenFSR(lep, packedGenPho):
     '''
     Return a list of all gen photons radiated by any gen lepton 
     in this gen lepton's same-ID chain. Requires pt(pho)>2GeV
-    Goes to the top of the chain, then back down, checking for photon 
-    daughters at each link in the prunedGenParticles.
-    Then, loops through the packed gen particles provided and 
-    includes any that also come from that chain.
+    Goes to the top of the chain, then checks if that lepton is
+    an ancestor of anything in packedGenPho.
     Assumes packedGenPho has already been skimmed (contains photons only).
     '''
     ID = lep.pdgId()
     out = []
     firstAncestor = firstInGenChain(lep)
-    p = firstAncestor
-    while True:
-        next = None
-        for iD in xrange(p.numberOfDaughters()):
-            dau = p.daughter(iD)
-            
-            # Doesn't branch; i.e., only steps down to the 
-            # first same-ID daughter
-            if next is None and dau.pdgId() == ID:
-                next = dau
-                continue
-
-            if dau.pdgId() == 22:
-                if dau.pt() > 2.:
-                    out.append(dau)
-
-        else:
-            if next is None:
-                break
-            p = next
 
     for pho in packedGenPho:
         if pho.pt() < 2:
@@ -185,6 +230,27 @@ def getGenFSR(lep, packedGenPho):
             out.append(pho)
             
     return out
+
+#     p = firstAncestor
+#     while True:
+#         next = None
+#         for iD in xrange(p.numberOfDaughters()):
+#             dau = p.daughter(iD)
+#             
+#             # Doesn't branch; i.e., only steps down to the 
+#             # first same-ID daughter
+#             if next is None and dau.pdgId() == ID:
+#                 next = dau
+#                 continue
+# 
+#             if dau.pdgId() == 22:
+#                 if dau.pt() > 2.:
+#                     out.append(dau)
+# 
+#         else:
+#             if next is None:
+#                 break
+#             p = next
 
             
 def zPartnerIndex(i):
@@ -196,34 +262,11 @@ def zPartnerIndex(i):
     return i-1
 
 
-def getRecoFSR(fs, i):
-    '''
-    Get the FSR candidate for daughter i in final state fsr, or
-    None if it doesn't have one.
-    '''
-    cands = [fs.daughterUserCand(i, "FSRCand%d"%j) for j in xrange(fs.daughterAsMuon(i).userInt("nFSRCand"))]
-
-    indices = sorted([i, zPartnerIndex(i)])
-
-    fsr = fs.bestFSROfZ(indices[0], indices[1], "FSRCand")
-
-    if fsr and fsr in cands:
-        return FSR
-
-    return None
-
-
-def hasRecoFSR(fs, i):
-    '''
-    Is there an FSR photon matched to lepton i in final state fs?
-    '''
-    return getRecoFSR(fs, i) is not None
-
-
-def getOrphanFSR(i, collection):
+def getLegacyFSR(i, collection):
     '''
     For lepton i in collection, return a list of FSR photons that are
-    accepted when it is paired with any other object in collection. 
+    accepted by the legacy algorithm when it is paired with any other 
+    object in collection. 
     '''
     out = []
     lep = collection[i]
@@ -263,14 +306,21 @@ def getOrphanFSR(i, collection):
                 break
     
     return out
-    
+
+
 
 genFSRMatched = 0
 genFSRTot = 0
 recoFSRMatched = 0
 recoFSRTot = 0
 
+genFSRMatchedAKt = 0
+recoFSRMatchedAKt = 0
+recoFSRTotAKt = 0
+
 h = {}
+h['allFSRDREt'] = Hist(40, 0., 0.4)
+h['realFSRDREt'] = Hist(40, 0., 0.4)
 h['allFSRPt'] = Hist(28, 0., 56.)
 h['realFSRPt'] = Hist(28, 0., 56.)
 h['allFSRDR'] = Hist(20, 0., 0.5)
@@ -287,12 +337,49 @@ h['genFSRDEta'] = Hist(20, 0., 0.5)
 h['foundGenFSRDEta'] = Hist(20, 0., 0.5)
 h['genFSRDPhi'] = Hist(20, 0., 0.5)
 h['foundGenFSRDPhi'] = Hist(20, 0., 0.5)
+h['genFSRDREt'] = Hist(40, 0., 0.4)
+h['foundGenFSRDREt'] = Hist(40, 0., 0.4)
+
+h['allAKtFSRDREt'] = Hist(40, 0., 0.4)
+h['realAKtFSRDREt'] = Hist(40, 0., 0.4)
+h['allAKtFSRPt'] = Hist(28, 0., 56.)
+h['realAKtFSRPt'] = Hist(28, 0., 56.)
+h['allAKtFSRDR'] = Hist(20, 0., 0.5)
+h['realAKtFSRDR'] = Hist(20, 0., 0.5)
+h['allAKtFSRDREt'] = Hist(40, 0., 0.4)
+h['realAKtFSRDREt'] = Hist(40, 0., 0.4)
+h['allAKtFSRDEta'] = Hist(20, 0., 0.5)
+h['realAKtFSRDEta'] = Hist(20, 0., 0.5)
+h['allAKtFSRDPhi'] = Hist(20, 0., 0.5)
+h['realAKtFSRDPhi'] = Hist(20, 0., 0.5)
+h['foundGenAKtFSRPt'] = Hist(28, 0., 56.)
+h['foundGenAKtFSRDR'] = Hist(20, 0., 0.5)
+h['foundGenAKtFSRDREt'] = Hist(40, 0., 0.4)
+h['foundGenAKtFSRDEta'] = Hist(20, 0., 0.5)
+h['foundGenAKtFSRDPhi'] = Hist(20, 0., 0.5)
+
+h['allDREtFSRDREt'] = Hist(40, 0., 0.4)
+h['realDREtFSRDREt'] = Hist(40, 0., 0.4)
+h['allDREtFSRPt'] = Hist2D(40, 0., 0.4, 28, 0., 56.)
+h['realDREtFSRPt'] = Hist2D(40, 0., 0.4, 28, 0., 56.)
+h['allDREtFSRDR'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['realDREtFSRDR'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['allDREtFSRDEta'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['realDREtFSRDEta'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['allDREtFSRDPhi'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['realDREtFSRDPhi'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['foundGenDREtFSRPt'] = Hist2D(40, 0., 0.4, 28, 0., 56.)
+h['foundGenDREtFSRDR'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['foundGenDREtFSRDREt'] = Hist(40, 0., 0.4)
+h['foundGenDREtFSRDEta'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+h['foundGenDREtFSRDPhi'] = Hist2D(40, 0., 0.4, 20, 0., 0.5)
+
 
 files  = glob.glob("/hdfs/store/user/nwoods/KEEPPAT_TEST_2/GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6/*.root")
 for fi, fn in enumerate(files):
     files[fi] = "file:"+fn
 
-events = Events(files) 
+events = Events("file:withPAT.root") #files) 
 
 gen, genLabel = Handle("std::vector<reco::GenParticle>"), "prunedGenParticles"
 packedGen, packedGenLabel = Handle("std::vector<pat::PackedGenParticle>"), "packedGenParticles"
@@ -342,33 +429,68 @@ for iev, ev in enumerate(events):
     # see if anything has FSR, if so save results
     for muG, muR in genRecoPairs.iteritems():
         fsrGen = getGenFSR(muG, packedGenPho)
-        fsrRec = getOrphanFSR(tightMu.index(muR), tightMu)
+        fsrRec = getLegacyFSR(tightMu.index(muR), tightMu)
+
+        if iev < 10:
+            for n in muR.userCandNames():
+                print n
+            print "Done! \n"
+
+        for n in muR.userCandNames():
+            if "ak" in n or "AK" in n:
+                print n
+
+        if muR.hasUserCand("akFSRCand"):
+            fsrAKt = muR.userCand("akFSRCand")
+            print "found one with pt %f"%fsrAKt.pt()
+        else:
+            fsrAKt = None
+        if muR.hasUserCand("dretFSRCand"):
+            fsrDREt = muR.userCand("dretFSRCand")
+        else:
+            fsrDREt = None
 
         matched = (len(fsrGen) != 0 and len(fsrRec) != 0)
+        matchedAKt = (len(fsrGen) != 0 and fsrAKt is not None)
+        matchedDREt = (len(fsrGen) != 0 and fsrDREt is not None)
+        if fsrDREt is not None:
+            dREt = muR.userFloat("dretFSRCandDREt")
+        else:
+            dREt = -999.
 
         for gfsr in fsrGen:
             genFSRTot += 1
-            fillGenHistos(gfsr, muG, matched)
+            fillGenHistos(muG, gfsr, matched, matchedAKt, matchedDREt, dREt)
             if matched:
                 genFSRMatched += 1
+            if matchedAKt:
+                genFSRMatchedAKt += 1
 
-        for rfsr in fsrRec:
-            recoFSRTot += 1
-            fillRecoHistos(rfsr, muR, matched)
-            if matched:
-                recoFSRMatched += 1
+        recoFSRTot += len(fsrRec)
+        if fsrAKt is not None:
+            recoFSRTotAKt += 1
+        if matched:
+            recoFSRMatched += len(fsrRec)
+        if matchedAKt:
+            recoFSRMatchedAKt += 1
 
-
-
-
+        fillRecoHistos(muR, matched, fsrRec, fsrAKt, fsrDREt)
 
 
         
 
 
 print "Done!"
-print "Found   %d of %d gen FSR   (efficiency: %.3f %%)"%(genFSRMatched, genFSRTot, (100. * genFSRMatched) / genFSRTot)
-print "Matched %d of %d found FSR (purity:     %.3f %%)"%(recoFSRMatched, recoFSRTot, (100. * recoFSRMatched) / recoFSRTot)
+print ""
+print "Legacy algorithm:"
+print "    Found   %d of %d gen FSR   (efficiency: %.3f %%)"%(genFSRMatched, genFSRTot, (100. * genFSRMatched) / genFSRTot)
+print "    Matched %d of %d found FSR (purity:     %.3f %%)"%(recoFSRMatched, recoFSRTot, (100. * recoFSRMatched) / recoFSRTot)
+print "akT algorithm:"
+print "    Found   %d of %d gen FSR   (efficiency: %.3f %%)"%(genFSRMatchedAKt, genFSRTot, (100. * genFSRMatchedAKt) / genFSRTot)
+print "    Matched %d of %d found FSR (purity:     %.3f %%)"%(recoFSRMatchedAKt, recoFSRTotAKt, (100. * recoFSRMatchedAKt) / recoFSRTotAKt)
+print "    No FSR found at all :("
+print "deltaR/eT algorithm still needs a working point, check the plots"
+
 
 # make plots look halfway decent
 ROOT.gStyle.SetOptStat(0)
@@ -377,44 +499,128 @@ ROOT.gStyle.SetPadTickY(1)
 ROOT.gStyle.SetPalette(1)
 ROOT.gROOT.ForceStyle()
 
-for var in ["Pt", "DR", "DEta", "DPhi"]:
+colors = [
+    ROOT.EColor.kCyan-7,
+    ROOT.EColor.kRed,
+    ROOT.EColor.kOrange+7,
+    ROOT.EColor.kViolet+7,
+    ROOT.EColor.kMagenta,
+    ]
+
+for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
+    prettyVar = var.replace("DREt", "\\frac{\\Delta R}{E_{T\\gamma}}").replace("D", "\\Delta ").replace("Eta", "\\eta").replace("Phi", "\\phi").replace("Pt", "p_{T\\gamma}")
+
     cgen = Canvas(1000, 800)
     h['genFSR%s'%var].SetLineColor(ROOT.EColor.kBlue)
     h['genFSR%s'%var].SetLineWidth(2)
-    h['genFSR%s'%var].GetXaxis().SetTitle("\\text{Gen FSR }%s"%var.replace("D", "\\Delta ").replace("Eta", "\\eta").replace("Phi", "\\phi").replace("Pt", "p_{T\\gamma}"))
+    h['genFSR%s'%var].GetXaxis().SetTitle("\\text{Gen FSR }%s"%prettyVar)
     h['genFSR%s'%var].Draw("hist")
     cgen.Print("fsrPlots/genFSR%s.png"%var)
-
+    
     ceff = Canvas(1000, 800)
+    legEff = ROOT.TLegend(0.4, 0.2, 0.6, 0.5)
     effFrame = h['genFSR%s'%var].empty_clone()
-    effFrame.SetMarkerColor(ROOT.EColor.kBlue)
     effFrame.SetMaximum(1.1)
     effFrame.SetMinimum(0.)
-    effFrame.GetXaxis().SetTitle(var.replace("D", "\\Delta ").replace("Eta", "\\eta").replace("Phi", "\\phi").replace("Pt", "p_{T\\gamma}"))
+    effFrame.GetXaxis().SetTitle(prettyVar)
     effFrame.GetYaxis().SetTitle("Efficiency")
     effFrame.Draw("E")
     eff = ROOT.TGraphAsymmErrors(h['foundGenFSR%s'%var], h['genFSR%s'%var])
     eff.SetMarkerStyle(20)
-    eff.SetMarkerColor(ROOT.EColor.kBlue)
-    eff.SetLineColor(ROOT.EColor.kBlue)
+    eff.SetMarkerColor(ROOT.EColor.kBlack)
+    eff.SetLineColor(ROOT.EColor.kBlack)
     eff.SetLineWidth(2)
     eff.Draw("PSAME")
+    legEff.AddEntry(eff, "Legacy", "LPE")
+    effAKt = ROOT.TGraphAsymmErrors(h['foundGenAKtFSR%s'%var], h['genFSR%s'%var])
+    effAKt.SetMarkerStyle(21)
+    effAKt.SetMarkerColor(ROOT.EColor.kRed)
+    effAKt.SetLineColor(ROOT.EColor.kRed)
+    effAKt.SetLineWidth(2)
+    effAKt.Draw("PSAME")
+    legEff.AddEntry(effAKt, "ak_{T}", "LPE")
+    if var != "DREt":
+        effDREt = {}
+        for i, cutBin in enumerate(xrange(4, 24, 4)):
+            num = h['foundGenDREtFSR%s'%var].ProjectionY("es%d"%i, 1, cutBin-1)
+            effDREt[cutBin] = ROOT.TGraphAsymmErrors(num, h['genFSR%s'%var])
+            effDREt[cutBin].SetMarkerStyle(33)
+            effDREt[cutBin].SetMarkerColor(colors[i])
+            effDREt[cutBin].SetLineColor(colors[i])
+            effDREt[cutBin].SetLineWidth(2)
+            effDREt[cutBin].Draw("PSAME")
+            legEff.AddEntry(effDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.2f"%(cutBin/10.), "LPE")
+    else:
+        effDREt = ROOT.TGraphAsymmErrors(h['foundGenDREtFSR%s'%var], h['genFSR%s'%var])
+        effDREt.SetMarkerStyle(33)
+        effDREt.SetMarkerColor(ROOT.EColor.kRed)
+        effDREt.SetLineColor(ROOT.EColor.kRed)
+        effDREt.SetLineWidth(2)
+        effDREt.Draw("PSAME")
+        legEff.AddEntry(effDREt, "\\frac{\\Delta R}{E_{T}}", "LPE")
+    legEff.Draw("SAME")
     ceff.Print("fsrPlots/eff%s.png"%var)
-
+    
     cpur = Canvas(1000, 800)
+    legPur = ROOT.TLegend(0.4, 0.2, 0.6, 0.5)
     purFrame = h['allFSR%s'%var].empty_clone()
     purFrame.SetMaximum(1.1)
     purFrame.SetMinimum(0.)
-    purFrame.GetXaxis().SetTitle(var.replace("D", "\\Delta ").replace("Eta", "\\eta").replace("Phi", "\\phi").replace("Pt", "p_{T\\gamma}"))
+    purFrame.GetXaxis().SetTitle(prettyVar)
     purFrame.GetYaxis().SetTitle("Purity")
-    purFrame.Draw("E")
+    purFrame.Draw()
     pur = ROOT.TGraphAsymmErrors(h['realFSR%s'%var], h['allFSR%s'%var])
     pur.SetMarkerStyle(20)
-    pur.SetMarkerColor(ROOT.EColor.kBlue)
-    pur.SetLineColor(ROOT.EColor.kBlue)
+    pur.SetMarkerColor(ROOT.EColor.kBlack)
+    pur.SetLineColor(ROOT.EColor.kBlack)
     pur.SetLineWidth(2)
     pur.Draw("PSAME")
+    legPur.AddEntry(pur, "Legacy", "LPE")
+    purAKt = ROOT.TGraphAsymmErrors(h['realAKtFSR%s'%var], h['allAKtFSR%s'%var])
+    purAKt.SetMarkerStyle(21)
+    purAKt.SetMarkerColor(ROOT.EColor.kRed)
+    purAKt.SetLineColor(ROOT.EColor.kRed)
+    purAKt.SetLineWidth(2)
+    purAKt.Draw("PSAME")
+    legPur.AddEntry(purAKt, "ak_{T}", "LPE")
+    if var != "DREt":
+        purDREt = {}
+        for i, cutBin in enumerate(xrange(4, 24, 4)):
+            num = h['realDREtFSR%s'%var].ProjectionY("ps%d"%i, 1, cutBin-1)
+            denom = h['allDREtFSR%s'%var].ProjectionY("pds%d"%i, 1, cutBin-1)
+            purDREt[cutBin] = ROOT.TGraphAsymmErrors(num, denom)
+            purDREt[cutBin].SetMarkerStyle(33)
+            purDREt[cutBin].SetMarkerColor(colors[i])
+            purDREt[cutBin].SetLineColor(colors[i])
+            purDREt[cutBin].SetLineWidth(2)
+            purDREt[cutBin].Draw("PSAME")
+            legPur.AddEntry(purDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.2f"%(cutBin/10.), "LPE")
+    else:
+        purDREt = ROOT.TGraphAsymmErrors(h['foundGenDREtFSR%s'%var], h['genFSR%s'%var])
+        purDREt.SetMarkerStyle(33)
+        purDREt.SetMarkerColor(ROOT.EColor.kRed)
+        purDREt.SetLineColor(ROOT.EColor.kRed)
+        purDREt.SetLineWidth(2)
+        purDREt.Draw("PSAME")
+        legPur.AddEntry(purDREt, "\\frac{\\Delta R}{E_{T}}", "LPE")
+    legPur.Draw("SAME")
     cpur.Print("fsrPlots/purity%s.png"%var)
+
+
+#     cpur = Canvas(1000, 800)
+#     purFrame = h['allFSR%s'%var].empty_clone()
+#     purFrame.SetMaximum(1.1)
+#     purFrame.SetMinimum(0.)
+#     purFrame.GetXaxis().SetTitle(prettyVar)
+#     purFrame.GetYaxis().SetTitle("Purity")
+#     purFrame.Draw("E")
+#     pur = ROOT.TGraphAsymmErrors(h['realFSR%s'%var], h['allFSR%s'%var])
+#     pur.SetMarkerStyle(20)
+#     pur.SetMarkerColor(ROOT.EColor.kBlue)
+#     pur.SetLineColor(ROOT.EColor.kBlue)
+#     pur.SetLineWidth(2)
+#     pur.Draw("PSAME")
+#     cpur.Print("fsrPlots/purity%s.png"%var)
 
 
 
