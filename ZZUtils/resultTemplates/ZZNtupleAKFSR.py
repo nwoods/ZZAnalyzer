@@ -21,6 +21,7 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
         self.flavoredCopyVars = {'e':[],'m':[]}
         self.flavoredCalcVars = {'e':{},'m':{}}
         self.inputs = inputNtuples
+        self.dREtCut = 0.014
         super(ZZNtupleAKFSR, self).__init__(fileName, channels, *args, **kwargs)
 
 
@@ -57,8 +58,7 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             'nJets',
             'D_bkg_kin',
             'MassAKFSR',
-            'MassAKFSRLooseIso',
-            'MassAKFSRNIso',
+            'MassAKFSR1p5',
         ]
 
         self.copyVars[1] = [
@@ -84,13 +84,14 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sAKFSRPt',
             '%sAKFSREta',
             '%sAKFSRPhi',
-            '%sAKFSRLooseIsoPt',
-            '%sAKFSRLooseIsoEta',
-            '%sAKFSRLooseIsoPhi',
-            '%sAKFSRNIsoPt',
-            '%sAKFSRNIsoEta',
-            '%sAKFSRNIsoPhi',
-            ]
+            '%sAKFSR1p5Pt',
+            '%sAKFSR1p5Eta',
+            '%sAKFSR1p5Phi',
+            '%sDREtFSRPt',
+            '%sDREtFSREta',
+            '%sDREtFSRPhi',
+            '%sDREt',
+        ]
 
         self.flavoredCopyVars['e'] = [ 
             '%sMVANonTrigID',
@@ -101,8 +102,7 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sMissingHits',
             '%sNearestMuonDR',
             '%sRelPFIsoRhoAKFSR',
-            '%sRelPFIsoRhoAKFSRLooseIso',
-            '%sRelPFIsoRhoAKFSRNIso',
+            '%sRelPFIsoRhoAKFSR1p5',
         ]
 
         self.flavoredCopyVars['m'] = [
@@ -114,8 +114,7 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sPFPUChargedIso',
             '%sBestTrackType',
             '%sRelPFIsoDBAKFSR',
-            '%sRelPFIsoDBAKFSRLooseIso',
-            '%sRelPFIsoDBAKFSRNIso',
+            '%sRelPFIsoDBAKFSR1p5',
             ]
 
         self.copyVars[2] = [
@@ -134,42 +133,30 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%s_%s_FSRPhi',
             '%s_%s_SS',
             '%s_%s_DR',
-            '%s_%s_PtAKFSR',
-            '%s_%s_EtaAKFSR',
-            '%s_%s_PhiAKFSR',
             '%s_%s_MassAKFSR',
-            '%s_%s_PtAKFSRLooseIso',
-            '%s_%s_EtaAKFSRLooseIso',
-            '%s_%s_PhiAKFSRLooseIso',
-            '%s_%s_MassAKFSRLooseIso',
-            '%s_%s_PtAKFSRNIso',
-            '%s_%s_EtaAKFSRNIso',
-            '%s_%s_PhiAKFSRNIso',
-            '%s_%s_MassAKFSRNIso',
+            '%s_%s_MassAKFSR1p5',
         ]
 
         self.calcVars[0] = {
-            'GenMass' : self.gen4lMassFunction,
+            'MassDREtFSR' : self.dREt4lMassFunction,
         }
 
         self.calcVars[1] = {
-            '%sHasGenFSR' : self.hasGenFSRFunction1,
-            '%sPtFSR' : self.ptFSRFunction,
-            '%sPtAKFSR' : self.ptAKFSRFunction,
         }
 
         self.calcVars[2] = {
             '%s_%s_MassFSR' : self.massFunction,
-            '%s_%s_GenMass' : self.genMassFunction,
-            '%s_%s_HasGenFSR' : self.hasGenFSRFunction2,
+            '%s_%s_MassDREtFSR' : self.dREt2lMassFunction,
         }
 
         self.flavoredCalcVars['m'] = {
             '%sRelPFIsoDBDefaultFSR' : self.muonRelPFIsoDBFSRFunction,
+            '%sRelPFIsoDBDREtFSR' : self.relPFIsoDBDREtFunction,
         }
 
         self.flavoredCalcVars['e'] = {
             '%sRelPFIsoRhoFSR' : self.eleRelPFIsoRhoFSRFunction,
+            '%sRelPFIsoRhoDREtFSR' : self.dREtFSRFunctionGenerator('RelPFIsoRho'),
         }
 
         obj4M = ['m' + str(i+1) for i in range(4)]
@@ -381,6 +368,106 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
         partner2 = self.getZPartner(lep2)
         
         return lambda row: self.dileptonMassBothFSR(row, lep1, partner1, lep2, partner2)
+
+
+    def dREtFSRFunctionGenerator(self, var):
+        '''
+        Helper function to use the helper function generator
+        self.dREtFSRVarFunction for a particular variable
+        (god I need to redesign this module).
+        '''
+        return lambda lep, *args: self.dREtFSRVarFunction(lep, var)
+
+
+    def dREtFSRVarFunction(self, lep, var):
+        '''
+        Returns a helper function to use self.varWithDREtFSR.
+        '''
+        return lambda row: self.varWithDREtFSR(row, lep, var)
+
+
+    def varWithDREtFSR(self, row, lep, var):
+        '''
+        If this lepton has dREt FSR, return the value of var with
+        it. If not, return the value without it.
+        '''
+        if objVar(row, "DREt", lep) < self.dREtCut:
+            return objVar(row, var+"DREtFSR", lep)
+        return objVar(row, var, lep)
+
+    
+    def dREt2lMassFunction(self, *objects):
+        '''
+        Returns a function to get the 2l mass from a particular row 
+        with any applicable dREt FSR.
+        '''
+        leps = sorted(objects[:2])
+        
+        return lambda row: self.massDREtFSR(row, *leps)
+
+
+    def dREt4lMassFunction(self, *objects):
+        '''
+        Returns a function to get the 4l mass from a particular row
+        with any applicable dREt FSR.
+        '''
+        leps = sorted(objects[:4])
+        return lambda row: self.massDREtFSR(row, *leps)
+
+
+    def relPFIsoDBDREtFunction(self, mu, *args):
+        '''
+        Returns helper function for dREt FSR-adjusted muon isolation.
+        '''
+        return lambda row: self.relPFIsoDBDREt(row, mu)
+
+
+    def relPFIsoDBDREt(self, row, mu):
+        '''
+        If there is applicable deltaR/eT FSR, adjust isolation.
+        '''
+        dREt = objVar(row, "DREt", mu)
+        if dREt > 0 and dREt < self.dREtCut:
+            return objVar(row, "RelPFIsoDBDREtFSR", mu)
+        return objVar(row, "RelPFIsoDBDefault", mu)
+
+
+    def massDREtFSR(self, row, *objects):
+        '''
+        Return the 4l mass with any applicable dREt FSR included.
+        '''
+        p4 = LorentzVector()
+        p4.SetPtEtaPhiM(0., 0., 0., 0.)
+        for obj in objects:
+            p4 += self.p4DREtFSR(row, obj)
+        return p4.M()
+
+
+    def p4DREtFSR(self, row, lep):
+        '''
+        Get the 4-momentum of the lepton, with deltaR/eT FSR included 
+        if it passes cut.
+        '''
+        lepP4 = self.getLeptonP4(row, lep)
+        dREt = objVar(row, "DREt", lep)
+        if dREt > 0 and dREt < self.dREtCut:
+            fsrP4 = self.getDREtP4(row, lep)
+            return (lepP4 + fsrP4)
+        return lepP4
+
+
+    def getDREtP4(self, row, lep):
+        '''
+        Get the 4-momentum of the lepton's associated dREt photon, if any.
+        '''
+        p = LorentzVector()
+        pt = objVar(row, "DREtFSRPt", lep)
+        if pt > 0:
+            p.SetPtEtaPhiM(pt,
+                           objVar(row, "DREtFSREta", lep),
+                           objVar(row, "DREtFSRPhi", lep),
+                           0.)
+        return p
 
 
     def dileptonMassBothFSR(self, row, lep1, partner1, lep2, partner2):

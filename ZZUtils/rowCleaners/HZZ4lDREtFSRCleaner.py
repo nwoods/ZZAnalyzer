@@ -1,7 +1,7 @@
 '''
 
 Redundant row cleaner using algorithm from new H->ZZ->4l analysis
-and AKFSR with R=0.10
+and deltaR/eT FSR
 
 Author: Nate Woods, U. Wisconsin.
 
@@ -11,9 +11,9 @@ from ZZRowCleanerBase import ZZRowCleanerBase
 from ZZHelpers import * # evVar, objVar, nObjVar, Z_MASS
 
 
-class HZZ4lAKFSRCleaner(ZZRowCleanerBase):
+class HZZ4lDREtFSRCleaner(ZZRowCleanerBase):
     def __init__(self, channel, cutter):
-        super(HZZ4lAKFSRCleaner, self).__init__(channel, cutter)
+        super(HZZ4lDREtFSRCleaner, self).__init__(channel, cutter)
         self.cleanAtEnd = True # do cleaning last
         self.prevDZ = 999.
         self.prevPtSum = -999.
@@ -33,7 +33,7 @@ class HZZ4lAKFSRCleaner(ZZRowCleanerBase):
         if self.needReorder:
             objects = self.cuts.orderLeptons(row, self.channel, self.objectTemplate)
 
-        dZ = zCompatibility(row, objects[0], objects[1], fsrType='AKFSR')
+        dZ = zCompatibility(row, objects[0], objects[1], fsrType='DREtFSR')
         ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
 
         isBest = newEvent or (dZ < self.prevDZ or (dZ == self.prevDZ and ptSum > self.prevPtSum))
