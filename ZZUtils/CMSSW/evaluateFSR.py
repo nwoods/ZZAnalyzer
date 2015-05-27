@@ -18,7 +18,7 @@ log["/ROOT.TCanvas.Print"].setLevel(log.WARNING)
 log["/ROOT.TUnixSystem.SetDisplay"].setLevel(log.ERROR)
 
 # Do this import after turning off TUnixSystem.SetDisplay warnings
-from rootpy.plotting import Hist, Hist2D, Canvas
+from rootpy.plotting import Hist, Hist2D, Canvas, Graph
 
 Z_MASS = 91.1876
 
@@ -104,22 +104,21 @@ def fillRecoHistos(lep, matched, phoLeg, phoAKt, phoAKt15, phoDREt):
     phoDREt is a photon found by the deltaR/eT algorithm (or None)
     '''
     if phoLeg:
-        for pho in phoLeg:
-            dR = deltaR(pho.eta(), pho.phi(), lep.eta(), lep.phi())
-            dREt = dR / pho.et()
-            dPhi = deltaPhi(pho.phi(), lep.phi())
-            h['allFSRPt'].fill(pho.pt())
-            h['allFSRDR'].fill(dR)
-            h['allFSRDEta'].fill(abs(pho.eta() - lep.eta()))
-            h['allFSRDPhi'].fill(dPhi)
-            h['allFSRDREt'].fill(dREt)
+        dR = deltaR(phoLeg.eta(), phoLeg.phi(), lep.eta(), lep.phi())
+        dREt = dR / phoLeg.et()
+        dPhi = deltaPhi(phoLeg.phi(), lep.phi())
+        h['allFSRPt'].fill(phoLeg.pt())
+        h['allFSRDR'].fill(dR)
+        h['allFSRDEta'].fill(abs(phoLeg.eta() - lep.eta()))
+        h['allFSRDPhi'].fill(dPhi)
+        h['allFSRDREt'].fill(dREt)
 
-            if matched:
-                h['realFSRPt'].fill(pho.pt())
-                h['realFSRDR'].fill(dR)
-                h['realFSRDEta'].fill(abs(pho.eta() - lep.eta()))
-                h['realFSRDPhi'].fill(dPhi)
-                h['realFSRDREt'].fill(dREt)
+        if matched:
+            h['realFSRPt'].fill(phoLeg.pt())
+            h['realFSRDR'].fill(dR)
+            h['realFSRDEta'].fill(abs(phoLeg.eta() - lep.eta()))
+            h['realFSRDPhi'].fill(dPhi)
+            h['realFSRDREt'].fill(dREt)
 
     if phoAKt:
         dR = deltaR(phoAKt.eta(), phoAKt.phi(), lep.eta(), lep.phi())
@@ -330,79 +329,82 @@ genFSRMatchedAKt15 = 0
 recoFSRMatchedAKt15 = 0
 recoFSRTotAKt15 = 0
 
+ptBins = [4.*i for i in range(5)]+[20.+8.*i for i in range(3)]+[60.]
+dRBins = (10, 0., 0.5)
+
 h = {}
 h['allFSRDREt'] = Hist(40, 0., 0.04)
 h['realFSRDREt'] = Hist(40, 0., 0.04)
-h['allFSRPt'] = Hist(28, 0., 56.)
-h['realFSRPt'] = Hist(28, 0., 56.)
-h['allFSRDR'] = Hist(20, 0., 0.5)
-h['realFSRDR'] = Hist(20, 0., 0.5)
-h['allFSRDEta'] = Hist(20, 0., 0.5)
-h['realFSRDEta'] = Hist(20, 0., 0.5)
-h['allFSRDPhi'] = Hist(20, 0., 0.5)
-h['realFSRDPhi'] = Hist(20, 0., 0.5)
-h['genFSRPt'] = Hist(28, 0., 56.)
-h['foundGenFSRPt'] = Hist(28, 0., 56.)
-h['genFSRDR'] = Hist(20, 0., 0.5)
-h['foundGenFSRDR'] = Hist(20, 0., 0.5)
-h['genFSRDEta'] = Hist(20, 0., 0.5)
-h['foundGenFSRDEta'] = Hist(20, 0., 0.5)
-h['genFSRDPhi'] = Hist(20, 0., 0.5)
-h['foundGenFSRDPhi'] = Hist(20, 0., 0.5)
+h['allFSRPt'] = Hist(ptBins)
+h['realFSRPt'] = Hist(ptBins)
+h['allFSRDR'] = Hist(*dRBins)
+h['realFSRDR'] = Hist(*dRBins)
+h['allFSRDEta'] = Hist(*dRBins)
+h['realFSRDEta'] = Hist(*dRBins)
+h['allFSRDPhi'] = Hist(*dRBins)
+h['realFSRDPhi'] = Hist(*dRBins)
+h['genFSRPt'] = Hist(ptBins)
+h['foundGenFSRPt'] = Hist(ptBins)
+h['genFSRDR'] = Hist(*dRBins)
+h['foundGenFSRDR'] = Hist(*dRBins)
+h['genFSRDEta'] = Hist(*dRBins)
+h['foundGenFSRDEta'] = Hist(*dRBins)
+h['genFSRDPhi'] = Hist(*dRBins)
+h['foundGenFSRDPhi'] = Hist(*dRBins)
 h['genFSRDREt'] = Hist(40, 0., 0.04)
 h['foundGenFSRDREt'] = Hist(40, 0., 0.04)
 
 h['allAKtFSRDREt'] = Hist(40, 0., 0.04)
 h['realAKtFSRDREt'] = Hist(40, 0., 0.04)
-h['allAKtFSRPt'] = Hist(28, 0., 56.)
-h['realAKtFSRPt'] = Hist(28, 0., 56.)
-h['allAKtFSRDR'] = Hist(20, 0., 0.5)
-h['realAKtFSRDR'] = Hist(20, 0., 0.5)
+h['allAKtFSRPt'] = Hist(ptBins)
+h['realAKtFSRPt'] = Hist(ptBins)
+h['allAKtFSRDR'] = Hist(*dRBins)
+h['realAKtFSRDR'] = Hist(*dRBins)
 h['allAKtFSRDREt'] = Hist(40, 0., 0.04)
 h['realAKtFSRDREt'] = Hist(40, 0., 0.04)
-h['allAKtFSRDEta'] = Hist(20, 0., 0.5)
-h['realAKtFSRDEta'] = Hist(20, 0., 0.5)
-h['allAKtFSRDPhi'] = Hist(20, 0., 0.5)
-h['realAKtFSRDPhi'] = Hist(20, 0., 0.5)
-h['foundGenAKtFSRPt'] = Hist(28, 0., 56.)
-h['foundGenAKtFSRDR'] = Hist(20, 0., 0.5)
+h['allAKtFSRDEta'] = Hist(*dRBins)
+h['realAKtFSRDEta'] = Hist(*dRBins)
+h['allAKtFSRDPhi'] = Hist(*dRBins)
+h['realAKtFSRDPhi'] = Hist(*dRBins)
+h['foundGenAKtFSRPt'] = Hist(ptBins)
+h['foundGenAKtFSRDR'] = Hist(*dRBins)
 h['foundGenAKtFSRDREt'] = Hist(40, 0., 0.04)
-h['foundGenAKtFSRDEta'] = Hist(20, 0., 0.5)
-h['foundGenAKtFSRDPhi'] = Hist(20, 0., 0.5)
+h['foundGenAKtFSRDEta'] = Hist(*dRBins)
+h['foundGenAKtFSRDPhi'] = Hist(*dRBins)
 
 h['allAKt15FSRDREt'] = Hist(40, 0., 0.04)
 h['realAKt15FSRDREt'] = Hist(40, 0., 0.04)
-h['allAKt15FSRPt'] = Hist(28, 0., 56.)
-h['realAKt15FSRPt'] = Hist(28, 0., 56.)
-h['allAKt15FSRDR'] = Hist(20, 0., 0.5)
-h['realAKt15FSRDR'] = Hist(20, 0., 0.5)
+h['allAKt15FSRPt'] = Hist(ptBins)
+h['realAKt15FSRPt'] = Hist(ptBins)
+h['allAKt15FSRDR'] = Hist(*dRBins)
+h['realAKt15FSRDR'] = Hist(*dRBins)
 h['allAKt15FSRDREt'] = Hist(40, 0., 0.04)
 h['realAKt15FSRDREt'] = Hist(40, 0., 0.04)
-h['allAKt15FSRDEta'] = Hist(20, 0., 0.5)
-h['realAKt15FSRDEta'] = Hist(20, 0., 0.5)
-h['allAKt15FSRDPhi'] = Hist(20, 0., 0.5)
-h['realAKt15FSRDPhi'] = Hist(20, 0., 0.5)
-h['foundGenAKt15FSRPt'] = Hist(28, 0., 56.)
-h['foundGenAKt15FSRDR'] = Hist(20, 0., 0.5)
+h['allAKt15FSRDEta'] = Hist(*dRBins)
+h['realAKt15FSRDEta'] = Hist(*dRBins)
+h['allAKt15FSRDPhi'] = Hist(*dRBins)
+h['realAKt15FSRDPhi'] = Hist(*dRBins)
+h['foundGenAKt15FSRPt'] = Hist(ptBins)
+h['foundGenAKt15FSRDR'] = Hist(*dRBins)
 h['foundGenAKt15FSRDREt'] = Hist(40, 0., 0.04)
-h['foundGenAKt15FSRDEta'] = Hist(20, 0., 0.5)
-h['foundGenAKt15FSRDPhi'] = Hist(20, 0., 0.5)
+h['foundGenAKt15FSRDEta'] = Hist(*dRBins)
+h['foundGenAKt15FSRDPhi'] = Hist(*dRBins)
 
 h['allDREtFSRDREt'] = Hist(40, 0., 0.04)
 h['realDREtFSRDREt'] = Hist(40, 0., 0.04)
-h['allDREtFSRPt'] = Hist2D(40, 0., 0.04, 28, 0., 56.)
-h['realDREtFSRPt'] = Hist2D(40, 0., 0.04, 28, 0., 56.)
-h['allDREtFSRDR'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
-h['realDREtFSRDR'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
-h['allDREtFSRDEta'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
-h['realDREtFSRDEta'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
-h['allDREtFSRDPhi'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
-h['realDREtFSRDPhi'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
-h['foundGenDREtFSRPt'] = Hist2D(40, 0., 0.04, 28, 0., 56.)
-h['foundGenDREtFSRDR'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
+h['allDREtFSRPt'] = Hist2D(40, 0., 0.04, ptBins)
+h['realDREtFSRPt'] = Hist2D(40, 0., 0.04, ptBins)
+h['allDREtFSRDR'] = Hist2D(40, 0., 0.04, *dRBins)
+h['realDREtFSRDR'] = Hist2D(40, 0., 0.04, *dRBins)
+h['allDREtFSRDEta'] = Hist2D(40, 0., 0.04, *dRBins)
+h['realDREtFSRDEta'] = Hist2D(40, 0., 0.04, *dRBins)
+h['allDREtFSRDPhi'] = Hist2D(40, 0., 0.04, *dRBins)
+h['realDREtFSRDPhi'] = Hist2D(40, 0., 0.04, *dRBins)
+h['foundGenDREtFSRPt'] = Hist2D(40, 0., 0.04, ptBins)
+h['foundGenDREtFSRDR'] = Hist2D(40, 0., 0.04, *dRBins)
 h['foundGenDREtFSRDREt'] = Hist(40, 0., 0.04)
-h['foundGenDREtFSRDEta'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
-h['foundGenDREtFSRDPhi'] = Hist2D(40, 0., 0.04, 20, 0., 0.5)
+h['foundGenDREtFSRDEta'] = Hist2D(40, 0., 0.04, *dRBins)
+h['foundGenDREtFSRDPhi'] = Hist2D(40, 0., 0.04, *dRBins)
 
 
 files  = glob.glob("/hdfs/store/user/nwoods/KEEPPAT_TEST_3/GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6/*.root")
@@ -420,7 +422,7 @@ for iev, ev in enumerate(events):
     if iev % 1000 == 0:
         print "Processing event %d"%iev
 
-    # if iev == 2000:
+    # if iev == 5000:
     #     break
         
     ev.getByLabel(genLabel, gen)
@@ -478,37 +480,52 @@ for iev, ev in enumerate(events):
             fsrDREt = None
 
         matched = (len(fsrGen) != 0 and len(fsrRec) != 0)
-        matchedAKt = (len(fsrGen) != 0 and fsrAKt is not None)
-        matchedAKt15 = (len(fsrGen) != 0 and fsrAKt15 is not None)
-        matchedDREt = (len(fsrGen) != 0 and fsrDREt is not None)
+        matchedAKt = (len(fsrGen) != 0 and bool(fsrAKt))
+        matchedAKt15 = (len(fsrGen) != 0 and bool(fsrAKt15))
+        matchedDREt = (len(fsrGen) != 0 and bool(fsrDREt))
         if fsrDREt is not None:
             dREt = muR.userFloat("dretFSRCandDREt")
         else:
             dREt = -999.
 
-        for gfsr in fsrGen:
+        if len(fsrGen) != 0:
             genFSRTot += 1
-            fillGenHistos(muG, gfsr, matched, matchedAKt, matchedAKt15, matchedDREt, dREt)
-            if matched:
-                genFSRMatched += 1
-            if matchedAKt:
-                genFSRMatchedAKt += 1
-            if matchedAKt15:
-                genFSRMatchedAKt15 += 1
+            bestGen = fsrGen[0]
+            if len(fsrGen) > 1:
+                for gfsr in fsrGen[1:]:
+                    if gfsr.pt() > bestGen.pt():
+                        bestGen = gfsr
 
-        recoFSRTot += len(fsrRec)
-        if fsrAKt is not None:
-            recoFSRTotAKt += 1
-        if fsrAKt15 is not None:
-            recoFSRTotAKt15 += 1
+            fillGenHistos(muG, bestGen, matched, matchedAKt, matchedAKt15, matchedDREt, dREt)
+
         if matched:
-            recoFSRMatched += len(fsrRec)
+            genFSRMatched += 1
         if matchedAKt:
-            recoFSRMatchedAKt += 1
+            genFSRMatchedAKt += 1
         if matchedAKt15:
-            recoFSRMatchedAKt15 += 1
+            genFSRMatchedAKt15 += 1
 
-        fillRecoHistos(muR, matched, fsrRec, fsrAKt, fsrAKt15, fsrDREt)
+        bestRec = None
+        if len(fsrRec) != 0:
+            recoFSRTot += 1
+            if matched:
+                recoFSRMatched += 1
+            bestRec = fsrRec[0]
+            if len(fsrRec) > 1:
+                for rfsr in fsrRec[1:]:
+                    if rfsr.pt() > bestRec.pt():
+                        bestRec = rfsr
+        if fsrAKt:
+            recoFSRTotAKt += 1
+            if matchedAKt:
+                recoFSRMatchedAKt += 1
+        if fsrAKt15:
+            recoFSRTotAKt15 += 1
+            if matchedAKt15:
+                recoFSRMatchedAKt15 += 1
+
+
+        fillRecoHistos(muR, len(fsrGen)!=0, bestRec, fsrAKt, fsrAKt15, fsrDREt)
 
 
         
@@ -598,7 +615,7 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
     legEff.AddEntry(effAKt15, "ak_{T} \\: (R=0.15)", "LPE")
     if var != "DREt":
         effDREt = {}
-        for i, cutBin in enumerate(xrange(8, 20, 4)):
+        for i, cutBin in enumerate(xrange(10, 20, 4)):
             num = h['foundGenDREtFSR%s'%var].ProjectionY("es%d"%i, 1, cutBin-1)
             effDREt[cutBin] = ROOT.TGraphAsymmErrors(num, h['genFSR%s'%var])
             effDREt[cutBin].SetMarkerStyle(33)
@@ -607,7 +624,7 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
             effDREt[cutBin].SetLineColor(colors[i])
             effDREt[cutBin].SetLineWidth(2)
             effDREt[cutBin].Draw("PSAME")
-            legEff.AddEntry(effDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.2f"%(cutBin/1000.), "LPE")
+            legEff.AddEntry(effDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.3f"%(cutBin/1000.), "LPE")
 #     else:
 #         effDREt = ROOT.TGraphAsymmErrors(h['foundGenDREtFSR%s'%var], h['genFSR%s'%var])
 #         effDREt.SetMarkerStyle(33)
@@ -651,7 +668,7 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
     legPur.AddEntry(purAKt15, "ak_{T} \\: (R=0.15)", "LPE")
     if var != "DREt":
         purDREt = {}
-        for i, cutBin in enumerate(xrange(8, 20, 4)):
+        for i, cutBin in enumerate(xrange(10, 20, 4)):
             num = h['realDREtFSR%s'%var].ProjectionY("ps%d"%i, 1, cutBin-1)
             denom = h['allDREtFSR%s'%var].ProjectionY("pds%d"%i, 1, cutBin-1)
             purDREt[cutBin] = ROOT.TGraphAsymmErrors(num, denom)
@@ -661,7 +678,7 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
             purDREt[cutBin].SetLineColor(colors[i])
             purDREt[cutBin].SetLineWidth(2)
             purDREt[cutBin].Draw("PSAME")
-            legPur.AddEntry(purDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.2f"%(cutBin/1000.), "LPE")
+            legPur.AddEntry(purDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.3f"%(cutBin/1000.), "LPE")
 #     else:
 #         purDREt = ROOT.TGraphAsymmErrors(h['realDREtFSR%s'%var], h['allDREtFSR%s'%var])
 #         purDREt.SetMarkerStyle(33)
@@ -674,64 +691,127 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
     cpur.Print("fsrPlots/purity%s.png"%var)
 
 
-    cdreteff = Canvas(1000, 800)
-    dREtEffNum = h['foundGenDREtFSRDREt'].empty_clone()
-    dREtEffDenom = h['foundGenDREtFSRDREt'].empty_clone()
-    dREtEffFrame = dREtEffNum.Clone()
-    dREtEffFrame.GetXaxis().SetTitle("\\frac{\\Delta R}{E_{T\\gamma}} \\text{ threshold}")
-    dREtEffFrame.GetXaxis().SetTitleOffset(1.1)
-    dREtEffFrame.GetYaxis().SetTitle("Efficiency")
-    dREtEffFrame.SetMinimum(0.)
-    dREtEffFrame.SetMaximum(1.1)
-    dREtEffFrame.Draw()
-    nNum = 0
-    for i in range(1, h['foundGenDREtFSRDREt'].GetNbinsX()+1):
-        nNum += h['foundGenDREtFSRDREt'].GetBinContent(i)
-        dREtEffNum.SetBinContent(i, nNum)
-        dREtEffDenom.SetBinContent(i, genFSRTot)
-        dREtEffNum.SetBinError(i, sqrt(nNum))
-        dREtEffDenom.SetBinError(i, sqrt(genFSRTot))
-    dREtEffNum.Sumw2()
-    dREtEffDenom.Sumw2()
-    dREtEff= ROOT.TGraphAsymmErrors(dREtEffNum, dREtEffDenom)
-    dREtEff.SetMarkerStyle(33)
-    dREtEff.SetMarkerSize(2)
-    dREtEff.SetMarkerColor(colors[0])
-    dREtEff.SetLineColor(colors[0])
-    dREtEff.SetLineWidth(2)
-    dREtEff.Draw("PSAME")
-    cdreteff.Print("fsrPlots/dREtEff.png")
+cdreteff = Canvas(1000, 800)
+dREtEffNum = h['foundGenDREtFSRDREt'].empty_clone()
+dREtEffDenom = h['foundGenDREtFSRDREt'].empty_clone()
+dREtEffFrame = dREtEffNum.Clone()
+dREtEffFrame.GetXaxis().SetTitle("\\frac{\\Delta R}{E_{T\\gamma}} \\text{ threshold}")
+dREtEffFrame.GetXaxis().SetTitleOffset(1.1)
+dREtEffFrame.GetYaxis().SetTitle("Efficiency")
+dREtEffFrame.SetMinimum(0.)
+dREtEffFrame.SetMaximum(1.1)
+dREtEffFrame.Draw()
+nNum = 0
+for i in range(1, h['foundGenDREtFSRDREt'].GetNbinsX()+1):
+    nNum += h['foundGenDREtFSRDREt'].GetBinContent(i)
+    dREtEffNum.SetBinContent(i, nNum)
+    dREtEffDenom.SetBinContent(i, genFSRTot)
+    dREtEffNum.SetBinError(i, sqrt(nNum))
+    dREtEffDenom.SetBinError(i, sqrt(genFSRTot))
+dREtEffNum.Sumw2()
+dREtEffDenom.Sumw2()
+dREtEff= ROOT.TGraphAsymmErrors(dREtEffNum, dREtEffDenom)
+dREtEff.SetMarkerStyle(33)
+dREtEff.SetMarkerSize(2)
+dREtEff.SetMarkerColor(colors[0])
+dREtEff.SetLineColor(colors[0])
+dREtEff.SetLineWidth(2)
+dREtEff.Draw("PSAME")
+cdreteff.Print("fsrPlots/dREtEff.png")
 
 
-    cdretpur = Canvas(1000, 800)
-    dREtPurNum = h['realDREtFSRDREt'].empty_clone()
-    dREtPurDenom = h['allDREtFSRDREt'].empty_clone()
-    dREtPurFrame = dREtPurNum.Clone()
-    dREtPurFrame.GetXaxis().SetTitle("\\frac{\\Delta R}{E_{T\\gamma}} \\text{ threshold}")
-    dREtPurFrame.GetXaxis().SetTitleOffset(1.1)
-    dREtPurFrame.GetYaxis().SetTitle("Purity")
-    dREtPurFrame.SetMinimum(0.)
-    dREtPurFrame.SetMaximum(1.1)
-    dREtPurFrame.Draw()
-    nNum = 0
-    nDen = 0
-    for i in range(1, h['realDREtFSRDREt'].GetNbinsX()+1):
-        nNum += h['realDREtFSRDREt'].GetBinContent(i)
-        nDen += h['allDREtFSRDREt'].GetBinContent(i)
-        dREtPurNum.SetBinContent(i, nNum)
-        dREtPurDenom.SetBinContent(i, nDen)
-        dREtPurNum.SetBinError(i, sqrt(nNum))
-        dREtPurDenom.SetBinError(i, sqrt(nDen))
-    dREtPurNum.Sumw2()
-    dREtPurDenom.Sumw2()
-    dREtPur= ROOT.TGraphAsymmErrors(dREtPurNum, dREtPurDenom)
-    dREtPur.SetMarkerStyle(33)
-    dREtPur.SetMarkerSize(2)
-    dREtPur.SetMarkerColor(colors[0])
-    dREtPur.SetLineColor(colors[0])
-    dREtPur.SetLineWidth(2)
-    dREtPur.Draw("PSAME")
-    cdretpur.Print("fsrPlots/dREtPurity.png")
+cdretpur = Canvas(1000, 800)
+dREtPurNum = h['realDREtFSRDREt'].empty_clone()
+dREtPurDenom = h['allDREtFSRDREt'].empty_clone()
+dREtPurFrame = dREtPurNum.Clone()
+dREtPurFrame.GetXaxis().SetTitle("\\frac{\\Delta R}{E_{T\\gamma}} \\text{ threshold}")
+dREtPurFrame.GetXaxis().SetTitleOffset(1.1)
+dREtPurFrame.GetYaxis().SetTitle("Purity")
+dREtPurFrame.SetMinimum(0.)
+dREtPurFrame.SetMaximum(1.1)
+dREtPurFrame.Draw()
+nNum = 0
+nDen = 0
+for i in range(1, h['realDREtFSRDREt'].GetNbinsX()+1):
+    nNum += h['realDREtFSRDREt'].GetBinContent(i)
+    nDen += h['allDREtFSRDREt'].GetBinContent(i)
+    dREtPurNum.SetBinContent(i, nNum)
+    dREtPurDenom.SetBinContent(i, nDen)
+    dREtPurNum.SetBinError(i, sqrt(nNum))
+    dREtPurDenom.SetBinError(i, sqrt(nDen))
+dREtPurNum.Sumw2()
+dREtPurDenom.Sumw2()
+dREtPur= ROOT.TGraphAsymmErrors(dREtPurNum, dREtPurDenom)
+dREtPur.SetMarkerStyle(33)
+dREtPur.SetMarkerSize(2)
+dREtPur.SetMarkerColor(colors[0])
+dREtPur.SetLineColor(colors[0])
+dREtPur.SetLineWidth(2)
+dREtPur.Draw("PSAME")
+cdretpur.Print("fsrPlots/dREtPurity.png")
 
 
+# ROC for dREt threshold
+roc = Graph(dREtPur.GetN())
+efcy = [dREtEff[i][1] for i in xrange(dREtEff.GetN())]
+prty = [dREtPur[i][1] for i in xrange(dREtPur.GetN())]
+for i, (ef, pr) in enumerate(zip(efcy, prty)):
+    roc.SetPoint(i, 1.-pr, ef)
+roc.SetLineColor(colors[0])
+roc.SetLineWidth(2)
+roc.xaxis.SetTitle("Fake Rate (1 - purity)")
+roc.yaxis.SetTitle("Efficiency")
+roc.yaxis.SetTitleOffset(1.1)
+croc = Canvas(800, 800)
+roc.Draw("AC")
+gWP = Graph(3)
+gWP.SetPoint(0, 1-prty[9], efcy[9])
+gWP.SetPoint(1, 1-prty[13], efcy[13])
+gWP.SetPoint(2, 1-prty[17], efcy[17])
+gWP.SetMarkerStyle(33)
+gWP.SetMarkerSize(2)
+gWP.SetMarkerColor(colors[0])
+gWP.Draw("P")
+lWP10 = ROOT.TLatex(gWP[0][0]-0.01, gWP[0][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.10}")
+lWP10.SetTextAlign(31)
+lWP10.Draw()
+lWP14 = ROOT.TLatex(gWP[1][0]-0.01, gWP[1][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.14}")
+lWP14.SetTextAlign(32)
+lWP14.Draw()
+lWP18 = ROOT.TLatex(gWP[2][0]-0.01, gWP[2][1]+0.02, "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.18}")
+lWP18.SetTextAlign(31)
+lWP18.Draw()
+gLeg = Graph(1)
+gLeg.SetPoint(0, 1.-(1.*recoFSRMatched/recoFSRTot), 1.*genFSRMatched/genFSRTot)
+gLeg.SetMarkerStyle(20)
+gLeg.SetMarkerColor(ROOT.EColor.kBlack)
+gLeg.Draw("P")
+gAKt = Graph(1)
+gAKt.SetPoint(0, 1.-(1.*recoFSRMatchedAKt/recoFSRTotAKt), 1.*genFSRMatchedAKt/genFSRTot)
+gAKt.SetMarkerStyle(21)
+gAKt.SetMarkerColor(ROOT.EColor.kRed)
+gAKt.Draw("P")
+gAKt15 = Graph(1)
+gAKt15.SetPoint(0, 1.-(1.*recoFSRMatchedAKt15/recoFSRTotAKt15), 1.*genFSRMatchedAKt15/genFSRTot)
+gAKt15.SetMarkerStyle(21)
+gAKt15.SetMarkerColor(ROOT.EColor.kBlue)
+gAKt15.Draw("P")
+lLeg = ROOT.TLatex(gLeg[0][0], gLeg[0][1]-.007, "Legacy")
+lLeg.SetTextAlign(33)
+lLeg.Draw()
+lAKt = ROOT.TLatex(gAKt[0][0]+.01, gAKt[0][1], "ak_{T} (R=0.10)")
+lAKt.SetTextColor(ROOT.EColor.kRed)
+lAKt.Draw()
+lAKt15 = ROOT.TLatex(gAKt15[0][0]+0.02, gAKt15[0][1]+.015, "ak_{T} (R=0.15)")
+lAKt15.SetTextAlign(21)
+lAKt15.SetTextColor(ROOT.EColor.kBlue)
+lAKt15.Draw()
+lDREt = ROOT.TLatex(roc[0][0]+0.04, roc[0][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}}}")
+lDREt.Draw()
+croc.Print("fsrPlots/dREtROC.png")
+
+
+print "cut      purity    efficiency"
+for i in range(4, 20):
+    print "%.3f:   %.3f     %.3f"%((i+1.)/1000, prty[i], efcy[i])
 
