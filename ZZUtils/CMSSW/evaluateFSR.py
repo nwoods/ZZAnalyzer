@@ -422,7 +422,7 @@ for iev, ev in enumerate(events):
     if iev % 1000 == 0:
         print "Processing event %d"%iev
 
-    # if iev == 5000:
+    # if iev == 1000:
     #     break
         
     ev.getByLabel(genLabel, gen)
@@ -551,6 +551,7 @@ ROOT.gStyle.SetPadTickX(1)
 ROOT.gStyle.SetPadTickY(1)
 ROOT.gStyle.SetPalette(1)
 ROOT.gStyle.SetLegendFillColor(0)
+ROOT.gStyle.SetLegendBorderSize(0)
 ROOT.gROOT.ForceStyle()
 
 colors = [
@@ -558,19 +559,20 @@ colors = [
     ROOT.EColor.kOrange+7,
     ROOT.EColor.kMagenta,
     ]
+dRLegDims = [0.58, 0.62, 0.88, 0.88]
 legdims = {}
 legdims['eff'] = {}
-legdims['eff']['DEta'] = [0.7, 0.6, 0.9, 0.9]
-legdims['eff']['DPhi'] = [0.7, 0.6, 0.9, 0.9]
-legdims['eff']['DR'] = [0.7, 0.6, 0.9, 0.9]
-legdims['eff']['Pt'] = [0.15, 0.6, 0.35, 0.9]
-legdims['eff']['DREt'] = [0.7, 0.6, 0.9, 0.9]
+legdims['eff']['DEta'] = dRLegDims
+legdims['eff']['DPhi'] = dRLegDims
+legdims['eff']['DR'] = dRLegDims
+legdims['eff']['Pt'] = [0.12, 0.62, 0.4, 0.88]
+legdims['eff']['DREt'] = [0.6, 0.75, 0.9, 0.9]
 legdims['pur'] = {}
-legdims['pur']['DEta'] = [0.7, 0.6, 0.9, 0.9]
-legdims['pur']['DPhi'] = [0.7, 0.6, 0.9, 0.9]
-legdims['pur']['DR'] = [0.7, 0.6, 0.9, 0.9]
-legdims['pur']['Pt'] = [0.21, 0.1, 0.41, 0.4]
-legdims['pur']['DREt'] = [0.7, 0.6, 0.9, 0.9]
+legdims['pur']['DEta'] = dRLegDims
+legdims['pur']['DPhi'] = dRLegDims
+legdims['pur']['DR'] = dRLegDims
+legdims['pur']['Pt'] = [0.21, 0.12, 0.52, 0.4]
+legdims['pur']['DREt'] = [0.6, 0.75, 0.9, 0.9]
 
 
 for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
@@ -605,17 +607,17 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
     effAKt.SetLineColor(ROOT.EColor.kRed)
     effAKt.SetLineWidth(2)
     effAKt.Draw("PSAME")
-    legEff.AddEntry(effAKt, "ak_{T} \\: (R=0.10)", "LPE")
+    legEff.AddEntry(effAKt, "ak_{T} (R=0.10)", "LPE")
     effAKt15 = ROOT.TGraphAsymmErrors(h['foundGenAKt15FSR%s'%var], h['genFSR%s'%var])
     effAKt15.SetMarkerStyle(21)
     effAKt15.SetMarkerColor(ROOT.EColor.kBlue)
     effAKt15.SetLineColor(ROOT.EColor.kBlue)
     effAKt15.SetLineWidth(2)
-    effAKt15.Draw("PSAME")
-    legEff.AddEntry(effAKt15, "ak_{T} \\: (R=0.15)", "LPE")
+    # effAKt15.Draw("PSAME")
+    # legEff.AddEntry(effAKt15, "ak_{T} (R=0.15)", "LPE")
     if var != "DREt":
         effDREt = {}
-        for i, cutBin in enumerate(xrange(10, 20, 4)):
+        for i, cutBin in enumerate(xrange(14, 15, 4)):
             num = h['foundGenDREtFSR%s'%var].ProjectionY("es%d"%i, 1, cutBin-1)
             effDREt[cutBin] = ROOT.TGraphAsymmErrors(num, h['genFSR%s'%var])
             effDREt[cutBin].SetMarkerStyle(33)
@@ -625,14 +627,6 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
             effDREt[cutBin].SetLineWidth(2)
             effDREt[cutBin].Draw("PSAME")
             legEff.AddEntry(effDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.3f"%(cutBin/1000.), "LPE")
-#     else:
-#         effDREt = ROOT.TGraphAsymmErrors(h['foundGenDREtFSR%s'%var], h['genFSR%s'%var])
-#         effDREt.SetMarkerStyle(33)
-#         effDREt.SetMarkerColor(colors[0])
-#         effDREt.SetLineColor  (colors[0])
-#         effDREt.SetLineWidth(2)
-#         effDREt.Draw("PSAME")
-#         legEff.AddEntry(effDREt, "\\frac{\\Delta R}{E_{T\\gamma}}", "LPE")
     legEff.Draw("SAME")
     ceff.Print("fsrPlots/eff%s.png"%var)
     
@@ -658,17 +652,17 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
     purAKt.SetLineColor(ROOT.EColor.kRed)
     purAKt.SetLineWidth(2)
     purAKt.Draw("PSAME")
-    legPur.AddEntry(purAKt, "ak_{T} \\: (R=0.10)", "LPE")
+    legPur.AddEntry(purAKt, "ak_{T} (R=0.10)", "LPE")
     purAKt15 = ROOT.TGraphAsymmErrors(h['realAKt15FSR%s'%var], h['allAKt15FSR%s'%var])
     purAKt15.SetMarkerStyle(21)
     purAKt15.SetMarkerColor(ROOT.EColor.kBlue)
     purAKt15.SetLineColor(ROOT.EColor.kBlue)
     purAKt15.SetLineWidth(2)
-    purAKt15.Draw("PSAME")
-    legPur.AddEntry(purAKt15, "ak_{T} \\: (R=0.15)", "LPE")
+    # purAKt15.Draw("PSAME")
+    # legPur.AddEntry(purAKt15, "ak_{T} (R=0.15)", "LPE")
     if var != "DREt":
         purDREt = {}
-        for i, cutBin in enumerate(xrange(10, 20, 4)):
+        for i, cutBin in enumerate(xrange(14, 15, 4)):
             num = h['realDREtFSR%s'%var].ProjectionY("ps%d"%i, 1, cutBin-1)
             denom = h['allDREtFSR%s'%var].ProjectionY("pds%d"%i, 1, cutBin-1)
             purDREt[cutBin] = ROOT.TGraphAsymmErrors(num, denom)
@@ -679,14 +673,6 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
             purDREt[cutBin].SetLineWidth(2)
             purDREt[cutBin].Draw("PSAME")
             legPur.AddEntry(purDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.3f"%(cutBin/1000.), "LPE")
-#     else:
-#         purDREt = ROOT.TGraphAsymmErrors(h['realDREtFSR%s'%var], h['allDREtFSR%s'%var])
-#         purDREt.SetMarkerStyle(33)
-#         purDREt.SetMarkerColor(colors[0])
-#         purDREt.SetLineColor(colors[0])
-#         purDREt.SetLineWidth(2)
-#         purDREt.Draw("PSAME")
-#         legPur.AddEntry(purDREt, "\\frac{\\Delta R}{E_{T}}", "LPE")
     legPur.Draw("SAME")
     cpur.Print("fsrPlots/purity%s.png"%var)
 
@@ -772,13 +758,13 @@ gWP.SetMarkerStyle(33)
 gWP.SetMarkerSize(2)
 gWP.SetMarkerColor(colors[0])
 gWP.Draw("P")
-lWP10 = ROOT.TLatex(gWP[0][0]-0.01, gWP[0][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.10}")
+lWP10 = ROOT.TLatex(gWP[0][0]-0.01, gWP[0][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.010}")
 lWP10.SetTextAlign(31)
 lWP10.Draw()
-lWP14 = ROOT.TLatex(gWP[1][0]-0.01, gWP[1][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.14}")
+lWP14 = ROOT.TLatex(gWP[1][0]-0.01, gWP[1][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.014}")
 lWP14.SetTextAlign(32)
 lWP14.Draw()
-lWP18 = ROOT.TLatex(gWP[2][0]-0.01, gWP[2][1]+0.02, "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.18}")
+lWP18 = ROOT.TLatex(gWP[2][0]-0.01, gWP[2][1]+0.02, "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.018}")
 lWP18.SetTextAlign(31)
 lWP18.Draw()
 gLeg = Graph(1)
