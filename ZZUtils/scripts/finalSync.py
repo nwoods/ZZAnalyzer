@@ -53,7 +53,7 @@ def getCandInfo(z1Var, z2Var, row):
     nJets = evVar(row, 'nJets')
     j1pt = max(-1.,evVar(row, 'jet1Pt'))
     j2pt = max(-1.,evVar(row, 'jet2Pt'))
-    cat = int(evVar(row, "Category"))
+    cat = int(evVar(row, "HZZCategory"))
     return ("%d:%d:%d:%.2f:%.2f:%.2f:%.3f:%d:%.2f:%.2f:%d\n"%(run, lumi, evt, mass, mZ1, mZ2, kd, nJets, j1pt, j2pt, cat))
 
 

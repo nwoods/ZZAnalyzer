@@ -24,15 +24,6 @@ class ZZNtupleFSR(ZZNtupleSaver):
         self.inputs = inputNtuples
         super(ZZNtupleFSR, self).__init__(fileName, channels, *args, **kwargs)
 
-        # H->ZZ category tagging must occur in this order, which is not the order of the categories
-        self.categoryFunctions = OrderedDict()
-        self.categoryFunctions[2] = self.vbfTag
-        self.categoryFunctions[4] = self.vhHadTag
-        self.categoryFunctions[3] = self.vhLepTag
-        self.categoryFunctions[5] = self.tthTag
-        self.categoryFunctions[1] = self.oneJetTag
-        self.categoryFunctions[0] = lambda row: True # untagged
-
         
     def setupTemplate(self):
         self.copyVars[0] = [
@@ -69,22 +60,11 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'jet2Eta',
             'jet3Eta',
             'jet4Eta',
-            'jet1CISVBTag',
-            'jet2CISVBTag',
-            'jet3CISVBTag',
-            'jet4CISVBTag',
-            'jet1_jet2_Mass',
-            'jet1_jet3_Mass',
-            'jet1_jet4_Mass',
-            'jet2_jet3_Mass',
-            'jet2_jet4_Mass',
-            'jet3_jet4_Mass',
             'nJets',
-            'nExtraElectrons',
-            'nExtraMuons',
-            'D_jet',
+            'D_bkg',
             'D_bkg_kin',
-            ]
+            'HZZCategory',
+        ]
 
         self.copyVars[1] = [
             '%sAbsEta',
@@ -145,7 +125,6 @@ class ZZNtupleFSR(ZZNtupleSaver):
         ]
 
         self.calcVars[0] = {
-            'Category' : lambda *args: self.getCategory,
         }
 
         self.calcVars[1] = {
@@ -393,23 +372,6 @@ class ZZNtupleFSR(ZZNtupleSaver):
         return (lepP4[lep1]+lepP4[lep2]+fsrP4[lep2]).M()
 
 
-#     def deltaRFunction(self, lep1, lep2):
-#         '''
-#         Returns a function to get deltaR between lep1 and lep2 with 
-#         the FSR photons matched to the corresponding Zs included where 
-#         appropriate. 
-#         '''
-#         partner1 = self.getZPartner(lep1)
-#         # if they are partners, this is already in the ntuple
-#         if partner1 == lep2:
-#             return lambda row: self.deltaRZPairFSR(row, lep1, lep2)
-# 
-#         # Otherwise, we have to find the FSR cands and calculate ourselves
-#         partner2 = self.getZPartner(lep2)
-#         
-#         return lambda row: self.deltaRBothFSR(row, lep1, partner1, lep2, partner2)
-
-
     def muonRelPFIsoDBFSRFunction(self, mu, allObj):
         '''
         Return a function that calculates delta beta- and FSR-corrected 
@@ -543,134 +505,3 @@ class ZZNtupleFSR(ZZNtupleSaver):
         return partner
 
         
-    def countJets(self, row, maxJets=4):
-        '''
-        Count the number of jets in the row.
-        '''
-        for nj in range(maxJets):
-            if evVar(row, 'jet%dPt'%(nj+1)) == -999:
-                break
-        return nj
-
-
-    def getCategory(self, row):
-        '''
-        Returns the number of the category the event is tagged in.
-            0 - untagged
-            1 - 1-jet
-            2 - VBF
-            3 - VH (leptonic)
-            4 - VH (hadronic)
-            5 - ttH
-        This is not the order in which the categories are checked (see above)
-        '''
-        self.nJets = self.countJets(row)
-        self.nExtraEle = evVar(row, "nExtraElectrons")
-        self.nExtraMu = evVar(row, "nExtraMuons")
-        self.nBTag = 0
-        for j in xrange(self.nJets):
-            if self.isBTagged(row, "jet%d"%(j+1)):
-                self.nBTag += 1
-        for cat, tagger in self.categoryFunctions.iteritems():
-            if tagger(row):
-                return cat # meow
-
-            
-    def vbfTag(self, row):
-        '''
-        Returns true if the event has:
-            - exactly 4 leptons
-            - at least 2 jets
-            - at most one B tagged jet
-            - Fisher discriminant D_jet>0.5
-        '''
-        if self.nJets < 2:
-            return False
-
-        if self.nExtraEle != 0 or self.nExtraMu != 0:
-            return False
-
-        if self.nBTag > 1:
-            return False
-
-        return evVar(row, "D_jet") > 0.5
-
-
-    def vhHadTag(self, row):
-        '''
-        Returns true if the event has:
-            - exactly 4 leptons
-            - at least one pair of jets with |eta|<2.4, pt>40, 60<m_jj<120 GeV
-            - 4l pT > 4l mass
-        OR
-            - exactly 4 leptons
-            - exactly 2 b-tagged jets
-        '''
-        if self.nJets < 2:
-            return False
-
-        if self.nExtraEle != 0 or self.nExtraMu != 0:
-            return False
-
-        if self.nJets == 2 and self.nBTag == 2:
-            return True
-            
-        jetsToCheck = []
-        for j in xrange(self.nJets):
-            label = "jet%d"%(j+1)
-            if abs(objVar(row, "Eta", label)) < 2.4 and objVar(row, "Pt", label) > 40:
-                jetsToCheck.append(label)
-        if len(jetsToCheck) < 2:
-            return False
-
-        for j1, j2 in combinations(jetsToCheck, 2):
-            mjj = nObjVar(row, "Mass", j1, j2)
-            if mjj < 60 or mjj > 120:
-                return False
-
-        return evVar(row, "Pt") > evVar(row, "Mass")
-
-
-    def vhLepTag(self, row):
-        '''
-        Returns true if the event has:
-            - at most 2 jets
-            - no b-tagged jets
-            - at least 5 leptons
-        '''
-        if self.nJets > 2:
-            return False
-
-        if self.nExtraEle == 0 and self.nExtraMu == 0:
-            return False
-
-        return self.nBTag == 0
-
-
-    def tthTag(self, row):
-        '''
-        Return true if the event has:
-            - at least 3 jets
-            - at least 1 b tagged jet
-        OR
-            - at least 5 leptons
-        '''
-        if (self.nExtraEle + self.nExtraMu) != 0:
-            return True
-
-        return self.nJets >= 3 and self.nBTag >= 1
-
-
-    def oneJetTag(self, row):
-        '''
-        Return true if there is at least one jet in the event
-        '''
-        return self.nJets >= 1
-        
-
-    def isBTagged(self, row, obj):
-        '''
-        Is this object CISV b-tagged?
-        '''
-        return objVar(row, "CISVBTag", obj) > 0.814
-    
