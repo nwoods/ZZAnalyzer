@@ -117,23 +117,17 @@ class ZZAnalyzer(object):
         For a given file, do the whole analysis and output the results to 
         self.outFile
         '''
-        for channel in self.channels:
-        
-            objectTemplate = self.mapObjects(channel)
-            objects = objectTemplate
-            needReorder = self.cuts.needReorder(channel)
+        if self.cleanRows:
+            # For events with more than 4 leptons, FSA Ntuples just have one
+            #     row for each possible combination of objects. We have to know
+            #     which one is the right one. Can do this before or after other cuts
+            rowCleaner = self.CleanerClass(self.cuts)
+            cleanAfter = rowCleaner.cleanAfter()
 
-            if self.cleanRows:
-                # For events with more than 4 leptons, FSA Ntuples just have one
-                #     row for each possible combination of objects. We have to know
-                #     which one is the right one. Can do this before or after other cuts
-                rowCleaner = self.CleanerClass(channel, self.cuts)
-                cleanAfter = rowCleaner.cleanAfter()
-
-                if cleanAfter:
-                    self.cutsPassed[channel]["SelectBest"] = 0
-                else:
+            if not cleanAfter:
+                for channel in self.channels:
                     self.cutsPassed[channel]["TotalRows"] = 0 # hold number of rows pre-cleaning
+                    rowCleaner.setChannel(channel)
                     for iRow, row in enumerate(self.ntuples[channel]):
                         if iRow == self.maxEvents:
                             break
@@ -141,8 +135,19 @@ class ZZAnalyzer(object):
                             print "%s: Finding redundant rows for %s row %d"%(self.sample, channel, iRow)
                         rowCleaner.bookRow(row, iRow)
                     rowCleaner.finalize()
-            else:
-                cleanAfter = False
+        else:
+            cleanAfter = False
+
+
+        for channel in self.channels:
+        
+            objectTemplate = self.mapObjects(channel)
+            objects = objectTemplate
+            needReorder = self.cuts.needReorder(channel)
+
+            if cleanAfter:
+                rowCleaner.setChannel(channel)
+                self.cutsPassed[channel]["SelectBest"] = 0
 
             # Loop through and do the cuts
             for iRow, row in enumerate(self.ntuples[channel]):
@@ -156,7 +161,7 @@ class ZZAnalyzer(object):
                         # Always pass "TotalRows" because it's always a new row
                         self.passCut(row, channel, "TotalRows")
                         # Ignore wrong version of event (if we're cleaning now)
-                        if rowCleaner.isRedundant(iRow):
+                        if rowCleaner.isRedundant(row, channel, iRow):
                             continue
 
                 # Report progress every 5000 rows
@@ -182,14 +187,14 @@ class ZZAnalyzer(object):
                         self.results.saveRow(row, channel, nested=True)
             else:
                 print "%s: Done with %s (%d rows)"%(self.sample, channel, iRow+1)
-                if cleanAfter:
-                    rowCleaner.finalize()
 
-            if cleanAfter:
+        if cleanAfter:
+            rowCleaner.finalize()
+            for channel in self.channels:
                 for iRow, row in enumerate(self.ntuples[channel]):
                     if iRow == self.maxEvents:
                         break
-                    if rowCleaner.isRedundant(iRow):
+                    if rowCleaner.isRedundant(row, channel, iRow):
                         continue
                     else:
                         self.passCut(row, channel, "SelectBest")

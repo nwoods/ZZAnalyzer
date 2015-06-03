@@ -30,41 +30,42 @@ class ZZRowCleanerBase(object):
     '''
     Virtual class with methods that will always be needed for a row cleaner.
     '''
-
-    def __init__(self, channel, cutter):
+    def __init__(self, cutter, initChannel='eeee'):
         '''
-        Set up data needed by all cleaners (basic previous event info, 
+        Set up most data needed by all cleaners (basic previous event info, 
+        channels, etc.).
         '''
         self.cleanAtEnd = True # Daughter class should overwrite!
-
-        self.bestRows = set()
-
-        self.channel = channel
-        self.objectTemplate = mapObjects(self.channel)
+        
+        self.bestRows = {}
 
         self.cuts = cutter
+        
+        self.setChannel(initChannel)
 
-        self.needReorder = self.cuts.needReorder(self.channel)
-
-        # Set up information about the previous best row for this event
-        self.prevIdx = -1
         self.prevRun = -1
         self.prevLumi = -1
         self.prevEvt = -1
-        ### daughter classes should define variables needed to compare rows
-
-
-
-    def isNewBest(self, row, newEvent):
+        self.prevInfo = None
+        
+        
+    def setChannel(self, channel):
+        '''
+        Set the cutter's channel for future rows. 
+        '''
+        self.channel = channel
+        self.objectTemplate = mapObjects(channel)
+        self.needReorder = self.cuts.needReorder(self.channel)
+                       
+                       
+    def betterRow(self, a, b):
         '''
         Virtual.
-        Check if this row is better than the previous best for its event, and,
-        if this row is better, store its information. newEvent is a boolean
-        indicating that the new event is definitely the new best and can be 
-        stored without checking (probably because it's the first of an event).
-        '''
-        return newEvent # Takes the first unless overwritten (it should be)
 
+        Given two RowInfos a and b, returns the better one.
+        '''
+        return a # daughter class should override
+                       
 
     def cleanAfter(self):
         '''
@@ -78,44 +79,89 @@ class ZZRowCleanerBase(object):
         '''
         Save the correct row for the last event, so we don't forget it.
         '''
-        self.bestRows.add(self.prevIdx)
-
+        self.bestRows[(self.prevRun, self.prevLumi, self.prevEvt)] = self.prevInfo
+        
 
     def bookRow(self, row, idx):
         '''
         If this row is from the same event as the previous, check 
-        which is better and store its info. If it's from a different event,
-        enshrine the previous best row and make this the new one.
+        which is better and hang onto its info. If it's from a different event,
+        enshrine the best row of the previous event, then check to make sure we
+        didn't have the new event previously in another channel. If we 
+        did, compare this new row with the info from the other channel. If we 
+        didn't, hang onto this info so we can compare it to the next row.
         '''
         run = row.run
         lumi = row.lumi
         evt = row.evt
         newEvent = (evt != self.prevEvt or lumi != self.prevLumi or run != self.prevRun)
 
-        if newEvent: # store the best from the last event
-            self.bestRows.add(self.prevIdx)
+        if self.needReorder:
+            objects = self.cuts.orderLeptons(row, self.channel, self.objectTemplate)
+        else:
+            objects = self.objectTemplate
+
+        info = self.__class__.RowInfo(row, self.channel, idx, objects)
+
+        if newEvent:
+            self.bestRows[(self.prevRun, self.prevLumi, self.prevEvt)] = self.prevInfo
+            
             self.prevRun = run
             self.prevLumi = lumi
             self.prevEvt = evt
 
-        # isNewBest automatically stores other info if this is the new best
-        if self.isNewBest(row, newEvent):
-            self.prevIdx = idx
+            if (run, lumi, evt) in self.bestRows:
+                # this event existed in another channel
+                self.prevInfo = self.bestRows[(run, lumi, evt)]
+                newEvent = False
+            else:
+                self.prevInfo = info
+                
+        if not newEvent:
+            self.prevInfo = self.betterRow(info, self.prevInfo)
 
 
-    def isRedundant(self, idx):
+    def isRedundant(self, row, channel, idx):
         '''
         Return True if the row with this index is not the best version
         of its event.
         '''
-        return not self.isBestCand(idx)
+        return not self.isBestCand(row, channel, idx)
 
 
-    def isBestCand(self, idx):
+    def isBestCand(self, row, channel, idx):
         '''
         Return True if the row with this index is the best version of its event
         '''
-        return idx in self.bestRows
+        info = self.bestRows.get((row.run, row.lumi, row.evt), None)
+        if info is None:
+            return False
+        
+        ch = info.channel
+        ind = info.idx
+        return (ind == idx and ch == channel)
+
+
+    class RowInfo(object):
+        '''
+        Base class for a simple container for variables needed to compare rows.
+        Row cleaner classes should define an inheriting RowInfo class that 
+        knows the right variables and how to calculate them.
+        '''
+        def __init__(self, row, channel, idx, objects):
+            '''
+            Objects should already be sorted
+            '''
+            self.channel = channel
+            self.idx = idx
+            self.storeVars(row, objects)
+
+        def storeVars(self, row, objects):
+            '''
+            Virtual.
+            Inheriting classes should calculate needed variables here.
+            '''
+            self.one = 1 # don't do this
 
 
 def mapObjects(channel):

@@ -7,43 +7,36 @@ Author: Nate Woods, U. Wisconsin.
 '''
 
 from ZZRowCleanerBase import ZZRowCleanerBase
-from ZZHelpers import * # evVar, objVar, nObjVar, Z_MASS
+from ZZHelpers import * # evVar, objVar, nObjVar, zCompatibility
 
 
 class HZZ4l2015Cleaner(ZZRowCleanerBase):
-    def __init__(self, channel, cutter):
-        super(HZZ4l2015Cleaner, self).__init__(channel, cutter)
+    def __init__(self, cutter, initChannel='eeee'): # super(self.__class__, ... safe if nothing inherits from this
+        super(self.__class__, self).__init__(cutter, initChannel)
         self.cleanAtEnd = True # do cleaning last
-        self.prevDZ = 999.
-        self.prevPtSum = -999.
 
 
-    def isNewBest(self, row, newEvent):
+    def betterRow(self, a, b):
         '''
-        Returns True if this row is better than previous rows from the same
-        event it has just seen. The correct row is the one with Z1 closest
+        The correct row is the one with Z1 closest
         to on-shell, with the highest scalar Pt sum of the remaining leptons
-        used as a tiebreaker. Only Zs whose leptons pass ID are considered
-        (if no rows from an event pass ID, the first is considered best). 
+        used as a tiebreaker. 
         '''
-        # make a copy in case we have to reorder
-        objects = self.objectTemplate
-        
-        if self.needReorder:
-            objects = self.cuts.orderLeptons(row, self.channel, self.objectTemplate)
+        if a.dZ < b.dZ or (a.dZ == b.dZ and a.ptSum > b.ptSum):
+            return a
+        return b
 
-        dZ = zCompatibility(row, objects[0], objects[1])
-        ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
+    
+    class RowInfo(ZZRowCleanerBase.RowInfo):
+        def __init__(self, row, channel, idx, objects):
+            super(self.__class__, self).__init__(row, channel, idx, objects)
 
-        isBest = newEvent or (dZ < self.prevDZ or (dZ == self.prevDZ and ptSum > self.prevPtSum))
-
-        if isBest:
-            self.prevDZ = dZ
-            self.prevPtSum = ptSum
-        
-        return isBest
-
-
-
+        def storeVars(self, row, objects):
+            '''
+            Need Z1 distance from nominal mass and scalar sum of pt of Z2 
+            leptons.
+            '''
+            self.dZ = zCompatibility(row, objects[0], objects[1])
+            self.ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
 
 
