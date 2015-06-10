@@ -49,12 +49,19 @@ def getCandInfo(z1Var, z2Var, row):
         mZ2 = mZ1
         mZ1 = temp
 
-    kd = evVar(row, 'D_bkg_kin')
+    D_bkg_kin = evVar(row, 'D_bkg_kin')
+    D_bkg = evVar(row, 'D_bkg')
+    D_gg = evVar(row, 'D_gg')
+    D_HJJ_VBF = evVar(row, 'Djet_VAJHU')
+    D_g4 = evVar(row, 'D_g4')
     nJets = evVar(row, 'nJets')
     j1pt = max(-1.,evVar(row, 'jet1Pt'))
     j2pt = max(-1.,evVar(row, 'jet2Pt'))
     cat = int(evVar(row, "HZZCategory"))
-    return ("%d:%d:%d:%.2f:%.2f:%.2f:%.3f:%d:%.2f:%.2f:%d\n"%(run, lumi, evt, mass, mZ1, mZ2, kd, nJets, j1pt, j2pt, cat))
+    return ("%d:%d:%d:%.2f:%.2f:%.2f:%.3f:%.3f:%.3f:%.3f:%.3f:%d:%.2f:%.2f:%d\n"%(run, lumi, evt, mass,
+                                                                                  mZ1, mZ2, D_bkg_kin,
+                                                                                  D_bkg, D_gg, D_HJJ_VBF,
+                                                                                  D_g4, nJets, j1pt, j2pt, cat))
 
 
 parser = argparse.ArgumentParser(description='Dump information about the 4l candidates in an ntuple to a text file, for synchronization.')

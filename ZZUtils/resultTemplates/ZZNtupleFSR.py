@@ -63,6 +63,9 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'nJets',
             'D_bkg',
             'D_bkg_kin',
+            'D_gg',
+            'D_g4',
+            'Djet_VAJHU',
             'HZZCategory',
         ]
 
