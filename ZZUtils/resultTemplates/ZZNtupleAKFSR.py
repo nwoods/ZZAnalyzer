@@ -21,7 +21,8 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
         self.flavoredCopyVars = {'e':[],'m':[]}
         self.flavoredCalcVars = {'e':{},'m':{}}
         self.inputs = inputNtuples
-        self.dREtCut = 0.014
+        self.dREtCut = 0.016
+        self.dREt2Cut = 0.0022
         super(ZZNtupleAKFSR, self).__init__(fileName, channels, *args, **kwargs)
 
 
@@ -91,6 +92,10 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             '%sDREtFSREta',
             '%sDREtFSRPhi',
             '%sDREt',
+            '%sDREt2FSRPt',
+            '%sDREt2FSREta',
+            '%sDREt2FSRPhi',
+            '%sDREt2',
         ]
 
         self.flavoredCopyVars['e'] = [ 
@@ -139,6 +144,7 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
 
         self.calcVars[0] = {
             'MassDREtFSR' : self.dREt4lMassFunction,
+            'MassDREt2FSR' : self.dREt24lMassFunction,
         }
 
         self.calcVars[1] = {
@@ -147,16 +153,19 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
         self.calcVars[2] = {
             '%s_%s_MassFSR' : self.massFunction,
             '%s_%s_MassDREtFSR' : self.dREt2lMassFunction,
+            '%s_%s_MassDREt2FSR' : self.dREt22lMassFunction,
         }
 
         self.flavoredCalcVars['m'] = {
             '%sRelPFIsoDBDefaultFSR' : self.muonRelPFIsoDBFSRFunction,
             '%sRelPFIsoDBDREtFSR' : self.relPFIsoDBDREtFunction,
+            '%sRelPFIsoDBDREt2FSR' : self.relPFIsoDBDREt2Function,
         }
 
         self.flavoredCalcVars['e'] = {
             '%sRelPFIsoRhoFSR' : self.eleRelPFIsoRhoFSRFunction,
             '%sRelPFIsoRhoDREtFSR' : self.dREtFSRFunctionGenerator('RelPFIsoRho'),
+            '%sRelPFIsoRhoDREt2FSR' : self.dREt2FSRFunctionGenerator('RelPFIsoRho'),
         }
 
         obj4M = ['m' + str(i+1) for i in range(4)]
@@ -466,6 +475,106 @@ class ZZNtupleAKFSR(ZZNtupleSaver):
             p.SetPtEtaPhiM(pt,
                            objVar(row, "DREtFSREta", lep),
                            objVar(row, "DREtFSRPhi", lep),
+                           0.)
+        return p
+
+
+    def dREt2FSRFunctionGenerator(self, var):
+        '''
+        Helper function to use the helper function generator
+        self.dREt2FSRVarFunction for a particular variable
+        (god I need to redesign this module).
+        '''
+        return lambda lep, *args: self.dREt2FSRVarFunction(lep, var)
+
+
+    def dREt2FSRVarFunction(self, lep, var):
+        '''
+        Returns a helper function to use self.varWithDREtFSR.
+        '''
+        return lambda row: self.varWithDREt2FSR(row, lep, var)
+
+
+    def varWithDREt2FSR(self, row, lep, var):
+        '''
+        If this lepton has dREt2 FSR, return the value of var with
+        it. If not, return the value without it.
+        '''
+        if objVar(row, "DREt2", lep) < self.dREt2Cut:
+            return objVar(row, var+"DREt2FSR", lep)
+        return objVar(row, var, lep)
+
+    
+    def dREt22lMassFunction(self, *objects):
+        '''
+        Returns a function to get the 2l mass from a particular row 
+        with any applicable dREt2 FSR.
+        '''
+        leps = sorted(objects[:2])
+        
+        return lambda row: self.massDREt2FSR(row, *leps)
+
+
+    def dREt24lMassFunction(self, *objects):
+        '''
+        Returns a function to get the 4l mass from a particular row
+        with any applicable dREt2 FSR.
+        '''
+        leps = sorted(objects[:4])
+        return lambda row: self.massDREt2FSR(row, *leps)
+
+
+    def relPFIsoDBDREt2Function(self, mu, *args):
+        '''
+        Returns helper function for dREt2 FSR-adjusted muon isolation.
+        '''
+        return lambda row: self.relPFIsoDBDREt2(row, mu)
+
+
+    def relPFIsoDBDREt2(self, row, mu):
+        '''
+        If there is applicable deltaR/(eT^2) FSR, adjust isolation.
+        '''
+        dREt2 = objVar(row, "DREt2", mu)
+        if dREt2 > 0 and dREt2 < self.dREt2Cut:
+            return objVar(row, "RelPFIsoDBDREt2FSR", mu)
+        return objVar(row, "RelPFIsoDBDefault", mu)
+
+
+    def massDREt2FSR(self, row, *objects):
+        '''
+        Return the 4l mass with any applicable dREt2 FSR included.
+        '''
+        p4 = LorentzVector()
+        p4.SetPtEtaPhiM(0., 0., 0., 0.)
+        for obj in objects:
+            p4 += self.p4DREt2FSR(row, obj)
+        return p4.M()
+
+
+    def p4DREt2FSR(self, row, lep):
+        '''
+        Get the 4-momentum of the lepton, with deltaR/(eT^2) FSR included 
+        if it passes cut.
+        '''
+        lepP4 = self.getLeptonP4(row, lep)
+        dREt2 = objVar(row, "DREt2", lep)
+        if dREt2 > 0 and dREt2 < self.dREt2Cut:
+            fsrP4 = self.getDREt2P4(row, lep)
+            return (lepP4 + fsrP4)
+        return lepP4
+
+
+    def getDREt2P4(self, row, lep):
+        '''
+        Get the 4-momentum of the lepton's associated dREt2 photon, if any.
+        '''
+        p = LorentzVector()
+        pt = objVar(row, "DREt2FSRPt", lep)
+        if pt > 0:
+            p.SetPtEtaPhiM(pt,
+                           objVar(row, "DREt2FSREta", lep),
+                           objVar(row, "DREt2FSRPhi", lep),
                            0.)
         return p
 
