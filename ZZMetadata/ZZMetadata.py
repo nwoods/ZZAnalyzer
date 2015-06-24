@@ -177,3 +177,21 @@ sampleInfo["HZZSync"] = {
     'isSignal' : True,
     'color' : EColor.kRed,
 }
+sampleInfo["TTBar8TeV"] = {
+    'xsec' : 53.2,
+    'n' : 30000000,
+    'isData' : False,
+    'shortName' : 'TTBar',
+    'prettyName' : 't \\={t}\\text{+Jets}',
+    'isSignal' : False,
+    'color' : EColor.kGreen,
+}
+sampleInfo["ZZJetsTo4L_TuneZ2star_8TeV-madgraph-tauola_Summer12DR53X_PU10"] = {
+    'n' : 5000000,
+    'isData' : False,
+    'isSignal' : True,
+    'color' : EColor.kAzure-9,
+    'xsec' : 0.1296,
+    'shortName' : 'ZZ4l8TeV',
+    'prettyName' : '\\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',    
+}
