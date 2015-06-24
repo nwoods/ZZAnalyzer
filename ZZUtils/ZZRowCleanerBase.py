@@ -101,7 +101,7 @@ class ZZRowCleanerBase(object):
         else:
             objects = self.objectTemplate
 
-        info = self.__class__.RowInfo(row, self.channel, idx, objects)
+        info = self.__class__.RowInfo(row, self.channel, idx, objects, self.cuts)
 
         if newEvent:
             self.bestRows[(self.prevRun, self.prevLumi, self.prevEvt)] = self.prevInfo
@@ -148,15 +148,15 @@ class ZZRowCleanerBase(object):
         Row cleaner classes should define an inheriting RowInfo class that 
         knows the right variables and how to calculate them.
         '''
-        def __init__(self, row, channel, idx, objects):
+        def __init__(self, row, channel, idx, objects, cuts):
             '''
             Objects should already be sorted
             '''
             self.channel = channel
             self.idx = idx
-            self.storeVars(row, objects)
+            self.storeVars(row, objects, cuts)
 
-        def storeVars(self, row, objects):
+        def storeVars(self, row, objects, cuts):
             '''
             Virtual.
             Inheriting classes should calculate needed variables here.

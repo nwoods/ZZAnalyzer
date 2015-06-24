@@ -28,10 +28,10 @@ class HZZ4l2015Cleaner(ZZRowCleanerBase):
 
     
     class RowInfo(ZZRowCleanerBase.RowInfo):
-        def __init__(self, row, channel, idx, objects):
-            super(self.__class__, self).__init__(row, channel, idx, objects)
+        def __init__(self, row, channel, idx, objects, cuts):
+            super(self.__class__, self).__init__(row, channel, idx, objects, cuts)
 
-        def storeVars(self, row, objects):
+        def storeVars(self, row, objects, cuts):
             '''
             Need Z1 distance from nominal mass and scalar sum of pt of Z2 
             leptons.
