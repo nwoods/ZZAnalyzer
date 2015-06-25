@@ -6,16 +6,16 @@ from rootpy.io import root_open
 sys.argv = oldargv
 ROOT.gROOT.SetBatch(True)
 
-from math import pi, sqrt
+from math import pi, sqrt, log
 from itertools import combinations
 import glob
 
 import logging
-from rootpy import log; log = log["/evaluateFSR"]
+from rootpy import log as rlog; rlog = rlog["/evaluateFSR"]
 # don't show most silly ROOT messages
 logging.basicConfig(level=logging.WARNING)
-log["/ROOT.TCanvas.Print"].setLevel(log.WARNING)
-log["/ROOT.TUnixSystem.SetDisplay"].setLevel(log.ERROR)
+rlog["/ROOT.TCanvas.Print"].setLevel(rlog.WARNING)
+rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
 
 # Do this import after turning off TUnixSystem.SetDisplay warnings
 from rootpy.plotting import Hist, Hist2D, Canvas, Graph
@@ -33,7 +33,7 @@ import FWCore.ParameterSet.Config as cms
 # load FWlite python libraries
 from DataFormats.FWLite import Handle, Events
 
-
+isolated = True
 
 
 def deltaPhi(phi1, phi2):
@@ -48,7 +48,8 @@ def deltaR(eta1, phi1, eta2, phi2):
     return sqrt(dPhi**2 + (eta2 - eta1)**2)
 
 
-def fillGenHistos(lep, pho, found, foundAKt, foundAKt15, foundDREt, recoDREt):
+def fillGenHistos(lep, pho, found, foundAKt, foundAKt15, 
+                  foundDREt, recoDREt, foundDREt2, recoDREt2, foundDREtLog, recoDREtLog):
     '''
     Fill histograms for gen-level FSR. If found is True, fills numerator and
     denominator histograms. Otherwise, just denominators.
@@ -90,8 +91,24 @@ def fillGenHistos(lep, pho, found, foundAKt, foundAKt15, foundDREt, recoDREt):
         h['foundGenDREtFSRDPhi'].fill(recoDREt, dPhi)
         h['foundGenDREtFSRDREt'].fill(dREt)
 
+    dREt2 = dR / (pho.et()*pho.et())
+    if foundDREt2:
+        h['foundGenDREt2FSRPt'].fill(recoDREt2, pho.pt())
+        h['foundGenDREt2FSRDR'].fill(recoDREt2, dR)
+        h['foundGenDREt2FSRDEta'].fill(recoDREt2, abs(pho.eta() - lep.eta()))
+        h['foundGenDREt2FSRDPhi'].fill(recoDREt2, dPhi)
+        h['foundGenDREt2FSRDREt2'].fill(dREt2)
 
-def fillRecoHistos(lep, matched, phoLeg, phoAKt, phoAKt15, phoDREt):
+    dREtLog = -1 * log(dR) / pho.et()
+    if foundDREtLog:
+        h['foundGenDREtLogFSRPt'].fill(recoDREtLog, pho.pt())
+        h['foundGenDREtLogFSRDR'].fill(recoDREtLog, dR)
+        h['foundGenDREtLogFSRDEta'].fill(recoDREtLog, abs(pho.eta() - lep.eta()))
+        h['foundGenDREtLogFSRDPhi'].fill(recoDREtLog, dPhi)
+        h['foundGenDREtLogFSRDREtLog'].fill(dREtLog)
+
+
+def fillRecoHistos(lep, matched, phoLeg, phoAKt, phoAKt15, phoDREt, phoDREt2, phoDREtLog):
     '''
     Fill histograms for reconstructed FSR. Matched should evaluate 
     to True if the matched gen lepton had FSR. If matched is True, 
@@ -170,6 +187,40 @@ def fillRecoHistos(lep, matched, phoLeg, phoAKt, phoAKt15, phoDREt):
             h['realDREtFSRDEta'].fill(dREt, abs(phoDREt.eta() - lep.eta()))
             h['realDREtFSRDPhi'].fill(dREt, dPhi)
             h['realDREtFSRDREt'].fill(dREt)
+
+    if phoDREt2:
+        dR = deltaR(phoDREt2.eta(), phoDREt2.phi(), lep.eta(), lep.phi())
+        dREt2 = dR / (phoDREt2.et() * phoDREt2.et())
+        dPhi = deltaPhi(phoDREt2.phi(), lep.phi())
+        h['allDREt2FSRPt'].fill(dREt2, phoDREt2.pt())
+        h['allDREt2FSRDR'].fill(dREt2, dR)
+        h['allDREt2FSRDEta'].fill(dREt2, abs(phoDREt2.eta() - lep.eta()))
+        h['allDREt2FSRDPhi'].fill(dREt2, dPhi)
+        h['allDREt2FSRDREt2'].fill(dREt2)
+
+        if matched:
+            h['realDREt2FSRPt'].fill(dREt2, phoDREt2.pt())
+            h['realDREt2FSRDR'].fill(dREt2, dR)
+            h['realDREt2FSRDEta'].fill(dREt2, abs(phoDREt2.eta() - lep.eta()))
+            h['realDREt2FSRDPhi'].fill(dREt2, dPhi)
+            h['realDREt2FSRDREt2'].fill(dREt2)
+
+    if phoDREtLog:
+        dR = deltaR(phoDREt2.eta(), phoDREt2.phi(), lep.eta(), lep.phi())
+        dREtLog = -1. * log(dR) / phoDREtLog.et()
+        dPhi = deltaPhi(phoDREtLog.phi(), lep.phi())
+        h['allDREtLogFSRPt'].fill(dREtLog, phoDREtLog.pt())
+        h['allDREtLogFSRDR'].fill(dREtLog, dR)
+        h['allDREtLogFSRDEta'].fill(dREtLog, abs(phoDREtLog.eta() - lep.eta()))
+        h['allDREtLogFSRDPhi'].fill(dREtLog, dPhi)
+        h['allDREtLogFSRDREtLog'].fill(dREtLog)
+
+        if matched:
+            h['realDREtLogFSRPt'].fill(dREtLog, phoDREtLog.pt())
+            h['realDREtLogFSRDR'].fill(dREtLog, dR)
+            h['realDREtLogFSRDEta'].fill(dREtLog, abs(phoDREtLog.eta() - lep.eta()))
+            h['realDREtLogFSRDPhi'].fill(dREtLog, dPhi)
+            h['realDREtLogFSRDREtLog'].fill(dREtLog)
 
 
 def firstInGenChain(p):
@@ -269,7 +320,7 @@ def zPartnerIndex(i):
     return i-1
 
 
-def getLegacyFSR(i, collection):
+def getLegacyFSR(i, collection, label):
     '''
     For lepton i in collection, return a list of FSR photons that are
     accepted by the legacy algorithm when it is paired with any other 
@@ -278,8 +329,8 @@ def getLegacyFSR(i, collection):
     out = []
     lep = collection[i]
 
-    for iFSR in xrange(lep.userInt("nFSRCand")):
-        pho = lep.userCand("FSRCand%d"%iFSR)
+    for iFSR in xrange(lep.userInt("n%s"%label)):
+        pho = lep.userCand("%s%d"%(label, iFSR))
         for j, lep2 in enumerate(collection):
             # don't pair with self
             if i == j:
@@ -295,9 +346,13 @@ def getLegacyFSR(i, collection):
             if abs((lep.p4() + lep2.p4()).M() - Z_MASS) < abs((lep.p4() + lep2.p4() + pho.p4()).M() - Z_MASS):
                 continue
     
+            # only use photons for m_(llgamma) < 100
+            if (lep.p4() + lep2.p4() + pho.p4()).M() > 100.:
+                continue
+    
             # if partner has better FSR, we can ignore this FSR
-            for iFSR2 in xrange(lep2.userInt("nFSRCand")):
-                pho2 = lep2.userCand("FSRCand%d"%iFSR2)
+            for iFSR2 in xrange(lep2.userInt("n%s"%label)):
+                pho2 = lep2.userCand("%s%d"%(label, iFSR2))
                 if abs((lep.p4() + lep2.p4()).M() - Z_MASS) > abs((lep.p4() + lep2.p4() + pho2.p4()).M() - Z_MASS):
                     if pho2.pt() > 4.:
                         if pho2.pt() > pho.pt():
@@ -331,10 +386,13 @@ recoFSRTotAKt15 = 0
 
 ptBins = [4.*i for i in range(5)]+[20.+8.*i for i in range(3)]+[60.]
 dRBins = (10, 0., 0.5)
+dREtBins = [50, 0., 0.05]
+dREt2Bins = [50, 0., 0.01]
+dREtLogBins = [30, 0., 0.3]
 
 h = {}
-h['allFSRDREt'] = Hist(40, 0., 0.04)
-h['realFSRDREt'] = Hist(40, 0., 0.04)
+h['allFSRDREt'] = Hist(*dREtBins)
+h['realFSRDREt'] = Hist(*dREtBins)
 h['allFSRPt'] = Hist(ptBins)
 h['realFSRPt'] = Hist(ptBins)
 h['allFSRDR'] = Hist(*dRBins)
@@ -351,63 +409,96 @@ h['genFSRDEta'] = Hist(*dRBins)
 h['foundGenFSRDEta'] = Hist(*dRBins)
 h['genFSRDPhi'] = Hist(*dRBins)
 h['foundGenFSRDPhi'] = Hist(*dRBins)
-h['genFSRDREt'] = Hist(40, 0., 0.04)
-h['foundGenFSRDREt'] = Hist(40, 0., 0.04)
+h['genFSRDREt'] = Hist(*dREtBins)
+h['foundGenFSRDREt'] = Hist(*dREtBins)
 
-h['allAKtFSRDREt'] = Hist(40, 0., 0.04)
-h['realAKtFSRDREt'] = Hist(40, 0., 0.04)
+h['allAKtFSRDREt'] = Hist(*dREtBins)
+h['realAKtFSRDREt'] = Hist(*dREtBins)
 h['allAKtFSRPt'] = Hist(ptBins)
 h['realAKtFSRPt'] = Hist(ptBins)
 h['allAKtFSRDR'] = Hist(*dRBins)
 h['realAKtFSRDR'] = Hist(*dRBins)
-h['allAKtFSRDREt'] = Hist(40, 0., 0.04)
-h['realAKtFSRDREt'] = Hist(40, 0., 0.04)
+h['allAKtFSRDREt'] = Hist(*dREtBins)
+h['realAKtFSRDREt'] = Hist(*dREtBins)
 h['allAKtFSRDEta'] = Hist(*dRBins)
 h['realAKtFSRDEta'] = Hist(*dRBins)
 h['allAKtFSRDPhi'] = Hist(*dRBins)
 h['realAKtFSRDPhi'] = Hist(*dRBins)
 h['foundGenAKtFSRPt'] = Hist(ptBins)
 h['foundGenAKtFSRDR'] = Hist(*dRBins)
-h['foundGenAKtFSRDREt'] = Hist(40, 0., 0.04)
+h['foundGenAKtFSRDREt'] = Hist(*dREtBins)
 h['foundGenAKtFSRDEta'] = Hist(*dRBins)
 h['foundGenAKtFSRDPhi'] = Hist(*dRBins)
 
-h['allAKt15FSRDREt'] = Hist(40, 0., 0.04)
-h['realAKt15FSRDREt'] = Hist(40, 0., 0.04)
+h['allAKt15FSRDREt'] = Hist(*dREtBins)
+h['realAKt15FSRDREt'] = Hist(*dREtBins)
 h['allAKt15FSRPt'] = Hist(ptBins)
 h['realAKt15FSRPt'] = Hist(ptBins)
 h['allAKt15FSRDR'] = Hist(*dRBins)
 h['realAKt15FSRDR'] = Hist(*dRBins)
-h['allAKt15FSRDREt'] = Hist(40, 0., 0.04)
-h['realAKt15FSRDREt'] = Hist(40, 0., 0.04)
+h['allAKt15FSRDREt'] = Hist(*dREtBins)
+h['realAKt15FSRDREt'] = Hist(*dREtBins)
 h['allAKt15FSRDEta'] = Hist(*dRBins)
 h['realAKt15FSRDEta'] = Hist(*dRBins)
 h['allAKt15FSRDPhi'] = Hist(*dRBins)
 h['realAKt15FSRDPhi'] = Hist(*dRBins)
 h['foundGenAKt15FSRPt'] = Hist(ptBins)
 h['foundGenAKt15FSRDR'] = Hist(*dRBins)
-h['foundGenAKt15FSRDREt'] = Hist(40, 0., 0.04)
+h['foundGenAKt15FSRDREt'] = Hist(*dREtBins)
 h['foundGenAKt15FSRDEta'] = Hist(*dRBins)
 h['foundGenAKt15FSRDPhi'] = Hist(*dRBins)
 
-h['allDREtFSRDREt'] = Hist(40, 0., 0.04)
-h['realDREtFSRDREt'] = Hist(40, 0., 0.04)
-h['allDREtFSRPt'] = Hist2D(40, 0., 0.04, ptBins)
-h['realDREtFSRPt'] = Hist2D(40, 0., 0.04, ptBins)
-h['allDREtFSRDR'] = Hist2D(40, 0., 0.04, *dRBins)
-h['realDREtFSRDR'] = Hist2D(40, 0., 0.04, *dRBins)
-h['allDREtFSRDEta'] = Hist2D(40, 0., 0.04, *dRBins)
-h['realDREtFSRDEta'] = Hist2D(40, 0., 0.04, *dRBins)
-h['allDREtFSRDPhi'] = Hist2D(40, 0., 0.04, *dRBins)
-h['realDREtFSRDPhi'] = Hist2D(40, 0., 0.04, *dRBins)
-h['foundGenDREtFSRPt'] = Hist2D(40, 0., 0.04, ptBins)
-h['foundGenDREtFSRDR'] = Hist2D(40, 0., 0.04, *dRBins)
-h['foundGenDREtFSRDREt'] = Hist(40, 0., 0.04)
-h['foundGenDREtFSRDEta'] = Hist2D(40, 0., 0.04, *dRBins)
-h['foundGenDREtFSRDPhi'] = Hist2D(40, 0., 0.04, *dRBins)
+h['allDREtFSRDREt'] = Hist(*dREtBins)
+h['realDREtFSRDREt'] = Hist(*dREtBins)
+h['allDREtFSRPt'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], ptBins)
+h['realDREtFSRPt'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], ptBins)
+h['allDREtFSRDR'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['realDREtFSRDR'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['allDREtFSRDEta'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['realDREtFSRDEta'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['allDREtFSRDPhi'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['realDREtFSRDPhi'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['foundGenDREtFSRPt'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], ptBins)
+h['foundGenDREtFSRDR'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['foundGenDREtFSRDREt'] = Hist(*dREtBins)
+h['foundGenDREtFSRDEta'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+h['foundGenDREtFSRDPhi'] = Hist2D(dREtBins[0], dREtBins[1], dREtBins[2], *dRBins)
+
+h['allDREt2FSRDREt2'] = Hist(*dREt2Bins)
+h['realDREt2FSRDREt2'] = Hist(*dREt2Bins)
+h['allDREt2FSRPt'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], ptBins)
+h['realDREt2FSRPt'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], ptBins)
+h['allDREt2FSRDR'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['realDREt2FSRDR'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['allDREt2FSRDEta'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['realDREt2FSRDEta'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['allDREt2FSRDPhi'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['realDREt2FSRDPhi'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['foundGenDREt2FSRPt'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], ptBins)
+h['foundGenDREt2FSRDR'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['foundGenDREt2FSRDREt2'] = Hist(*dREt2Bins)
+h['foundGenDREt2FSRDEta'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+h['foundGenDREt2FSRDPhi'] = Hist2D(dREt2Bins[0], dREt2Bins[1], dREt2Bins[2], *dRBins)
+
+h['allDREtLogFSRDREtLog'] = Hist(*dREtLogBins)
+h['realDREtLogFSRDREtLog'] = Hist(*dREtLogBins)
+h['allDREtLogFSRPt'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], ptBins)
+h['realDREtLogFSRPt'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], ptBins)
+h['allDREtLogFSRDR'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['realDREtLogFSRDR'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['allDREtLogFSRDEta'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['realDREtLogFSRDEta'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['allDREtLogFSRDPhi'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['realDREtLogFSRDPhi'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['foundGenDREtLogFSRPt'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], ptBins)
+h['foundGenDREtLogFSRDR'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['foundGenDREtLogFSRDREtLog'] = Hist(*dREtLogBins)
+h['foundGenDREtLogFSRDEta'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
+h['foundGenDREtLogFSRDPhi'] = Hist2D(dREtLogBins[0], dREtLogBins[1], dREtLogBins[2], *dRBins)
 
 
-files  = glob.glob("/hdfs/store/user/nwoods/KEEPPAT_TEST_3/GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6/*.root")
+files  = glob.glob("/hdfs/store/user/nwoods/FSR_HOMEWORK_KEEPPAT_2/GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6/*.root")
+#"/hdfs/store/user/nwoods/KEEPPAT_TEST_3/GluGluToHToZZTo4L_M-125_13TeV-powheg-pythia6/*.root")
 for fi, fn in enumerate(files):
     files[fi] = "file:"+fn
 
@@ -417,12 +508,22 @@ gen, genLabel = Handle("std::vector<reco::GenParticle>"), "prunedGenParticles"
 packedGen, packedGenLabel = Handle("std::vector<pat::PackedGenParticle>"), "packedGenParticles"
 fsMuons, fsMuonsLabel = Handle("std::vector<pat::Muon>"), "muonsRank"
 
+if isolated:
+    fsrLabelLeg = 'IsoFSRCand'
+else:
+    fsrLabelLeg = 'FSRCand'
+fsrLabelAK = 'akFSRCand'
+fsrLabelAK15 = 'akFSR1p5Cand'
+fsrLabelDREt = 'dretFSRCand'
+fsrLabelDREt2 = 'dret2FSRCand'
+fsrLabelDREtLog = 'dretLogFSRCand'
+
 
 for iev, ev in enumerate(events):
     if iev % 1000 == 0:
         print "Processing event %d"%iev
 
-    # if iev == 1000:
+    # if iev == 5000:
     #     break
         
     ev.getByLabel(genLabel, gen)
@@ -464,29 +565,48 @@ for iev, ev in enumerate(events):
     # see if anything has FSR, if so save results
     for muG, muR in genRecoPairs.iteritems():
         fsrGen = getGenFSR(muG, packedGenPho)
-        fsrRec = getLegacyFSR(tightMu.index(muR), tightMu)
+        fsrRec = getLegacyFSR(tightMu.index(muR), tightMu, fsrLabelLeg)
 
-        if muR.hasUserCand("akFSRCand"):
-            fsrAKt = muR.userCand("akFSRCand")
+        if muR.hasUserCand(fsrLabelAK):
+            fsrAKt = muR.userCand(fsrLabelAK)
         else:
             fsrAKt = None
-        if muR.hasUserCand("akFSRCand1p5"):
-            fsrAKt15 = muR.userCand("akFSRCand1p5")
+        if muR.hasUserCand(fsrLabelAK15):
+            fsrAKt15 = muR.userCand(fsrLabelAK15)
         else:
             fsrAKt15 = None
-        if muR.hasUserCand("dretFSRCand"):
-            fsrDREt = muR.userCand("dretFSRCand")
+        if muR.hasUserCand(fsrLabelDREt):
+            fsrDREt = muR.userCand(fsrLabelDREt)
         else:
             fsrDREt = None
+        if muR.hasUserCand(fsrLabelDREt2):
+            fsrDREt2 = muR.userCand(fsrLabelDREt2)
+        else:
+            fsrDREt2 = None
+        if muR.hasUserCand(fsrLabelDREtLog):
+            fsrDREtLog = muR.userCand(fsrLabelDREtLog)
+        else:
+            fsrDREtLog = None
 
         matched = (len(fsrGen) != 0 and len(fsrRec) != 0)
         matchedAKt = (len(fsrGen) != 0 and bool(fsrAKt))
         matchedAKt15 = (len(fsrGen) != 0 and bool(fsrAKt15))
         matchedDREt = (len(fsrGen) != 0 and bool(fsrDREt))
         if fsrDREt is not None:
-            dREt = muR.userFloat("dretFSRCandDREt")
+            dREt = muR.userFloat("%sDREt"%fsrLabelDREt)
         else:
             dREt = -999.
+        matchedDREt2 = (len(fsrGen) != 0 and fsrDREt2 is not None)
+        if fsrDREt2 is not None:
+            dREt2 = muR.userFloat("%sDREt"%fsrLabelDREt2)
+        else:
+            dREt2 = -999.
+        matchedDREtLog = (len(fsrGen) != 0 and fsrDREtLog is not None)
+        if fsrDREtLog is not None:
+            dREtLog = -1. * muR.userFloat("%sDREt"%fsrLabelDREtLog)
+        else:
+            dREtLog = -999.
+
 
         if len(fsrGen) != 0:
             genFSRTot += 1
@@ -496,7 +616,8 @@ for iev, ev in enumerate(events):
                     if gfsr.pt() > bestGen.pt():
                         bestGen = gfsr
 
-            fillGenHistos(muG, bestGen, matched, matchedAKt, matchedAKt15, matchedDREt, dREt)
+            fillGenHistos(muG, bestGen, matched, matchedAKt, matchedAKt15, 
+                          matchedDREt, dREt, matchedDREt2, dREt2, matchedDREtLog, dREtLog)
 
         if matched:
             genFSRMatched += 1
@@ -525,7 +646,7 @@ for iev, ev in enumerate(events):
                 recoFSRMatchedAKt15 += 1
 
 
-        fillRecoHistos(muR, len(fsrGen)!=0, bestRec, fsrAKt, fsrAKt15, fsrDREt)
+        fillRecoHistos(muR, len(fsrGen)!=0, bestRec, fsrAKt, fsrAKt15, fsrDREt, fsrDREt2, fsrDREtLog)
 
 
         
@@ -545,6 +666,11 @@ print "    Matched %d of %d found FSR (purity:     %.3f %%)"%(recoFSRMatchedAKt1
                                                               (100. * recoFSRMatchedAKt15) / recoFSRTotAKt15)
 print "deltaR/eT algorithm still needs a working point, check the plots"
 
+if isolated:
+    plotDir = 'isoFSRPlots'
+else:
+    plotDir = 'fsrPlots'
+
 # make plots look halfway decent
 ROOT.gStyle.SetOptStat(0)
 ROOT.gStyle.SetPadTickX(1)
@@ -556,8 +682,8 @@ ROOT.gROOT.ForceStyle()
 
 colors = [
     ROOT.EColor.kGreen+1,
-    ROOT.EColor.kOrange+7,
     ROOT.EColor.kMagenta,
+    ROOT.EColor.kOrange+7,
     ]
 dRLegDims = [0.58, 0.62, 0.88, 0.88]
 legdims = {}
@@ -583,7 +709,7 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
     h['genFSR%s'%var].SetLineWidth(2)
     h['genFSR%s'%var].GetXaxis().SetTitle("\\text{Gen FSR }%s"%prettyVar)
     h['genFSR%s'%var].Draw("hist")
-    cgen.Print("fsrPlots/genFSR%s.png"%var)
+    cgen.Print("%s/genFSR%s.png"%(plotDir, var))
     
     ceff = Canvas(1000, 800)
     legEff = ROOT.TLegend(*legdims['eff'][var])
@@ -627,8 +753,19 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
             effDREt[cutBin].SetLineWidth(2)
             effDREt[cutBin].Draw("PSAME")
             legEff.AddEntry(effDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.3f"%(cutBin/1000.), "LPE")
+        effDREt2 = {}
+        cutBin = 11
+        num = h['foundGenDREt2FSR%s'%var].ProjectionY("es%d"%i, 1, cutBin-1)
+        effDREt2[cutBin] = ROOT.TGraphAsymmErrors(num, h['genFSR%s'%var])
+        effDREt2[cutBin].SetMarkerStyle(34)
+        effDREt2[cutBin].SetMarkerSize(2)
+        effDREt2[cutBin].SetMarkerColor(colors[1])
+        effDREt2[cutBin].SetLineColor(colors[1])
+        effDREt2[cutBin].SetLineWidth(2)
+        effDREt2[cutBin].Draw("PSAME")
+        legEff.AddEntry(effDREt2[cutBin], "\\frac{\\Delta R}{E_{T}^{2}} < %0.4f"%(cutBin*2/10000.), "LPE")
     legEff.Draw("SAME")
-    ceff.Print("fsrPlots/eff%s.png"%var)
+    ceff.Print("%s/eff%s.png"%(plotDir, var))
     
     cpur = Canvas(1000, 800)
     legPur = ROOT.TLegend(*legdims['pur'][var])
@@ -673,8 +810,20 @@ for var in ["Pt", "DR", "DEta", "DPhi", "DREt"]:
             purDREt[cutBin].SetLineWidth(2)
             purDREt[cutBin].Draw("PSAME")
             legPur.AddEntry(purDREt[cutBin], "\\frac{\\Delta R}{E_{T}} < %0.3f"%(cutBin/1000.), "LPE")
+        purDREt2 = {}
+        cutBin = 11
+        num = h['realDREt2FSR%s'%var].ProjectionY("ps%d"%i, 1, cutBin-1)
+        denom = h['allDREt2FSR%s'%var].ProjectionY("pds%d"%i, 1, cutBin-1)
+        purDREt2[cutBin] = ROOT.TGraphAsymmErrors(num, denom)
+        purDREt2[cutBin].SetMarkerStyle(34)
+        purDREt2[cutBin].SetMarkerSize(2)
+        purDREt2[cutBin].SetMarkerColor(colors[1])
+        purDREt2[cutBin].SetLineColor(colors[1])
+        purDREt2[cutBin].SetLineWidth(2)
+        purDREt2[cutBin].Draw("PSAME")
+        legPur.AddEntry(purDREt2[cutBin], "\\frac{\\Delta R}{E_{T}^{2}} < %0.4f"%(cutBin*2/10000.), "LPE")
     legPur.Draw("SAME")
-    cpur.Print("fsrPlots/purity%s.png"%var)
+    cpur.Print("%s/purity%s.png"%(plotDir,var))
 
 
 cdreteff = Canvas(1000, 800)
@@ -703,7 +852,7 @@ dREtEff.SetMarkerColor(colors[0])
 dREtEff.SetLineColor(colors[0])
 dREtEff.SetLineWidth(2)
 dREtEff.Draw("PSAME")
-cdreteff.Print("fsrPlots/dREtEff.png")
+cdreteff.Print("%s/dREtEff.png"%plotDir)
 
 
 cdretpur = Canvas(1000, 800)
@@ -734,7 +883,123 @@ dREtPur.SetMarkerColor(colors[0])
 dREtPur.SetLineColor(colors[0])
 dREtPur.SetLineWidth(2)
 dREtPur.Draw("PSAME")
-cdretpur.Print("fsrPlots/dREtPurity.png")
+cdretpur.Print("%s/dREtPurity.png"%plotDir)
+
+cdret2eff = Canvas(1000, 800)
+dREt2EffNum = h['foundGenDREt2FSRDREt2'].empty_clone()
+dREt2EffDenom = h['foundGenDREt2FSRDREt2'].empty_clone()
+dREt2EffFrame = dREt2EffNum.Clone()
+dREt2EffFrame.GetXaxis().SetTitle("\\frac{\\Delta R}{E_{T\\gamma}^{2}} \\text{ threshold}")
+dREt2EffFrame.GetXaxis().SetTitleOffset(1.1)
+dREt2EffFrame.GetYaxis().SetTitle("Efficiency")
+dREt2EffFrame.SetMinimum(0.)
+dREt2EffFrame.SetMaximum(1.1)
+dREt2EffFrame.Draw()
+nNum = 0
+for i in range(1, h['foundGenDREt2FSRDREt2'].GetNbinsX()+1):
+    nNum += h['foundGenDREt2FSRDREt2'].GetBinContent(i)
+    dREt2EffNum.SetBinContent(i, nNum)
+    dREt2EffDenom.SetBinContent(i, genFSRTot)
+    dREt2EffNum.SetBinError(i, sqrt(nNum))
+    dREt2EffDenom.SetBinError(i, sqrt(genFSRTot))
+dREt2EffNum.Sumw2()
+dREt2EffDenom.Sumw2()
+dREt2Eff= ROOT.TGraphAsymmErrors(dREt2EffNum, dREt2EffDenom)
+dREt2Eff.SetMarkerStyle(34)
+dREt2Eff.SetMarkerSize(2)
+dREt2Eff.SetMarkerColor(colors[1])
+dREt2Eff.SetLineColor(colors[1])
+dREt2Eff.SetLineWidth(2)
+dREt2Eff.Draw("PSAME")
+cdret2eff.Print("%s/dREt2Eff.png"%plotDir)
+
+cdret2pur = Canvas(1000, 800)
+dREt2PurNum = h['realDREt2FSRDREt2'].empty_clone()
+dREt2PurDenom = h['allDREt2FSRDREt2'].empty_clone()
+dREt2PurFrame = dREt2PurNum.Clone()
+dREt2PurFrame.GetXaxis().SetTitle("\\frac{\\Delta R}{E_{T\\gamma}^{2}} \\text{ threshold}")
+dREt2PurFrame.GetXaxis().SetTitleOffset(1.1)
+dREt2PurFrame.GetYaxis().SetTitle("Purity")
+dREt2PurFrame.SetMinimum(0.)
+dREt2PurFrame.SetMaximum(1.1)
+dREt2PurFrame.Draw()
+nNum = 0
+nDen = 0
+for i in range(1, h['realDREt2FSRDREt2'].GetNbinsX()+1):
+    nNum += h['realDREt2FSRDREt2'].GetBinContent(i)
+    nDen += h['allDREt2FSRDREt2'].GetBinContent(i)
+    dREt2PurNum.SetBinContent(i, nNum)
+    dREt2PurDenom.SetBinContent(i, nDen)
+    dREt2PurNum.SetBinError(i, sqrt(nNum))
+    dREt2PurDenom.SetBinError(i, sqrt(nDen))
+dREt2PurNum.Sumw2()
+dREt2PurDenom.Sumw2()
+dREt2Pur= ROOT.TGraphAsymmErrors(dREt2PurNum, dREt2PurDenom)
+dREt2Pur.SetMarkerStyle(34)
+dREt2Pur.SetMarkerSize(2)
+dREt2Pur.SetMarkerColor(colors[1])
+dREt2Pur.SetLineColor(colors[1])
+dREt2Pur.SetLineWidth(2)
+dREt2Pur.Draw("PSAME")
+cdret2pur.Print("%s/dREt2Purity.png"%plotDir)
+
+cdretLogeff = Canvas(1000, 800)
+dREtLogEffNum = h['foundGenDREtLogFSRDREtLog'].empty_clone()
+dREtLogEffDenom = h['foundGenDREtLogFSRDREtLog'].empty_clone()
+dREtLogEffFrame = dREtLogEffNum.Clone()
+dREtLogEffFrame.GetXaxis().SetTitle("- \\frac{\\text{log} \\left( \\Delta R \\right)}{E_{T\\gamma}} \\text{ threshold}")
+dREtLogEffFrame.GetXaxis().SetTitleOffset(1.1)
+dREtLogEffFrame.GetYaxis().SetTitle("Efficiency")
+dREtLogEffFrame.SetMinimum(0.)
+dREtLogEffFrame.SetMaximum(1.1)
+dREtLogEffFrame.Draw()
+nNum = 0
+for i in range(1, h['foundGenDREtLogFSRDREtLog'].GetNbinsX()+1):
+    nNum += h['foundGenDREtLogFSRDREtLog'].GetBinContent(i)
+    dREtLogEffNum.SetBinContent(i, nNum)
+    dREtLogEffDenom.SetBinContent(i, genFSRTot)
+    dREtLogEffNum.SetBinError(i, sqrt(nNum))
+    dREtLogEffDenom.SetBinError(i, sqrt(genFSRTot))
+dREtLogEffNum.Sumw2()
+dREtLogEffDenom.Sumw2()
+dREtLogEff= ROOT.TGraphAsymmErrors(dREtLogEffNum, dREtLogEffDenom)
+dREtLogEff.SetMarkerStyle(33)
+dREtLogEff.SetMarkerSize(2)
+dREtLogEff.SetMarkerColor(colors[0])
+dREtLogEff.SetLineColor(colors[0])
+dREtLogEff.SetLineWidth(2)
+dREtLogEff.Draw("PSAME")
+cdretLogeff.Print("%s/dREtLogEff.png"%plotDir)
+
+cdretLogpur = Canvas(1000, 800)
+dREtLogPurNum = h['realDREtLogFSRDREtLog'].empty_clone()
+dREtLogPurDenom = h['allDREtLogFSRDREtLog'].empty_clone()
+dREtLogPurFrame = dREtLogPurNum.Clone()
+dREtLogPurFrame.GetXaxis().SetTitle("- \\frac{\\text{log} \\left( \\Delta R \\right)}{E_{T\\gamma}} \\text{ threshold}")
+dREtLogPurFrame.GetXaxis().SetTitleOffset(1.1)
+dREtLogPurFrame.GetYaxis().SetTitle("Purity")
+dREtLogPurFrame.SetMinimum(0.)
+dREtLogPurFrame.SetMaximum(1.1)
+dREtLogPurFrame.Draw()
+nNum = 0
+nDen = 0
+for i in range(1, h['realDREtLogFSRDREtLog'].GetNbinsX()+1):
+    nNum += h['realDREtLogFSRDREtLog'].GetBinContent(i)
+    nDen += h['allDREtLogFSRDREtLog'].GetBinContent(i)
+    dREtLogPurNum.SetBinContent(i, nNum)
+    dREtLogPurDenom.SetBinContent(i, nDen)
+    dREtLogPurNum.SetBinError(i, sqrt(nNum))
+    dREtLogPurDenom.SetBinError(i, sqrt(nDen))
+dREtLogPurNum.Sumw2()
+dREtLogPurDenom.Sumw2()
+dREtLogPur= ROOT.TGraphAsymmErrors(dREtLogPurNum, dREtLogPurDenom)
+dREtLogPur.SetMarkerStyle(33)
+dREtLogPur.SetMarkerSize(2)
+dREtLogPur.SetMarkerColor(colors[0])
+dREtLogPur.SetLineColor(colors[0])
+dREtLogPur.SetLineWidth(2)
+dREtLogPur.Draw("PSAME")
+cdretLogpur.Print("%s/dREtLogPurity.png"%plotDir)
 
 
 # ROC for dREt threshold
@@ -747,26 +1012,42 @@ roc.SetLineColor(colors[0])
 roc.SetLineWidth(2)
 roc.xaxis.SetTitle("Fake Rate (1 - purity)")
 roc.yaxis.SetTitle("Efficiency")
-roc.yaxis.SetTitleOffset(1.1)
+roc.yaxis.SetTitleOffset(1.3)
+roc2 = Graph(dREt2Pur.GetN())
+efcy2 = [dREt2Eff[i][1] for i in xrange(dREt2Eff.GetN())]
+prty2 = [dREt2Pur[i][1] for i in xrange(dREt2Pur.GetN())]
+for i, (ef, pr) in enumerate(zip(efcy2, prty2)):
+    roc2.SetPoint(i, 1.-pr, ef)
+roc2.SetLineColor(colors[1])
+roc2.SetLineWidth(2)
 croc = Canvas(800, 800)
 roc.Draw("AC")
+roc2.Draw("C")
 gWP = Graph(3)
-gWP.SetPoint(0, 1-prty[9], efcy[9])
-gWP.SetPoint(1, 1-prty[13], efcy[13])
-gWP.SetPoint(2, 1-prty[17], efcy[17])
+gWP.SetPoint(0, 1-prty[11], efcy[11])
+gWP.SetPoint(1, 1-prty[15], efcy[15])
+gWP.SetPoint(2, 1-prty[19], efcy[19])
 gWP.SetMarkerStyle(33)
 gWP.SetMarkerSize(2)
 gWP.SetMarkerColor(colors[0])
 gWP.Draw("P")
-lWP10 = ROOT.TLatex(gWP[0][0]-0.01, gWP[0][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.010}")
-lWP10.SetTextAlign(31)
-lWP10.Draw()
-lWP14 = ROOT.TLatex(gWP[1][0]-0.01, gWP[1][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.014}")
-lWP14.SetTextAlign(32)
-lWP14.Draw()
-lWP18 = ROOT.TLatex(gWP[2][0]-0.01, gWP[2][1]+0.02, "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.018}")
-lWP18.SetTextAlign(31)
-lWP18.Draw()
+lWP12 = ROOT.TLatex(gWP[0][0]-0.015, gWP[0][1]-0.025, "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.012}")
+lWP12.SetTextAlign(31)
+lWP12.Draw()
+lWP16 = ROOT.TLatex(gWP[1][0]-0.01, gWP[1][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.016}")
+lWP16.SetTextAlign(32)
+lWP16.Draw()
+lWP20 = ROOT.TLatex(gWP[2][0]-0.01, gWP[2][1]+0.01, "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}} < 0.020}")
+lWP20.SetTextAlign(31)
+lWP20.Draw()
+g2WP22 = Graph(1)
+g2WP22.SetPoint(0, 1-prty2[11], efcy2[11])
+g2WP22.SetMarkerStyle(34)
+g2WP22.SetMarkerSize(2)
+g2WP22.SetMarkerColor(colors[1])
+g2WP22.Draw("P")
+l2WP22 = ROOT.TLatex(g2WP22[0][0]+0.01, g2WP22[0][1]-0.01, "#color[6]{#frac{#Delta #kern[-0.6]{R}}{E_{T}^{2}} < 0.0022}")
+l2WP22.Draw()
 gLeg = Graph(1)
 gLeg.SetPoint(0, 1.-(1.*recoFSRMatched/recoFSRTot), 1.*genFSRMatched/genFSRTot)
 gLeg.SetMarkerStyle(20)
@@ -782,22 +1063,29 @@ gAKt15.SetPoint(0, 1.-(1.*recoFSRMatchedAKt15/recoFSRTotAKt15), 1.*genFSRMatched
 gAKt15.SetMarkerStyle(21)
 gAKt15.SetMarkerColor(ROOT.EColor.kBlue)
 gAKt15.Draw("P")
-lLeg = ROOT.TLatex(gLeg[0][0], gLeg[0][1]-.007, "Legacy")
+lLeg = ROOT.TLatex(gLeg[0][0], gLeg[0][1], "Legacy")
 lLeg.SetTextAlign(33)
 lLeg.Draw()
-lAKt = ROOT.TLatex(gAKt[0][0]+.01, gAKt[0][1], "ak_{T} (R=0.10)")
+lAKt = ROOT.TLatex(gAKt[0][0]+.005, gAKt[0][1]-0.02, "ak_{T} (R=0.10)")
 lAKt.SetTextColor(ROOT.EColor.kRed)
+lAKt.SetTextAlign(11)
 lAKt.Draw()
 lAKt15 = ROOT.TLatex(gAKt15[0][0]+0.02, gAKt15[0][1]+.015, "ak_{T} (R=0.15)")
 lAKt15.SetTextAlign(21)
 lAKt15.SetTextColor(ROOT.EColor.kBlue)
 lAKt15.Draw()
-lDREt = ROOT.TLatex(roc[0][0]+0.04, roc[0][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}}}")
+lDREt = ROOT.TLatex(roc[0][0]+0.01, roc[0][1], "#color[8]{#frac{#Delta #kern[-0.6]{R}}{E_{T}}}")
 lDREt.Draw()
-croc.Print("fsrPlots/dREtROC.png")
+lDREt2 = ROOT.TLatex(roc2[0][0]+0.03, roc[0][1]+0.04, "#color[6]{#frac{#Delta #kern[-0.6]{R}}{E_{T}^{2}}}")
+lDREt2.Draw()
+croc.Update()
+croc.Print("%s/dREtROC.png"%plotDir)
 
 
-print "cut      purity    efficiency"
-for i in range(4, 20):
-    print "%.3f:   %.3f     %.3f"%((i+1.)/1000, prty[i], efcy[i])
+print "dR/Et cut   purity    efficiency"
+for i in range(5, 30):
+    print "%.3f:      %.3f     %.3f"%((i+1.)/1000, prty[i], efcy[i])
+print "dR/Et^2 cut   purity    efficiency"
+for i in range(5, 30):
+    print "%.4f:        %.3f     %.3f"%((i+1.)*2/10000, prty2[i], efcy2[i])
 
