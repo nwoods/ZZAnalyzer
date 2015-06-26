@@ -26,7 +26,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             'Vertex' : {
                 'cuts' : {
                     'pvIsFake' : (1, "<"),
-                    'pvndof' : (5, ">="),
+                    'pvndof' : (4., ">="),
                     'pvZ#POS' : (24., "<"),
                     'pvZ#NEG' : (-24., ">"),
                     'pvRho' : (2., "<"),
