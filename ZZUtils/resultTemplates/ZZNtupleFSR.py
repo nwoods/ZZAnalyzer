@@ -40,11 +40,15 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'evt',
             'lumi',
             'run',
+            'singleEPass',
             'doubleMuPass',
             'doubleEPass',
-            'eMuPass',
-            'muEPass',
+            'singleESingleMuPass',
+            'singleMuSingleEPass',
+            'doubleESingleMuPass',
+            'doubleMuSingleEPass',
             'tripleEPass',
+            'tripleMuPass',
             'pvZ',
             'pvndof',
             'pvRho',
@@ -97,7 +101,8 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sSCPhi',
             '%sMissingHits',
             '%sNearestMuonDR',
-            ]
+            '%sCBIDMedium',
+        ]
 
         self.flavoredCopyVars['m'] = [
             '%sIsGlobal',
