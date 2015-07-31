@@ -8,10 +8,10 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from FullSpectrum_FullFSR_Sync import FullSpectrum_FullFSR_Sync
+from SMPZZ_FullFSR_Sync import SMPZZ_FullFSR_Sync
 
 
-class ControlRegion_Base(FullSpectrum_FullFSR_Sync):
+class ControlRegion_Base(SMPZZ_FullFSR_Sync):
     def __init__(self, cutset="ControlRegion_Base"):
         super(ControlRegion_Base, self).__init__(cutset)
 
