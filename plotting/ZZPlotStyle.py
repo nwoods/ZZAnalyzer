@@ -8,6 +8,7 @@ Author: Nate Woods, U. Wisconsin
 
 from ROOT import gROOT, gStyle, EColor, kTRUE, TGaxis, TH1, TPad, THStack, TLatex
 import tdrstyle, CMS_lumi
+from ZZHelpers import makeNumberPretty
 
 
 gROOT.SetBatch(kTRUE)
@@ -46,7 +47,8 @@ class ZZPlotStyle(object):
         gStyle.SetTitleYOffset(1.25)
 #        gStyle.SetTitleXOffset(0.85)
         gStyle.SetPadLeftMargin(0.1)
-        gStyle.SetPadBottomMargin(0.11)
+        gStyle.SetPadRightMargin(0.025)
+        gStyle.SetPadBottomMargin(0.082)
         gStyle.SetTitleAlign(12)
 
         # Apply changes
@@ -58,10 +60,10 @@ class ZZPlotStyle(object):
         TGaxis.SetExponentOffset(-0.055, -0.062, "x") # will overlap with title unless title is centered
 
 
-    def setPrelimStyle(self, canvas, author='N. Woods', textRight=True, dataType='Preliminary Simulation', energy=13, intLumi=19710.):
+    def setCMSStyle(self, canvas, author='N. Woods', textRight=True, dataType='Preliminary Simulation', energy=13, intLumi=19710.):
         '''
-        Set plotting defaults to something appropriate for UW prelims. 
-        intLumi is given in pb^-1 and converted to fb^-1
+        Set plotting defaults to something appropriate for CMS Analysis Notes
+        intLumi is given in pb^-1 and converted to fb^-1, unless it is less than 1 fb^-1
         '''
         # Make sure that if there's an exponent on the X axis, it's visible but not on top of the axis title
         self.fixXExponent(canvas)
@@ -84,16 +86,23 @@ class ZZPlotStyle(object):
 
         iPeriod = 0
         for i, e in enumerate(energy):
-            iL = intLumi[i] / 1000 # convert to fb^-1
+            iL = intLumi[i]
+            if iL >= 1000:
+                iL /= 1000 # convert to fb^-1
+                unit = "fb"
+            else:
+                unit = "pb"
+            iLStr = makeNumberPretty(iL, 2)
+
             if e == 13:
                 iPeriod += 4
-                CMS_lumi.lumi_13TeV = CMS_lumi.lumi_13TeV.replace("20.1","%.1f"%iL)
+                CMS_lumi.lumi_13TeV = CMS_lumi.lumi_13TeV.replace("20.1","%s"%iLStr).replace("fb", unit)
             elif energy == 8:
                 iPeriod += 2
-                CMS_lumi.lumi_8TeV = CMS_lumi.lumi_8TeV.replace("19.7","%.1f"%iL)
+                CMS_lumi.lumi_8TeV = CMS_lumi.lumi_8TeV.replace("19.7","%.1f"%iLStr).replace("fb", unit)
             if energy == 7:
                 iPeriod += 1
-                CMS_lumi.lumi_7TeV = CMS_lumi.lumi_7TeV.replace("5.1","%.1f"%iL)
+                CMS_lumi.lumi_7TeV = CMS_lumi.lumi_7TeV.replace("5.1","%.1f"%iLStr).replace("fb", unit)
                 
         # Put "CMS preliminary simulation" or whatever above the left side of the plot
         iPos = 0
@@ -121,7 +130,7 @@ class ZZPlotStyle(object):
         '''
         If there's an exponent on the Y axis, it will either be in a weird 
         place or it will overlap with the axis title. We fix the placement in
-        __init__(), but we still have to more the title if need be.        
+        __init__(), but we still have to move the title if need be.        
         Recursive, so we find histograms in pads in pads.
         '''
         for obj in canvas.GetListOfPrimitives():
@@ -130,7 +139,6 @@ class ZZPlotStyle(object):
                 if axis.GetXmax() >= 10**TGaxis.GetMaxDigits():
                     # has exponent
                     axis.CenterTitle()
-                    canvas.Update()
             if obj.InheritsFrom(TPad.Class()):
                 self.fixXExponent(obj)
 
