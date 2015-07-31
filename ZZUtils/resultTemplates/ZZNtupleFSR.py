@@ -71,6 +71,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'D_g4',
             'Djet_VAJHU',
             'HZZCategory',
+            'GenWeight',
         ]
 
         self.copyVars[1] = [
