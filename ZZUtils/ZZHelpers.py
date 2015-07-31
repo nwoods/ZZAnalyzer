@@ -75,3 +75,24 @@ def zCompatibility_checkSign(row, ob1, ob2, useFSR=True):
     return abs(nObjVar(row, zMassVar, ob1, ob2) - Z_MASS)
 
 
+def makeNumberPretty(n, maxDigits=10):
+    '''
+    Take a number, return a string of it with the right number of digits
+    and whatnot.
+    Cuts of at maxDigits places after the decimal point.
+    Assumes you want all digits before the decimal point no matter what.
+    '''
+    if int(n) == n: # integer
+        return "%d"%n
+
+    nDecimals = 0
+    m = n
+    while nDecimals < maxDigits:
+        nDecimals += 1
+        m *= 10
+        if int(m) == m:
+            break
+    
+    preFormat = "%%.%df"%nDecimals
+    return preFormat%n
+
