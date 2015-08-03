@@ -58,6 +58,7 @@ docs/_build/
 *.txt
 __init__.py
 
+plots
 plots/*
 *ipynb_checkpoints*
 recipe/vpython
