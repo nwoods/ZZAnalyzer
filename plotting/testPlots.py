@@ -2,7 +2,7 @@ from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS
 
 plotter = NtuplePlotter('zz', './plots/dataPlots50ns', 
-                        '/data/nawoods/ntuples/zzNtuples50nsFinal/results/[ZDGW]*.root', 
+                        '/data/nawoods/ntuples/zzNtuples50nsFinal/results/[ZDGT]*.root', 
                         '/data/nawoods/ntuples/zzNtuples50nsFinal/results/data*.root', 40.03)
 
 fnames = plotter.getFileNamesFromStr('/data/nawoods/data*.root')
