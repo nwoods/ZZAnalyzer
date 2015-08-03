@@ -103,6 +103,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sMissingHits',
             '%sNearestMuonDR',
             '%sCBIDMedium',
+            '%sCBIDLoose',
         ]
 
         self.flavoredCopyVars['m'] = [
