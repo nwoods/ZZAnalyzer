@@ -232,7 +232,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
 
             # Isolation
             'mIso' : { 
-                'cuts' : { 'RelPFIsoDBDefaultFSR' : (0.4, "<") },
+                'cuts' : { 'RelPFIsoDBFSR' : (0.4, "<") },
                 'objects' : 1,
             },
             'eIso' : { 
