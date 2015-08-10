@@ -2,18 +2,24 @@ from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS
 
 plotters = {}
-crs = ['SS', '3P1F', '2P2F']
+crs = ['SS', '3P1F_noLooseCB', '3P1F', '2P2F']
 
 for cr in crs:
 
-    plotters[cr] = NtuplePlotter('zz', './plots/dataPlots50ns/CR_%s'%cr, 
-                                 '/data/nawoods/ntuples/zzNtuples50nsFinal/results_CR_%s/[ZDGT]*.root'%cr, 
+    plotters[cr] = NtuplePlotter('zz', './plots/dataPlots50ns/CR_%s'%cr,
+                                 '/data/nawoods/ntuples/zzNtuples50nsFinal/results_CR_%s/[ZDGTW]*.root'%cr, 
                                  '/data/nawoods/ntuples/zzNtuples50nsFinal/results_CR_%s/data*.root'%cr, 40.03)
 
-    plotters[cr].fullPlot('4lMassFSR_total', 'zz', 'MassFSR', '', 30, 0., 600, 
-                          logy=False, xTitle="m_{4\\ell}", outFile='m4l.png', )
-    plotters[cr].fullPlot('nJets_total', 'zz', 'nJets', '', 6, -0.5, 5.5, logy=False, 
-                     xTitle="\\sharp \\text{Jets}", xUnits="",outFile='nJets.png', )
+    for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
+
+        chdir = "_%s"%channel
+        if channel == 'zz':
+            chdir = ''
+
+        plotters[cr].fullPlot('4lMassFSR_total', channel, 'MassFSR', '', 30, 0., 600, 
+                              logy=False, xTitle="m_{4\\ell}", outFile='m4l%s.png'%chdir, )
+        plotters[cr].fullPlot('nJets_total', channel, 'nJets', '', 6, -0.5, 5.5, logy=False, 
+                              xTitle="\\sharp \\text{Jets}", xUnits="",outFile='nJets%s.png'%chdir, )
 
 # zPlotChannels = ['eeee', 'eemm', 'eemm', 'mmmm']
 # z1PlotVariables = ['e1_e2_MassFSR', 'e1_e2_MassFSR', 

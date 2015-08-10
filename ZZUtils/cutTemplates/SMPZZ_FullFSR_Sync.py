@@ -38,7 +38,7 @@ class SMPZZ_FullFSR_Sync(FullSpectrum_FullFSR_Sync):
         }
         temp['mLooseID']['cuts']['Pt'] = (10, ">=")
         temp['eLooseID']['cuts']['Pt'] = (10, ">=")
-        temp['eLooseID']['cuts']['CBIDLoose'] = (1, ">=")
+#        temp['eLooseID']['cuts']['CBIDLoose'] = (1, ">=")
         
         return temp
     
