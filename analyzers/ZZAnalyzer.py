@@ -8,6 +8,12 @@ Author: Nate Woods
 
 '''
 
+# no silly ROOT messages
+import logging
+from rootpy import log as rlog; rlog = rlog['/ZZAnalyzer']
+logging.basicConfig(level=logging.WARNING)
+rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
+
 from rootpy import ROOT
 from rootpy.io import root_open
 from rootpy.plotting import Hist
