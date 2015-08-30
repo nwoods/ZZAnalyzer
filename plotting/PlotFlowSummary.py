@@ -6,6 +6,7 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
+from rootpy.plotting.base import convert_color
 import ROOT
 import argparse
 import glob
@@ -147,17 +148,17 @@ for channel in numbers:
             if args.stacks:
                 histos[channel][sample].SetLineWidth(4)
                 if not sampleInfo[sample]['isData'] and sampleInfo[sample]['isSignal']:
-                    histos[channel][sample].SetFillColorAlpha(sampleInfo[sample]['color'], 0.4)
-                    histos[channel][sample].SetLineColor(sampleInfo[sample]['color'])
+                    histos[channel][sample].SetFillColorAlpha(convert_color(sampleInfo[sample]['color'], 'root'), 0.2)
+                    histos[channel][sample].SetLineColor(convert_color(sampleInfo[sample]['color'], 'root'))
                 elif not sampleInfo[sample]['isData'] and not sampleInfo[sample]['isSignal']:
                     histos[channel][sample].SetFillStyle(1001)
-                    histos[channel][sample].SetFillColor(sampleInfo[sample]['color'])
+                    histos[channel][sample].SetFillColor(convert_color(sampleInfo[sample]['color'], 'root'))
                     histos[channel][sample].SetLineColor(ROOT.EColor.kBlack)
             else:
                 histos[channel][sample].SetMarkerStyle(4)
-                histos[channel][sample].SetMarkerColor(sampleInfo[sample]['color'])
+                histos[channel][sample].SetMarkerColor(convert_color(sampleInfo[sample]['color'], 'root'))
                 histos[channel][sample].SetMarkerSize(2)
-                histos[channel][sample].SetLineColor(sampleInfo[sample]['color'])
+                histos[channel][sample].SetLineColor(convert_color(sampleInfo[sample]['color'], 'root'))
             if channel == "eeee":
                 evType = "4e"
             elif channel == "eemm":
@@ -256,7 +257,7 @@ for channel in numbers:
 
     leg.Draw("same")
 
-    style.setPrelimStyle(c, '',intLumi=args.intLumi)
+    style.setCMSStyle(c, '',intLumi=args.intLumi)
     
     outFile = "%s/cutSummary_%s.png"%(outdir, channel)
     c.Print(outFile)
