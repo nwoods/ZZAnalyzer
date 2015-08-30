@@ -43,6 +43,13 @@ ROOT.gROOT.SetBatch(kTRUE)
 
 _tempFileEnding = "_DSNPODKWMDNWCMD"
 
+### Dumb workaround for a ROOT bug
+dummy = Hist(1,0,1)
+cdummy = Canvas(10,10)
+dummy.xaxis.SetTitle("\\mu\\mu")
+dummy.draw()
+
+
 def makeDirectory(path):
     '''
     Make a directory, don't crash
@@ -105,7 +112,7 @@ def WrapPlottable(C):
 class NtuplePlotter(object):
     def __init__(self, channels, outdir='./plots', mcFiles=[], 
                  dataFiles=[], intLumi=-1.):
-        self.intLumi = intLumi
+        self.intLumi = float(intLumi)
         if outdir[0] == '.':
             self.outdir = os.environ['zza'] + outdir[1:]
         elif '$zza' in outdir:
@@ -142,12 +149,11 @@ class NtuplePlotter(object):
                 for s in samples:
                     self.ntuples[category][s] = { c : samples[s].Get("%s/final/Ntuple"%c) for c in self.channels }
 
-        # but different datasets might
-            
         self.drawings = {}
 
         self.style = ZZPlotStyle()
                  
+
 
     def __del__(self):
         '''
@@ -309,6 +315,8 @@ class NtuplePlotter(object):
             self.objects = []
             self.legObjects = []
             self.style = style
+            self.uniformBins = True
+            self.minBinWidth = -1 # least common denominator of bin widths
            
         def addObject(self, obj, addToLegend=True):
             '''
@@ -317,6 +325,16 @@ class NtuplePlotter(object):
             '''
             if not isinstance(obj, Plottable):
                 addToLegend = False
+
+            # keep track of whether or not everything has the same binning
+            if self.uniformBins and isinstance(obj, Hist):
+                self.uniformBins = (self.uniformBins and obj.uniform())
+
+            minWidth = self.getMinBinWidth(obj)
+            if self.minBinWidth == -1 or minWidth < self.minBinWidth:
+                self.minBinWidth = minWidth
+            #### TODO: go from keeping the minimum bin width to keeping the 
+            #### least common denominator and scaling appropriately
 
             # if self.c.GetLogy() and obj.min() == 0:
             #     if isinstance(obj, HistStack):
@@ -393,12 +411,10 @@ class NtuplePlotter(object):
                     else:
                         yUnitsText = " [%s]"%yUnits
                     yTitle = "%s %s"%(yTitle, yUnitsText)
-                else:
-                    minBinWidth = self.getMinBinWidth(self.objects)
-                    if minBinWidth != 1:
-                        yTitle = "%s / %s"%(yTitle, makeNumberPretty(minBinWidth))
-                        if xUnits:
-                            yTitle = "%s %s"%(yTitle, xUnitsText if '\\' in yTitle else xUnits)
+                elif not self.uniformBins and self.minBinWidth != -1:
+                    yTitle = "%s / %s"%(yTitle, makeNumberPretty(self.minBinWidth, 2))
+                    if xUnits:
+                        yTitle = "%s %s"%(yTitle, xUnitsText if '\\' in yTitle else xUnits)
             else:
                 yTitle = None
             
@@ -406,7 +422,7 @@ class NtuplePlotter(object):
 
         def draw(self, drawOpts={}, outFile="", drawNow=False, 
                  xTitle="", xUnits="GeV", yTitle="Events", yUnits="",
-                 drawLeg=True, legParams={}, stackErr=True,
+                 drawLeg=True, legParamsOverride={}, stackErr=True,
                  intLumi=40.03, simOnly=False):
             '''
             opts (dict): passed directly to rootpy.plotting.utils.draw
@@ -417,19 +433,17 @@ class NtuplePlotter(object):
             stackErr (bool): draw black hashed region to indicate MC stack error bars?
             '''
             if drawLeg and len(self.legObjects):
-                if not len(legParams):
-                    if hasattr(self, "legParams"):
-                        legParams=self.legParams
-                    else:
-                        legParams = {
-                            'entryheight' : 0.03,
-                            'entrysep' : 0.01,
-                            'leftmargin' : 0.5,
-                            'topmargin' : 0.05,
-                            'rightmargin' : 0.05,
-                            'textsize' : 0.03,
-                        }
-                self.leg = Legend(self.legObjects, self.c, **legParams)
+                legParams = {
+                    'entryheight' : 0.03,
+                    'entrysep' : 0.01,
+                    'leftmargin' : 0.5,
+                    'topmargin' : 0.05,
+                    'rightmargin' : 0.05,
+                    'textsize' : 0.03,
+                    }
+                legParams.update(legParamsOverride)
+
+                self.leg = Legend(self.legObjects[::-1], self.c, **legParams)
 
             if stackErr:
                 for ob in self.objects:
@@ -494,13 +508,13 @@ class NtuplePlotter(object):
             self.ntuples[category][sample][channel].Draw(variable, selection, "goff", hist)
         except KeyError:
             if category not in self.ntuples:
-                print "%s is not a category of ntuple, nothing to draw!"%category
+                print "'%s' is not a category of ntuple, nothing to draw!"%category
                 return False
             elif sample not in self.ntuples[category]:
-                print "%s is not a sample in category %s, nothing to draw!"%(sample, category)
+                print "'%s' is not a sample in category '%s', nothing to draw!"%(sample, category)
                 return False
             elif channel not in self.ntuples[category][sample]:
-                print "No channel %s for sample %s, nothing to draw!"%(channel, sample)
+                print "No channel '%s' for sample '%s', nothing to draw!"%(channel, sample)
                 return False
             else:
                 raise
@@ -529,14 +543,9 @@ class NtuplePlotter(object):
         a histogram is made for each (channels[i], variables[i], selections[i]),
         and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
         regardless of channel.
+        If scale is positive and 'data' is not in category or sample, gen 
+        weighting is applied (see scaleHist() comment).
         '''
-        # weight appropriately
-#         if scale > 0.:
-#             if selection == "":
-#                 selection = "GenWeight"
-#             else:
-#                 selection = "GenWeight*(%s)"%selection
-
         h = self.WrappedHist(nbins, lo, hi, 
                              title=sampleInfo[sample]['prettyName'], 
                              sample=sample, variable=variables,
@@ -551,8 +560,16 @@ class NtuplePlotter(object):
                 len(channels) == len(variables), \
                 "Channel, variable, and selections lists must match"
             for i in xrange(len(variables)):
+                selection = selections[i]
+                # weight appropriately
+                if scale > 0.:
+                    if selection == "":
+                        selection = "GenWeight/abs(GenWeight)"
+                    else:
+                        selection = "(GenWeight/abs(GenWeight))*(%s)"%selection
+
                 self.addToHist(h, category, sample, channels[i], variables[i],
-                               selections[i])
+                               selection)
 
         self.formatHist(h, **formatOpts)
         self.scaleHist(h, scale)
@@ -631,7 +648,8 @@ class NtuplePlotter(object):
             binGetter = Hist.GetMaximumBin
         else:
             binGetter = Hist.GetMinimumBin
-        key = lambda h: h.GetBinContent(binGetter(h))
+        key = lambda h: (sampleInfo[h.getSample()]['isSignal'], 
+                         h.GetBinContent(binGetter(h)))
 
         hists.sort(key=key)
 
