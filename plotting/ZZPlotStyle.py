@@ -6,7 +6,7 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from ROOT import gROOT, gStyle, EColor, kTRUE, TGaxis, TH1, TPad, THStack, TLatex
+from ROOT import gROOT, gStyle, kBlack, kTRUE, TGaxis, TH1, TPad, THStack, TLatex
 import tdrstyle, CMS_lumi
 from ZZHelpers import makeNumberPretty
 
@@ -64,6 +64,7 @@ class ZZPlotStyle(object):
         '''
         Set plotting defaults to something appropriate for CMS Analysis Notes
         intLumi is given in pb^-1 and converted to fb^-1, unless it is less than 1 fb^-1
+        If intLumi is nonpositive, it is not printed
         '''
         # Make sure that if there's an exponent on the X axis, it's visible but not on top of the axis title
         self.fixXExponent(canvas)
@@ -76,33 +77,42 @@ class ZZPlotStyle(object):
             CMS_lumi.writeExtraText = False
 
         # Put sqrt(s) on plots
-        if type(energy) == int:
-            energy = [energy]
-        assert type(energy) == list, "Energy must be an integer or list of integers"
-        if type(intLumi) == float:
-            intLumi = [intLumi]
-        assert type(intLumi) == list, "Integrated Luminosity must be a float  or list of floats"
+        try:
+            energy = [int(energy)]
+        except TypeError:
+            assert isinstance(energy,list) and all(isinstance(e, int) for e in energy), \
+                "Energy must be an integer or list of integers"
+            
+        try:
+            intLumi = [float(intLumi)]
+        except TypeError:
+            assert isinstance(intLumi, list) and all(isinstance(e, float) for il in intLumi), \
+                "Integrated Luminosity must be a float  or list of floats"
         assert len(intLumi) == len(energy), "Must have exactly one integrated luminosity per energy"
 
         iPeriod = 0
         for i, e in enumerate(energy):
             iL = intLumi[i]
-            if iL >= 1000:
-                iL /= 1000 # convert to fb^-1
-                unit = "fb"
+            if iL > 0.:
+                if iL >= 1000.:
+                    iL /= 1000. # convert to fb^-1
+                    unit = "fb^{-1}"
+                else:
+                    unit = "pb^{-1}"
+                iLStr = makeNumberPretty(iL, 2)
             else:
-                unit = "pb"
-            iLStr = makeNumberPretty(iL, 2)
-
+                iLStr = ""
+                unit = ""
+                
             if e == 13:
                 iPeriod += 4
-                CMS_lumi.lumi_13TeV = CMS_lumi.lumi_13TeV.replace("20.1","%s"%iLStr).replace("fb", unit)
+                CMS_lumi.lumi_13TeV = CMS_lumi.lumi_13TeV.replace("20.1","%s"%iLStr).replace("fb^{-1}", unit)
             elif energy == 8:
                 iPeriod += 2
-                CMS_lumi.lumi_8TeV = CMS_lumi.lumi_8TeV.replace("19.7","%.1f"%iLStr).replace("fb", unit)
+                CMS_lumi.lumi_8TeV = CMS_lumi.lumi_8TeV.replace("19.7","%.1f"%iLStr).replace("fb^{-1}", unit)
             if energy == 7:
                 iPeriod += 1
-                CMS_lumi.lumi_7TeV = CMS_lumi.lumi_7TeV.replace("5.1","%.1f"%iLStr).replace("fb", unit)
+                CMS_lumi.lumi_7TeV = CMS_lumi.lumi_7TeV.replace("5.1","%.1f"%iLStr).replace("fb^{-1}", unit)
                 
         # Put "CMS preliminary simulation" or whatever above the left side of the plot
         iPos = 0
@@ -114,7 +124,7 @@ class ZZPlotStyle(object):
         latex = TLatex()
         latex.SetNDC()
         latex.SetTextAngle(0)
-        latex.SetTextColor(EColor.kBlack)
+        latex.SetTextColor(kBlack)
         latex.SetTextFont(61)
         latex.SetTextSize(0.03)
         latex.SetTextAlign(12)
