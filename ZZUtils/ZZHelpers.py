@@ -79,7 +79,7 @@ def makeNumberPretty(n, maxDigits=10):
     '''
     Take a number, return a string of it with the right number of digits
     and whatnot.
-    Cuts of at maxDigits places after the decimal point.
+    Cuts off at maxDigits places after the decimal point.
     Assumes you want all digits before the decimal point no matter what.
     '''
     if int(n) == n: # integer
