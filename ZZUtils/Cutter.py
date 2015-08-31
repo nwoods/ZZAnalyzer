@@ -111,6 +111,9 @@ class Cutter(object):
 
         self.cuts = self.setupCuts(self.cutSet)
         
+        # no FSR by default
+        self.fsrVar = ""
+
         # Add a few always-useful cuts
         if 'true' not in self.cuts:
             self.cuts['true'] = lambda *args: True
@@ -410,8 +413,8 @@ class Cutter(object):
         Assumes 4 leptons, with (l1,l2) and (l3,l4) same-flavor pairs;
         will have to be overloaded for other circumstances (CRs, etc.)
         '''
-        dM1 = zCompatibility_checkSign(row,objects[0],objects[1], True)
-        dM2 = zCompatibility_checkSign(row,objects[2],objects[3], True)
+        dM1 = zCompatibility_checkSign(row,objects[0],objects[1], self.fsrVar)
+        dM2 = zCompatibility_checkSign(row,objects[2],objects[3], self.fsrVar)
         
         if dM1 > dM2:
             return objects[2:] + objects[:2]

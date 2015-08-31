@@ -16,6 +16,8 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
     def __init__(self, cutset="FullSpectrum_FullFSR_Sync"):
         super(FullSpectrum_FullFSR_Sync, self).__init__(cutset)
 
+        self.fsrVar = "FSR"
+
 
     def getCutTemplate(self,*args):
         '''
@@ -405,7 +407,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
 
         altZMass = [nObjVar(row, "MassFSR", *sorted(altObj[:2])), nObjVar(row, "MassFSR", *sorted(altObj[2:]))]
         altZCompatibility = [zMassDist(m) for m in altZMass]
-        z1Compatibility = zCompatibility(row, obj[0], obj[1])
+        z1Compatibility = zCompatibility(row, obj[0], obj[1], self.fsrVar)
 
         if altZCompatibility[0] < altZCompatibility[1]:  # Za is first
             zACompatibility = altZCompatibility[0]

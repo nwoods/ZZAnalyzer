@@ -90,7 +90,7 @@ class ControlRegion_SS(ControlRegion_Base):
 
         altZMass = [[nObjVar(row, "MassFSR", *sorted(obs[:2])), nObjVar(row, "MassFSR", *sorted(obs[2:]))] for obs in altObj]
         altZCompatibility = [[zMassDist(m) for m in mAlt] for mAlt in altZMass]
-        z1Compatibility = zCompatibility(row, obj[0], obj[1])
+        z1Compatibility = zCompatibility(row, obj[0], obj[1], self.fsrVar)
 
         zACompatibility = []
         zBMass = []

@@ -11,6 +11,7 @@ from ZZHelpers import *
 class SMPZZ8TeV(Cutter.Cutter):
     def __init__(self):
         super(SMPZZ8TeV, self).__init__("SMPZZ8TeV")
+        self.fsrVar = ""
 
 
     def getCutTemplate(self,*args):
@@ -272,8 +273,8 @@ class SMPZZ8TeV(Cutter.Cutter):
         '''
         Same as default but no FSR.
         '''
-        dM1 = zCompatibility_checkSign(row,objects[0],objects[1], False)
-        dM2 = zCompatibility_checkSign(row,objects[2],objects[3], False)
+        dM1 = zCompatibility_checkSign(row,objects[0],objects[1], self.fsrVar)
+        dM2 = zCompatibility_checkSign(row,objects[2],objects[3], self.fsrVar)
         
         if dM1 > dM2:
             return objects[2:] + objects[:2]

@@ -36,7 +36,7 @@ class HZZ4l2015Cleaner(ZZRowCleanerBase):
             Need Z1 distance from nominal mass and scalar sum of pt of Z2 
             leptons.
             '''
-            self.dZ = zCompatibility(row, objects[0], objects[1])
+            self.dZ = zCompatibility(row, objects[0], objects[1], cuts.fsrVar)
             self.ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
 
 

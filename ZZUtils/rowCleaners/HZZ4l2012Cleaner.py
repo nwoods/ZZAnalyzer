@@ -49,7 +49,7 @@ class HZZ4l2012Cleaner(ZZRowCleanerBase):
                     break
 
             if allGood:
-                self.dZ = zCompatibility(row, objects[0], objects[1], False)
+                self.dZ = zCompatibility(row, objects[0], objects[1], cuts.fsrVar)
                 self.ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
             else:
                 self.dZ = 999
