@@ -9,9 +9,10 @@ from ZZHelpers import *
 
 
 class SMPZZ8TeV(Cutter.Cutter):
+    fsrVar = ""
+    
     def __init__(self):
         super(SMPZZ8TeV, self).__init__("SMPZZ8TeV")
-        self.fsrVar = ""
 
 
     def getCutTemplate(self,*args):
