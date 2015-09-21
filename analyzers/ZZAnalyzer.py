@@ -55,11 +55,7 @@ class ZZAnalyzer(object):
             self.channels = channels
 
         self.cutSet = cutSet
-        cutpath = os.environ["zza"]+"/ZZUtils/cutTemplates"
-        cutf, cutfName, cutdesc = imp.find_module(cutSet, [cutpath])
-        assert cutf, 'Set of cuts %s does not exist in %s'%(cutSet,cutpath)
-        cutmod = imp.load_module(cutSet, cutf, cutfName, cutdesc)
-        cutclass = getattr(cutmod, cutSet)
+        cutclass = self.getCutClass(cutSet)
 
         self.cuts = cutclass()
 
@@ -347,6 +343,16 @@ class ZZAnalyzer(object):
             for cut in listOfCuts:
                 f.write("%16s : %-9d\n"%(cut, totals[cut])) # :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
     
+
+    def getCutClass(self, cutSet):
+        '''
+        Load the set of cuts with this name and return its Cutter class.
+        '''
+        cutpath = os.environ["zza"]+"/ZZUtils/cutTemplates"
+        cutf, cutfName, cutdesc = imp.find_module(cutSet, [cutpath])
+        assert cutf, 'Set of cuts %s does not exist in %s'%(cutSet,cutpath)
+        cutmod = imp.load_module(cutSet, cutf, cutfName, cutdesc)
+        return getattr(cutmod, cutSet)
 
 
 
