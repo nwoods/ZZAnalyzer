@@ -16,6 +16,7 @@ from types import MethodType
 
 from glob import glob
 from collections import Iterable, Sequence, OrderedDict
+from math import sqrt
 
 # include logging stuff first so other imports don't babble at us
 import logging
@@ -27,7 +28,9 @@ rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
 rlog["/rootpy.tree.chain"].setLevel(rlog.WARNING)
 
 from rootpy.io import root_open, File
-from rootpy.plotting import Hist, HistStack, Graph, Canvas, Legend
+from rootpy.plotting import Hist, Hist2D, HistStack, Graph, Canvas, Legend
+from rootpy.plotting.hist import _Hist
+from rootpy.plotting.graph import _Graph1DBase
 from rootpy.plotting.utils import draw, get_band
 from rootpy.ROOT import kTRUE, kFALSE
 import rootpy.ROOT as ROOT
@@ -71,7 +74,7 @@ def WrapPlottable(C):
     Create a stupid thin wrapper class that keeps track of a little bit of
     metadata for a plottable object.
     '''
-    if not issubclass(C, Plottable):
+    if not (issubclass(C, Plottable) or isinstance(C(), Plottable)):
         raise TypeError("%s cannot be wrapped for meta info as it is not plottable."%C.__name__)
 
     class Wrap(C, C.__bases__[-1]):
@@ -107,6 +110,22 @@ def WrapPlottable(C):
             super(Wrap, self).__init__(*args, **plotArgs)
             
     return Wrap
+
+
+def getMinBinWidth(obj):
+    '''
+    Get the width of the narrowest bin in any of the objects.
+    '''
+    if isinstance(obj, Sequence): # list, etc.
+        return min(getMinBinWidth(ob) for ob in obj)
+    if isinstance(obj, _Hist):
+        return min(obj.GetBinWidth(b) for b in range(1,len(obj)-1))
+    if isinstance(obj, HistStack):
+        return getMinBinWidth(obj.hists)
+    if isinstance(obj, _Graph1DBase):
+        return min(abs(obj[i][0]-obj[i-1][0]) for i in range(1,len(obj)))
+    else:
+        return float("Inf")
 
 
 class NtuplePlotter(object):
@@ -262,7 +281,7 @@ class NtuplePlotter(object):
                 path += '*.root'
             files += glob(path)
                                           
-        return { fi.split('/')[-1].rstrip('.root') : fi for fi in files }
+        return { fi.split('/')[-1].replace('.root','') : fi for fi in files }
                                           
 
     def mergeDataFiles(self, channel, files):
@@ -296,7 +315,9 @@ class NtuplePlotter(object):
         
 
     WrappedHist = WrapPlottable(Hist)
+    WrappedHist2 = WrapPlottable(Hist2D)
     WrappedStack = WrapPlottable(HistStack)
+    WrappedGraph = WrapPlottable(Graph)
 
 
     class Drawing(object):
@@ -312,7 +333,8 @@ class NtuplePlotter(object):
                 self.c = Canvas(width, height, title=title)
             self.logy = logy
             self.c.cd()
-            self.objects = []
+            self.objects = [] # for Hists, HistStacks, and Graphs (objects with axes)
+            self.objectsAux = [] # for anything else you want drawn on the canvas
             self.legObjects = []
             self.style = style
             self.uniformBins = True
@@ -323,14 +345,13 @@ class NtuplePlotter(object):
             Puts an object in the list of things to draw.
             addToLegend only counts for histograms, graphs, and stacks.
             '''
-            if not isinstance(obj, Plottable):
-                addToLegend = False
-
             # keep track of whether or not everything has the same binning
-            if self.uniformBins and isinstance(obj, Hist):
+            try:
                 self.uniformBins = (self.uniformBins and obj.uniform())
+            except AttributeError:
+                pass
 
-            minWidth = self.getMinBinWidth(obj)
+            minWidth = getMinBinWidth(obj)
             if self.minBinWidth == -1 or minWidth < self.minBinWidth:
                 self.minBinWidth = minWidth
             #### TODO: go from keeping the minimum bin width to keeping the 
@@ -354,7 +375,10 @@ class NtuplePlotter(object):
             # elif self.c.GetLogy() and obj.GetMinimum() < 0:
             #     raise ValueError("Can't plot negative values on log scale!")
 
-            self.objects.append(obj)
+            if isinstance(obj, (_Hist, _Graph1DBase, HistStack)):
+                self.objects.append(obj)
+            else:
+                self.objectsAux.append(obj)
             
             if addToLegend:
                 self.addToLegend(obj)
@@ -369,26 +393,13 @@ class NtuplePlotter(object):
                                      "from, so it can't be added to the "
                                      "legend."%obj.__name__)
 
-            if sampleInfo[obj.getSample()]['isData']:
-                obj.legendstyle = "LPE"
-            else:
-                obj.legendstyle = "F"
-            self.legObjects.append(obj)
+            if not hasattr(obj, 'legendstyle'):
+                if sampleInfo[obj.getSample()]['isData']:
+                    obj.legendstyle = "LPE"
+                else:
+                    obj.legendstyle = "F"
 
-        def getMinBinWidth(self, obj):
-            '''
-            Get the width of the narrowest bin in any of the objects.
-            '''
-            if isinstance(obj, Sequence): # list, etc.
-                return min(self.getMinBinWidth(ob) for ob in obj)
-            if isinstance(obj, QROOT.TH1):
-                return min(obj.GetBinWidth(b) for b in range(1,len(obj)-1))
-            if isinstance(obj, HistStack):
-                return self.getMinBinWidth(obj.hists)
-            if isinstance(obj, Graph):
-                return min(abs(obj[i].x-obj[i-1].x) for i in range(1,len(obj)))
-            else:
-                return float("Inf")
+            self.legObjects.append(obj)
 
         def getAxisTitles(self, xTitle, xUnits, yTitle, yUnits):
             '''
@@ -465,6 +476,8 @@ class NtuplePlotter(object):
                 opts['ytitle'] = titleY
 
             draw(self.objects, self.c, logy=self.logy, **opts)
+            for obj in self.objectsAux:
+                obj.Draw("SAME")
 
             if drawLeg:
                 self.leg.Draw("SAME")
@@ -531,25 +544,36 @@ class NtuplePlotter(object):
 
 
     def makeHist(self, category, sample, channels, variables, selections, 
-                 nbins, lo, hi, scale=1, weight='', formatOpts={}):
+                 binning, scale=1, weight='', formatOpts={}, perUnitWidth=True):
         '''
         Make a histogram of variable(s) in channel(s) channel in sample subject
-        to selection(s). Histogram will have nbins, going from lo to hi.
-        If there is only one variable and selection (each a string),
-        a histogram of this combination is made for each channel and these are
-        summed.
+        to selection(s). If there is only one variable and selection (each
+        a string), a histogram of this combination is made for each channel and
+        these are summed.
         If variables and selections are ordered iterables (which must have the 
         same length), channels must be an iterator of the same length as well, 
         a histogram is made for each (channels[i], variables[i], selections[i]),
         and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
         regardless of channel.
+        If binning has length 3, it is interpreted as [nbins, lowBin, highBin].
+        Otherwise, it is interpreted as the edges of variably-sized bins. In 
+        the case of variably sized bins, if perUnitWidth is True, each bin is 
+        normalized according to its width so that the height is the counts per 
+        x-axis unit.
         If scale is positive and 'data' is not in category or sample, gen 
         weighting is applied (see scaleHist() comment).
         '''
-        h = self.WrappedHist(nbins, lo, hi, 
-                             title=sampleInfo[sample]['prettyName'], 
-                             sample=sample, variable=variables,
-                             selection=selections, category=category)
+        histKWArgs = {
+            'title' : sampleInfo[sample]['prettyName'], 
+            'sample' : sample, 
+            'variable' : variables,
+            'selection' : selections, 
+            'category' : category,
+            }
+        if len(binning) == 3:
+            h = self.WrappedHist(*binning, **histKWArgs)
+        else:
+            h = self.WrappedHist(binning, **histKWArgs)
 
         if isinstance(variables, str) and isinstance(selections, str):
             for ch in self.expandChannelsFromArg(channels):
@@ -572,17 +596,19 @@ class NtuplePlotter(object):
                                selection)
 
         self.formatHist(h, **formatOpts)
-        self.scaleHist(h, scale)
+        self.scaleHist(h, scale, perUnitWidth)
 
         return h
 
 
-    def scaleHist(self, h, scale=1.):
+    def scaleHist(self, h, scale=1., perUnitWidth=True):
         '''
         If scale is negative, the histogram is scaled by -scale. If scale is 0,
         the histogram is normalized to 1. If scale is positive, the histogram
         (assumed to be MC unless 'data' is in category or sample) is scaled by 
         that factor, for its cross section and the total integrated luminosity.
+        If the binning is not constant and perUnitWidth is True, bin content 
+        and errors are normalized to be events per x-axis unit.
         '''
         if 'data' in h.getCategory()  or 'data' in h.getSample():
             scale = -1.
@@ -597,6 +623,14 @@ class NtuplePlotter(object):
 
         h.Scale(scale)
         h.Sumw2()
+
+        if perUnitWidth and not h.uniform():
+            binUnit = getMinBinWidth(h)
+            for iBin in xrange(1, h.nbins()+1):
+                w = h.GetBinWidth(iBin)
+                h.SetBinContent(iBin, h.GetBinContent(iBin) * binUnit / w)
+                h.SetBinError(iBin, h.GetBinError(iBin) * sqrt(binUnit / w))
+            h.Sumw2()
 
         return h
         
@@ -620,8 +654,24 @@ class NtuplePlotter(object):
         return h
 
     
-    def makeCategoryStack(self, category, channel, variable, selection, nbins,
-                          lo, hi, scale=1., sortByMax=True):
+    def formatGraph(self, g, **opts):
+        '''
+        With no keyword arguments, does standard formatting based on data or MC
+        conventions. With keyword arguments, sets formatting variables (color
+        etc.) accordingly.
+        '''
+        g.drawstyle = 'PE'
+        g.legendstyle = 'LPE'
+        g.color = sampleInfo[g.getSample()]['color']
+           
+        for opt, val in opts.iteritems():
+            setattr(g, opt, val)
+ 
+        return g
+
+    
+    def makeCategoryStack(self, category, channel, variable, selection,
+                          binning, scale=1., sortByMax=True):
         '''
         Makes a stack of all histograms from the samples in category by 
         passing parameters to self.makeHist().
@@ -629,7 +679,7 @@ class NtuplePlotter(object):
         hists = []
         for sample in self.ntuples[category]:
             hists.append(self.makeHist(category, sample, channel, variable, 
-                                       selection, nbins, lo, hi, scale))
+                                       selection, binning, scale))
 
         s = self.WrappedStack(self.orderForStack(hists, sortByMax),
                               category=category, variable=variable,
@@ -667,7 +717,7 @@ class NtuplePlotter(object):
         '''
         self.drawings[name] = self.Drawing(name, self.style, canvasX, canvasY, logy, ipynb)
         s = self.makeCategoryStack("mc", channel, variable, selection,
-                                   nbins, lo, hi, 1.)
+                                   [nbins, lo, hi], 1.)
         if len(s):
             self.drawings[name].addObject(s)
         h = self.makeHist('data', 'data', channel, variable, selection,
@@ -680,4 +730,32 @@ class NtuplePlotter(object):
                                  legParams, True, self.intLumi, 
                                  h.GetEntries()==0)
 
+
+    def makeEfficiency(self, category, sample, channels, variables, 
+                       selections, selectionsTight, binning, weight,
+                       formatOpts={}):
+        '''
+        Make an efficiency graph (with asymmetric error bars) where the 
+        denominator is specified by selections and the numerator is specified
+        by the logical and of selections and selectionsTight.
+        '''
+        eff = self. WrappedGraph(type='asymm', 
+                                 title=sampleInfo[sample]['prettyName'], 
+                                 sample=sample, variable=variables,
+                                 selection=selections, category=category)
+
+        denom = self.makeHist(category, sample, channels, variables, 
+                              selections, binning, -1., weight, perUnitWidth=False)
+
+        if isinstance(selections, str):
+            selectionsNum = '(' + selections + ') && (' + selectionsTight + ')'
+        # otherwise, assume lists of selections
+        selectionsNum = map(lambda p: '(' + ') && ('.join(p) + ')', zip(selections, selectionsTight))
+        num = self.makeHist(category, sample, channels, variables, 
+                            selectionsNum, binning, -1., weight, perUnitWidth=False)
+
+        eff.Divide(num, denom)
+        self.formatGraph(eff, **formatOpts)
+
+        return eff
 
