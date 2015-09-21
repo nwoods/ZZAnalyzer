@@ -26,6 +26,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
 
         
     def setupTemplate(self):
+
         self.copyVars[0] = [
             'Mass',
             'Pt',

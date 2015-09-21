@@ -101,6 +101,9 @@ from ZZHelpers import *
 
 
 class Cutter(object):
+    # no FSR by default
+    fsrVar = ""
+
     def __init__(self, cutSet):
 
         self.cutSet = cutSet
@@ -111,9 +114,6 @@ class Cutter(object):
 
         self.cuts = self.setupCuts(self.cutSet)
         
-        # no FSR by default
-        self.fsrVar = ""
-
         # Add a few always-useful cuts
         if 'true' not in self.cuts:
             self.cuts['true'] = lambda *args: True

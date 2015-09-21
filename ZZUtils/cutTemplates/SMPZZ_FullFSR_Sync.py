@@ -26,8 +26,8 @@ class SMPZZ_FullFSR_Sync(FullSpectrum_FullFSR_Sync):
         '''
         temp = super(SMPZZ_FullFSR_Sync, self).getCutTemplate()
 
-        temp['ZMassTight']['cuts']['MassFSR#lower'] = (60, ">=")
-        temp['4lMass']['cuts']['MassFSR'] = (100, ">=")
+        temp['ZMassTight']['cuts']['Mass%s#lower'%self.fsrVar] = (60, ">=")
+        temp['4lMass']['cuts']['Mass'+self.fsrVar] = (100, ">=")
         temp['mLooseID']['cuts']['Pt'] = (10, ">=")
         temp['eLooseID']['cuts']['Pt'] = (10, ">=")
         

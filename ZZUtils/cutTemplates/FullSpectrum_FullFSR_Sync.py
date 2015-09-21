@@ -13,10 +13,10 @@ from ZZHelpers import *
 
 
 class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
+    fsrVar = "FSR"
+
     def __init__(self, cutset="FullSpectrum_FullFSR_Sync"):
         super(FullSpectrum_FullFSR_Sync, self).__init__(cutset)
-
-        self.fsrVar = "FSR"
 
 
     def getCutTemplate(self,*args):
@@ -234,11 +234,11 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
 
             # Isolation
             'mIso' : { 
-                'cuts' : { 'RelPFIsoDBFSR' : (0.4, "<") },
+                'cuts' : { 'RelPFIsoDB'+self.fsrVar : (0.4, "<") },
                 'objects' : 1,
             },
             'eIso' : { 
-                'cuts' : { 'RelPFIsoRhoFSR' : (0.5, "<") },
+                'cuts' : { 'RelPFIsoRho'+self.fsrVar : (0.5, "<") },
                 'objects' : 1,
             },
             'LeptonIso' : {
@@ -257,8 +257,8 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # Z mass round 1
             'ZMassLoose' : {
                 'cuts' : { 
-                    'MassFSR#lower' : (12., '>='),
-                    'MassFSR#upper' : (120., '<'),
+                    'Mass%s#lower'%self.fsrVar : (12., '>='),
+                    'Mass%s#upper'%self.fsrVar : (120., '<'),
                 },
                 'objects' : 2,
             },
@@ -313,8 +313,8 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # Z1 mass
             'ZMassTight' : {
                 'cuts' : { 
-                    'MassFSR#lower' : (40., ">="),
-                    'MassFSR#upper' : (120., "<"),
+                    'Mass%s#lower'%self.fsrVar : (40., ">="),
+                    'Mass%s#upper'%self.fsrVar : (120., "<"),
                 },
                 'objects' : 2,
             },
@@ -322,7 +322,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             # 4l Mass
             '4lMass' : {
                 'cuts' : {
-                    'MassFSR' : (70., ">="),
+                    'Mass'+self.fsrVar : (70., ">="),
                 },
             },
 
@@ -405,7 +405,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
         else: # l1 matches l3
             altObj = [obj[0], obj[2], obj[1], obj[3]]
 
-        altZMass = [nObjVar(row, "MassFSR", *sorted(altObj[:2])), nObjVar(row, "MassFSR", *sorted(altObj[2:]))]
+        altZMass = [nObjVar(row, "Mass"+self.fsrVar, *sorted(altObj[:2])), nObjVar(row, "Mass"+self.fsrVar, *sorted(altObj[2:]))]
         altZCompatibility = [zMassDist(m) for m in altZMass]
         z1Compatibility = zCompatibility(row, obj[0], obj[1], self.fsrVar)
 

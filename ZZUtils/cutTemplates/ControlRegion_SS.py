@@ -88,7 +88,7 @@ class ControlRegion_SS(ControlRegion_Base):
             altObj[i][ssInd] = obj[i+2]
             altObj[i][i+2] = obj[ssInd]
 
-        altZMass = [[nObjVar(row, "MassFSR", *sorted(obs[:2])), nObjVar(row, "MassFSR", *sorted(obs[2:]))] for obs in altObj]
+        altZMass = [[nObjVar(row, "Mass"+self.fsrVar, *sorted(obs[:2])), nObjVar(row, "Mass"+self.fsrVar, *sorted(obs[2:]))] for obs in altObj]
         altZCompatibility = [[zMassDist(m) for m in mAlt] for mAlt in altZMass]
         z1Compatibility = zCompatibility(row, obj[0], obj[1], self.fsrVar)
 
