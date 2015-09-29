@@ -13,7 +13,7 @@ from ZZHelpers import *
 
 
 class ValidationCuts(Cutter.Cutter):
-    fsrVar = "FSR"
+    fsrVar = ""
 
     def __init__(self, cutset="ValidationCuts"):
         super(ValidationCuts, self).__init__(cutset)
@@ -24,11 +24,31 @@ class ValidationCuts(Cutter.Cutter):
         Template for all cuts
         '''
         cutTemplate = {
+            '251643LowLumi' : {
+                'cuts' : {
+                    'lumi' : (217, "<"),
+                    },
+                },
+            '251643HighLumi' : {
+                'cuts' : {
+                    'lumi#GE' : (222, ">="),
+                    'lumi#LT' : (607, "<"),
+                    },
+                },
+            '251643GoodLumi' : {
+                'cuts' : {
+                    'HL' : '251643HighLumi',
+                    'LL' : '251643LowLumi',
+                    },
+                'logic' : 'or',
+                },
+                    
             'Run251643' : {
                 'cuts' : {
                     # yes, this is a stupid way to do it...
                     'run#GE' : (251643, ">="),
                     'run#LT' : (251644, "<"),
+                    'lum' : '251643GoodLumi',
                 },
             },
 
@@ -37,6 +57,8 @@ class ValidationCuts(Cutter.Cutter):
                     # yes, this is a stupid way to do it...
                     'run#GE' : (251721, ">="),
                     'run#LT' : (251722, "<"),
+                    'lumi#GE' : (21, ">="),
+                    'lumi#LT' : (37, "<"),
                 },
             },
 
@@ -216,6 +238,16 @@ class ValidationCuts(Cutter.Cutter):
                 },
                 'logic' : 'objand',
             },
+            'leptonLooseID' : {
+                'cuts' : {'id' : 'TYPELooseID'},
+                'objects' : 1,
+            },
+            'LooseLeptons' : {
+                'cuts' : {
+                    'id' : 'leptonLooseID',
+                },
+                'logic' : 'objand',
+            },
 
             # Cross Cleaning
             'eCrossClean' : {
@@ -369,21 +401,22 @@ class ValidationCuts(Cutter.Cutter):
         flow['Total'] = ('true', [])
         flow['Vertex'] = ('Vertex', [])
         flow['Trigger'] = ('Trigger', [])
-        flow['LeptonID'] = ('GoodLeptons', [1,2,3,4])
+        flow['Z1TightID'] = ('GoodLeptons', [1,2])
+        flow['Z2LooseID'] = ('LooseLeptons', [3,4])
         flow['CrossCleaning'] = ('CrossCleaning', [1,2,3,4])
-        flow['SIP'] = ('SIP', [1,2,3,4])
+        # flow['SIP'] = ('SIP', [1,2,3,4])
         flow['GoodZ1'] = ('GoodZ', [1,2])
         flow['GoodZ2'] = ('GoodZ', [3,4])
-        flow['Isolation'] = ('Isolation', [1,2,3,4])
+        # flow['Isolation'] = ('Isolation', [1,2,3,4])
         flow['Z1MassLoose'] = ('ZMassLoose', [1,2])
         flow['Z2MassLoose'] = ('ZMassLoose', [3,4])
         flow['Overlap'] = ('Overlap', [1,2,3,4])
-        flow['Lepton1Pt'] = ('Lepton1Pt', [1,3])
-        flow['Lepton2Pt'] = ('Lepton2Pt', [1,2,3,4])
-        flow['QCDVeto'] = ('QCDVeto', [1,2,3,4])
-        flow['Z1Mass'] = ('ZMassTight', [1,2])
-        flow['4lMass'] = ('4lMass', [])
-        flow['SmartCut'] = ('SmartCut', [1,2,3,4])
+        # flow['Lepton1Pt'] = ('Lepton1Pt', [1,3])
+        # flow['Lepton2Pt'] = ('Lepton2Pt', [1,2,3,4])
+        # flow['QCDVeto'] = ('QCDVeto', [1,2,3,4])
+        # flow['Z1Mass'] = ('ZMassTight', [1,2])
+        # flow['4lMass'] = ('4lMass', [])
+        # flow['SmartCut'] = ('SmartCut', [1,2,3,4])
         
         return flow
 
