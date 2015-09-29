@@ -7,8 +7,8 @@ crs = ['SS', '3P1F', '2P2F']
 for cr in crs:
 
     plotters[cr] = NtuplePlotter('zz', './plots/mcPlots25ns_anDraft/CR_%s'%cr,
-                                 '/data/nawoods/ntuples/zzNtuples25ns_anDraft_0/results_CR_%s/*.root'%cr, 
-                                 '/data/nawoods/ntuples/zzNtuples25ns_anDraft_0/results_CR_%s/data*.root'%cr, 1000.)
+                                 {'mc':'/data/nawoods/ntuples/zzNtuples25ns_anDraft_0/results_CR_%s/*.root'%cr}, 
+                                 {'data':'/data/nawoods/ntuples/zzNtuples25ns_anDraft_0/results_CR_%s/data*.root'%cr}, 1000.)
 
     for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
 
@@ -16,11 +16,11 @@ for cr in crs:
         if channel == 'zz':
             chdir = ''
 
-        plotters[cr].fullPlot('4lMassFSR_total', channel, 'MassFSR', '', 40, 0., 800, 
-                              canvasX=1000, logy=False, xTitle="m_{4\\ell}", 
+        plotters[cr].fullPlot('4lMassFSR_total', channel, 'MassFSR', '', [40, 0., 800], 
+                              'mc', 'data', canvasX=1000, logy=False, xTitle="m_{4\\ell}", 
                               outFile='m4l%s.png'%chdir, )
-        plotters[cr].fullPlot('nJets_total', channel, 'nJets', '', 8, -0.5, 7.5, canvasX=1000, 
-                              logy=False, xTitle="\\text{#Jets}", xUnits="",
+        plotters[cr].fullPlot('nJets_total', channel, 'nJets', '', [8, -0.5, 7.5], 'mc', 'data',
+                              canvasX=1000, logy=False, xTitle="\\text{#Jets}", xUnits="",
                               outFile='nJets%s.png'%chdir,
                               # legParams={'leftmargin':0.6,'rightmargin':0.03,'textsize':0.023,
                               #            'entryheight':0.023,'entrysep':0.006} 
