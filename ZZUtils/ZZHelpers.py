@@ -96,3 +96,55 @@ def makeNumberPretty(n, maxDigits=10):
     preFormat = "%%.%df"%nDecimals
     return preFormat%n
 
+
+def parseChannels(channels):
+    '''
+    Take a string or list of strings and return a list of channels.
+    '''
+    if type(channels) == str:
+        if channels == '4l' or channels == 'zz' or channels == 'ZZ':
+            return ['eeee', 'eemm', 'mmmm']
+        else:
+            chanList = channels.split(',')
+            assert all(all(letter in ['e','m','t','g','j'] for letter in ch) and len(ch) <= 4 for ch in chanList),\
+                'Invalid channel ' + channels
+            return chanList
+    else:
+        assert isinstance(channels, list), 'Channels must be a list or a string'
+        out = []
+        for ch in channels:
+            out += parseChannels(ch)
+        return out
+
+
+_zzhelpers_object_maps_ = {}
+def mapObjects(channel):
+    '''
+    Return a list of objects of the form ['e1','e2','m1','m2'] or ['e1','e2','m']
+    Objects are in alphabetical/numerical order order
+    '''
+    try:
+        return _zzhelpers_object_maps_[channel]
+    except KeyError:
+        nObjects = {}
+        objects = []
+    
+        for obj in channel:
+            if obj not in nObjects:
+                nObjects[obj] = 1
+            else:
+                nObjects[obj] += 1
+    
+        for obj, num in nObjects.iteritems():
+            if num == 1:
+                objects.append(obj)
+            else:
+                for i in range(num):
+                    objects.append(obj+str(i+1))
+        
+        objects.sort()
+
+        _zzhelpers_object_maps_[channel] = objects
+        return objects
+
+

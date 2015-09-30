@@ -22,10 +22,8 @@ import os
 from itertools import combinations
 import math
 from ZZMetadata import sampleInfo
-from ZZHelpers import * # evVar, objVar, nObjVar
+from ZZHelpers import * # evVar, objVar, nObjVar, parseChannels, mapObjects, Z_MASS
 
-
-Z_MASS = 91.1876
 
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
@@ -43,16 +41,7 @@ class ZZAnalyzer(object):
         rowCleaner:  name of a module to clean out redundant rows. If an empty 
                          string (or other False boolean), no cleaning is performed.
         '''
-        if type(channels) == str:
-            if channels == '4l' or channels == 'zz' or channels == 'ZZ':
-                self.channels = ['eeee', 'eemm', 'mmmm']
-            else:
-                assert all(letter in ['e','m','t','g','j'] for letter in channels) and len(channels) <= 4, 'Invalid channel ' + channels
-                self.channels = [channels]
-        else:
-            assert type(channels)==list, 'Channels must be a list or a string'
-            assert all ((all(letter in ['e','m','t','g','j'] for letter in channel) and len(channel) <= 4) for channel in channels), 'Invalid channel in ['+','.join(channels)+']'
-            self.channels = channels
+        self.channels = parseChannels(channels)
 
         self.cutSet = cutSet
         cutclass = self.getCutClass(cutSet)
@@ -143,7 +132,7 @@ class ZZAnalyzer(object):
 
         for channel in self.channels:
         
-            objectTemplate = self.mapObjects(channel)
+            objectTemplate = mapObjects(channel)
             objects = objectTemplate
             needReorder = self.cuts.needReorder(channel)
 
@@ -230,32 +219,6 @@ class ZZAnalyzer(object):
         pass
 
 
-    def mapObjects(self, channel):
-        '''
-        Return a list of objects of the form ['e1','e2','m1','m2'] or ['e1','e2','m']
-        Objects are in alphabetical/numerical order order
-        '''
-        nObjects = {}
-        objects = []
-
-        for obj in channel:
-            if obj not in nObjects:
-                nObjects[obj] = 1
-            else:
-                nObjects[obj] += 1
-
-        for obj, num in nObjects.iteritems():
-            if num == 1:
-                objects.append(obj)
-            else:
-                for i in range(num):
-                    objects.append(obj+str(i+1))
-        
-        objects.sort()
-
-        return objects
-
-
     def getOSSF(self, row, channel, objects=[]):
         '''
         Will return a list of same flavor, opposite sign leptons ordered by closeness
@@ -266,10 +229,13 @@ class ZZAnalyzer(object):
         Takes advantage of the fact that FSA ntuples place best Z candidate first in
         eeee and mmmm cases.
         '''
-        ossfs = []
         if not objects:
-            objects = self.MapObjects(channel)
+            objects = mapObjects(channel)
         
+        if len(objects) != 4:
+            return []
+
+        ossfs = []
         # only include pairs that are OSSF
         if objects[0][0] == objects[1][0] and not nObjVar(row, 'SS', objects[0], objects[1]):
             ossfs.extend(objects[:2])

@@ -24,6 +24,7 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
+from ZZHelpers import mapObjects
 
 
 class ZZRowCleanerBase(object):
@@ -162,31 +163,5 @@ class ZZRowCleanerBase(object):
             Inheriting classes should calculate needed variables here.
             '''
             self.one = 1 # don't do this
-
-
-def mapObjects(channel):
-    '''
-    Return a list of objects of the form ['e1','e2','m1','m2'] or ['e1','e2','m']
-    Objects are in alphabetical/numerical order order
-    '''
-    nObjects = {}
-    objects = []
-
-    for obj in channel:
-        if obj not in nObjects:
-            nObjects[obj] = 1
-        else:
-            nObjects[obj] += 1
-
-    for obj, num in nObjects.iteritems():
-        if num == 1:
-            objects.append(obj)
-        else:
-            for i in range(num):
-                objects.append(obj+str(i+1))
-    
-    objects.sort()
-
-    return objects
 
 
