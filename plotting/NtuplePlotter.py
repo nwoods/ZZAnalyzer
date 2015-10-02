@@ -29,7 +29,7 @@ rlog["/rootpy.tree.chain"].setLevel(rlog.WARNING)
 
 from rootpy.io import root_open, File
 from rootpy.plotting import Hist, Hist2D, HistStack, Graph, Canvas, Legend, Pad
-from rootpy.plotting.hist import _Hist
+from rootpy.plotting.hist import _Hist, _Hist2D
 from rootpy.plotting.graph import _Graph1DBase
 from rootpy.plotting.utils import draw, get_band
 from rootpy.ROOT import kTRUE, kFALSE, TLine
@@ -477,6 +477,8 @@ class NtuplePlotter(object):
             If legendStyle is a non-empty string, that style is used.
             Otherwise, the style is "F" for MC and "LPE" for data.
             '''
+            if isinstance(obj, _Hist2D): # no legend for 2D Hist
+                return
             if isinstance(obj, HistStack):
                 for h in obj.GetHists():
                     self.addToLegend(h)
@@ -568,14 +570,23 @@ class NtuplePlotter(object):
             if titleY and 'ytitle' not in opts:
                 opts['ytitle'] = titleY
 
+            auxDrawOpt = '' # draw option for all auxiliary plotted objects
             if(objects):
                 (xaxis, yaxis), axisRanges = draw(objects, pad, logy=logy, **opts)
+                auxDrawOpt = "SAME"
+
             pad.cd()
             for obj in objectsAux:
-                obj.Draw("SAME")
+                if isinstance(obj, _Hist2D):
+                    obj.xaxis.title = titleX
+                    xaxis = obj.xaxis
+                    obj.yaxis.title = titleY
+                    yaxis = obj.yaxis
+                obj.Draw(auxDrawOpt)
+                auxDrawOpt = "SAME"
 
             if legObjects:
-                leg.Draw("SAME")
+                leg.Draw(auxDrawOpt)
 
             pad.Draw()
 
@@ -743,6 +754,63 @@ class NtuplePlotter(object):
         return h
 
 
+    def makeHist2(self, category, sample, channels, variables, selections, 
+                  binningX, binningY, weight='', formatOpts={}):
+        '''
+        Make a histogram of variable(s) in channel(s) channel in sample subject
+        to selection(s). If there is only one variable and selection (each
+        a string), a histogram of this combination is made for each channel and
+        these are summed.
+        If variables and selections are ordered iterables (which must have the 
+        same length), channels must be an iterator of the same length as well, 
+        a histogram is made for each (channels[i], variables[i], selections[i]),
+        and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
+        regardless of channel.
+        If binning has length 6, it is interpreted as 
+        [nbinsX, lowBinX, highBinX, nbinsY, lowBinY, highBinY].
+        Otherwise, it is interpreted as a length-2 iterable of iterables
+        containing the edges of variably-sized bins. 
+        '''
+        histKWArgs = {
+            'title' : sampleInfo[sample]['prettyName'], 
+            'sample' : sample, 
+            'variable' : variables,
+            'selection' : selections, 
+            'category' : category,
+            }
+        if len(binning) == 6:
+            h = self.WrappedHist2(*binning, **histKWArgs)
+        elif len(binning) == 2:
+            h = self.WrappedHist2(binning[0], binning[1], **histKWArgs)
+        else:
+            raise ValueError("I don't know how to interpret the binning for that histogram")
+
+        if isinstance(variables, str) and isinstance(selections, str):
+            for ch in self.expandChannelsFromArg(channels):
+                self.addToHist(h, category, sample, ch, variables, selections)
+
+        elif len(variables) == len(selections):
+            assert isinstance(channels, Sequence) and \
+                len(channels) == len(variables), \
+                "Channel, variable, and selections lists must match"
+            for i in xrange(len(variables)):
+                selection = selections[i]
+                # weight appropriately
+                if scale > 0.:
+                    if selection == "":
+                        selection = "GenWeight/abs(GenWeight)"
+                    else:
+                        selection = "(GenWeight/abs(GenWeight))*(%s)"%selection
+
+                self.addToHist(h, category, sample, channels[i], variables[i],
+                               selection)
+
+        self.formatHist(h, **formatOpts)
+        self.scaleHist(h, scale, perUnitWidth)
+
+        return h
+
+
     def scaleHist(self, h, scale=1., perUnitWidth=True):
         '''
         If scale is negative, the histogram is scaled by -scale. If scale is 0,
@@ -790,6 +858,20 @@ class NtuplePlotter(object):
             h.drawstyle = 'hist'
             h.fillstyle = 'solid'
             h.fillcolor = sampleInfo[h.getSample()]['color']
+           
+        for opt, val in opts.iteritems():
+            setattr(h, opt, val)
+ 
+        return h
+
+    
+    def formatHist2(self, h, **opts):
+        '''
+        With no keyword arguments, makes a temperature plot.
+        With keyword arguments, sets formatting variables (color
+        etc.) accordingly.
+        '''
+        h.drawstyle = 'COLZ'
            
         for opt, val in opts.iteritems():
             setattr(h, opt, val)

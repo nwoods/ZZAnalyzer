@@ -31,6 +31,7 @@ class ControlRegion_ZpluslTight(ControlRegion_Base):
         
         flow['Total'] = ('true', [])
         flow['Lepton3ID'] = ('leptonTightID', [3])
+        flow['Lepton3Iso'] = ('LeptonIso', [3])
         
         return flow
 

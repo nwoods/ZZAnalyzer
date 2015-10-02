@@ -43,7 +43,7 @@ class ControlRegion_Zplusl(ControlRegion_Base):
 
         temp['METVeto'] = {
             'cuts' : {
-                'type1_pfMetEt' : (25., "<"),
+                'type1_pfMetEt' : (20., "<"),
                 },
             }
 
@@ -61,6 +61,7 @@ class ControlRegion_Zplusl(ControlRegion_Base):
         flow['Trigger'] = ('Trigger', [])
         flow['ExtraLepVeto'] = ('4lVeto', [])
         flow['ZLeptonID'] = ('GoodLeptons', [1,2])
+        flow['ZLeptonIso'] = ('Isolation', [1,2])
         flow['Lepton3ID'] = ('leptonLooseID', [3])
         flow['CrossCleaning'] = ('CrossCleaning', [1,2,3])
         flow['SIP'] = ('SIP', [1,2,3])
