@@ -28,8 +28,8 @@ rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
 rlog["/rootpy.tree.chain"].setLevel(rlog.WARNING)
 
 from rootpy.io import root_open, File
-from rootpy.plotting import Hist, Hist2D, HistStack, Graph, Canvas, Legend, Pad
-from rootpy.plotting.hist import _Hist, _Hist2D
+from rootpy.plotting import Hist, Hist2D, Hist3D, HistStack, Graph, Canvas, Legend, Pad
+from rootpy.plotting.hist import _Hist, _Hist2D, _Hist3D
 from rootpy.plotting.graph import _Graph1DBase
 from rootpy.plotting.utils import draw, get_band
 from rootpy.ROOT import kTRUE, kFALSE, TLine
@@ -40,7 +40,7 @@ from rootpy import asrootpy, QROOT
 
 from ZZPlotStyle import ZZPlotStyle
 from ZZMetadata import sampleInfo
-from ZZHelpers import makeNumberPretty
+from ZZHelpers import makeNumberPretty, parseChannels
 
 ROOT.gROOT.SetBatch(kTRUE)
 
@@ -95,7 +95,9 @@ def WrapPlottable(C):
             new.__dict__.update(metaInfoDict)
 
             # Make a nicely named function for every bit of metadata
+            new._extraVars = []
             for arg, fun in metaInfoDict.iteritems():
+                new._extraVars.append(arg)
                 setattr(new,
                         "get%s%s"%(arg[0].upper(), arg[1:]),
                         MethodType(returnThing(arg), new))
@@ -108,6 +110,18 @@ def WrapPlottable(C):
             '''
             plotArgs = {arg:val for arg,val in kwargs.iteritems() if arg in Plottable.EXTRA_ATTRS or arg in ["name", "title", "type"]}
             super(Wrap, self).__init__(*args, **plotArgs)
+
+        # def transferMetaInfo(self, other):
+        #     '''
+        #     Take all of this object's custom metadata and stick it in a 
+        #     different thing.
+        #     '''
+        #     for arg in self._extraVars:
+        #         val = getattr(self, "get%s%s"%(arg[0].upper(), arg[1:]))()
+        #         setattr(other, arg, val)
+        #         setattr(other,
+        #                 "get%s%s"%(arg[0].upper(), arg[1:]),
+        #                 MethodType(returnThing(arg), other))
             
     return Wrap
 
@@ -142,7 +156,7 @@ class NtuplePlotter(object):
             self.outdir += '/'
         makeDirectory(self.outdir)
 
-        self.channels = self.expandChannelsFromArg(channels)
+        self.channels = parseChannels(channels)
         
         self.dataOrMC = {} # True if data, False if MC
 
@@ -180,7 +194,6 @@ class NtuplePlotter(object):
         self.style = ZZPlotStyle()
                  
 
-
     def __del__(self):
         '''
         When we're done, delete any temporary root files we created.
@@ -195,19 +208,6 @@ class NtuplePlotter(object):
         False if MC.
         '''
         return self.dataOrMC[category]
-
-
-    def expandChannelsFromArg(self, channels):
-        if isinstance(channels, str):
-            if channels == '4l' or channels == 'zz' or channels == 'ZZ':
-                return ['eeee', 'eemm', 'mmmm']
-            else:
-                assert all(letter in ['e','m','t','g','j'] for letter in channels) and len(channels) <= 4, 'Invalid channel ' + channels
-                return [channels]
-        else:
-            assert isinstance(channels,list), 'Channels must be a list or a string'
-            assert all ((all(letter in ['e','m','t','g','j'] for letter in channel) and len(channel) <= 4) for channel in channels), 'Invalid channel in ['+','.join(channels)+']'
-            return channels
         
 
     def storeFilesFromArg(self, files, category):
@@ -330,6 +330,7 @@ class NtuplePlotter(object):
 
     WrappedHist = WrapPlottable(Hist)
     WrappedHist2 = WrapPlottable(Hist2D)
+    WrappedHist3 = WrapPlottable(Hist3D)
     WrappedStack = WrapPlottable(HistStack)
     WrappedGraph = WrapPlottable(Graph)
 
@@ -364,12 +365,16 @@ class NtuplePlotter(object):
             '''
             return self.pads[0]
             
-        def addObject(self, obj, addToLegend=True, legendStyle=''):
+        def addObject(self, obj, addToLegend=True, legendStyle='', legendName=''):
             '''
             Puts an object in the list of things to draw.
             addToLegend only counts for histograms, graphs, and stacks.
             If legendStyle is non-empty, that style is used instead of
             "LPE" for data and "F" for MC.
+            If legendName is non-empty, that name is used instead of "data" for
+            data or the ZZMetadata default for MC. For a HistStack, it should
+            be an iterable of (possibly empty) strings with length equal to the
+            number of histograms.
             '''
             # keep track of whether or not everything has the same binning
             try:
@@ -401,13 +406,18 @@ class NtuplePlotter(object):
             # elif self.c.GetLogy() and obj.GetMinimum() < 0:
             #     raise ValueError("Can't plot negative values on log scale!")
 
-            if isinstance(obj, (_Hist, _Graph1DBase, HistStack)):
+            if isinstance(obj, (_Hist, _Graph1DBase)):
                 self.objects.append(obj)
+            elif isinstance(obj, HistStack):
+                if isinstance(asrootpy(obj.GetStack().Last()), _Hist):
+                    self.objects.append(obj)
+                else:
+                    self.objectsAux.append(obj)
             else:
                 self.objectsAux.append(obj)
             
             if addToLegend:
-                self.addToLegend(obj, legendStyle)
+                self.addToLegend(obj, legendStyle, legendName)
 
         def addPadBelow(self, height, bottomMargin=0.3, topMargin=0.085):
             '''
@@ -424,12 +434,20 @@ class NtuplePlotter(object):
 
             self.pads = [pad1,pad2]
 
-        def addRatio(self, num, denom, height, ratioMin=0.5, ratioMax=1.5,
+        def addRatio(self, num, denom, height=0.23, ratioMin=0.5, ratioMax=1.5,
                      bottomMargin=0.3, topMargin=0.06, yTitle=""):
             self.addPadBelow(height, bottomMargin, topMargin)
-            ratio = num.clone()
+            if isinstance(num, HistStack):
+                ratio = asrootpy(num.GetStack().Last()).clone()
+            else:
+                ratio = num.clone()
             ratio.sumw2()
-            ratio.Divide(denom)
+            if isinstance(denom, HistStack):
+                stackTop = asrootpy(denom.GetStack().Last()).clone()
+                stackTop.sumw2()
+                ratio.Divide(stackTop)
+            else:
+                ratio.Divide(denom)
             ratio.color = 'black'
             opts = {
                 'xaxis':ratio.xaxis,
@@ -441,7 +459,8 @@ class NtuplePlotter(object):
             unity = TLine(ratio.lowerbound(), 1, ratio.upperbound(), 1)
             unity.SetLineStyle(7)
 
-            self.paintPad(self.pads[1], [ratio], [unity], opts, "", "", yTitle, "")
+            self.paintPad(self.pads[1], [ratio], [unity], opts, "", "", 
+                          yTitle, "", perUnitWidth=False)
 
         def fixPadAxes(self):
             '''
@@ -472,21 +491,30 @@ class NtuplePlotter(object):
             desiredX.SetLabelOffset(999)
             desiredX.SetTitleOffset(999)
 
-        def addToLegend(self, obj, legendStyle=''):
+        def addToLegend(self, obj, legendStyle='', legendName=''):
             '''
             If legendStyle is a non-empty string, that style is used.
             Otherwise, the style is "F" for MC and "LPE" for data.
+            If legendName is non-empty, that name is used instead of "data" for
+            data or the ZZMetadata default for MC. For a HistStack, it should
+            be an iterable of (possibly empty) strings with length equal to the
+            number of histograms.
             '''
-            if isinstance(obj, _Hist2D): # no legend for 2D Hist
+            if isinstance(obj, _Hist2D) or isinstance(obj, _Hist3D): 
+                # no legend for 2- or 3D Hist
                 return
             if isinstance(obj, HistStack):
-                for h in obj.GetHists():
-                    self.addToLegend(h)
+                if not bool(legendName) or isinstance(legendName, str):
+                    legendName = ['' for h in obj]
+                else:
+                    assert len(legendName) == len(obj), "Must have the same number of names as histograms."
+                for h, name in zip(obj, legendName):
+                    self.addToLegend(h, legendStyle, name)
                 return
-            if not hasattr(obj, "sample"):
-                raise AttributeError("%s doesn't know what sample it's "
-                                     "from, so it can't be added to the "
-                                     "legend."%obj.__name__)
+            # if not hasattr(obj, "sample"):
+            #     raise AttributeError("%s doesn't know what sample it's "
+            #                          "from, so it can't be added to the "
+            #                          "legend."%obj.__name__)
 
             if legendStyle:
                 obj.legendStyle = legendStyle
@@ -496,17 +524,24 @@ class NtuplePlotter(object):
                     thisIsData = sampleInfo[obj.getSample()]['isData']
                 except KeyError:
                     thisIsData = True
+                except AttributeError:
+                    thisIsData = False
                 if thisIsData:
                     obj.legendstyle = "LPE"
                 else:
                     obj.legendstyle = "F"
 
+            if legendName:
+                obj.SetTitle(legendName)
+
             self.legObjects.append(obj)
 
-        def getAxisTitles(self, xTitle, xUnits, yTitle, yUnits):
+        def getAxisTitles(self, xTitle, xUnits, yTitle, yUnits, perUnitWidth=True):
             '''
             Put appropriate units on axis labels, including " / X GeV" if 
             applicable for the y axis.
+            If perUnitWidth evaluates to True and the binning is not uniform, 
+            the y-axis title will say something like 'Title / xAxisBinWidth'.
             '''
             if xTitle:
                 if xUnits:
@@ -524,7 +559,7 @@ class NtuplePlotter(object):
                     else:
                         yUnitsText = " [%s]"%yUnits
                     yTitle = "%s %s"%(yTitle, yUnitsText)
-                elif not self.uniformBins and self.minBinWidth != -1:
+                elif perUnitWidth and (not self.uniformBins) and self.minBinWidth != -1:
                     yTitle = "%s / %s"%(yTitle, makeNumberPretty(self.minBinWidth, 2))
                     if xUnits:
                         yTitle = "%s %s"%(yTitle, xUnitsText if '\\' in yTitle else xUnits)
@@ -535,7 +570,8 @@ class NtuplePlotter(object):
 
         def paintPad(self, pad, objects, objectsAux, drawOpts={}, xTitle="", 
                      xUnits="GeV", yTitle="Events", yUnits="", logy=False,
-                     legObjects=[], legParamsOverride={}, stackErr=True):
+                     legObjects=[], legParamsOverride={}, stackErr=True, 
+                     perUnitWidth=True):
             '''
             Draws objects (Hists, HistStacks, and Graphs) and objectsAux
             (anything else) on pad.
@@ -561,10 +597,12 @@ class NtuplePlotter(object):
                     if isinstance(ob, HistStack) and len(ob):
                         objects.append(self.getStackErrors(ob))
 
+            yTitlePerUnitWidth = perUnitWidth and not any(isinstance(obX, _Hist2D) or isinstance(obX, _Hist3D) for obX in objectsAux)
+
             # make a copy to avoid some weird kind of namespace contamination
             opts = {k:v for k,v in drawOpts.iteritems()}
 
-            titleX, titleY = self.getAxisTitles(xTitle, xUnits, yTitle, yUnits)
+            titleX, titleY = self.getAxisTitles(xTitle, xUnits, yTitle, yUnits, yTitlePerUnitWidth)
             if titleX and 'xtitle' not in opts:
                 opts['xtitle'] = titleX
             if titleY and 'ytitle' not in opts:
@@ -574,14 +612,18 @@ class NtuplePlotter(object):
             if(objects):
                 (xaxis, yaxis), axisRanges = draw(objects, pad, logy=logy, **opts)
                 auxDrawOpt = "SAME"
+                pad.xaxis = xaxis
+                pad.yaxis = yaxis
 
             pad.cd()
             for obj in objectsAux:
-                if isinstance(obj, _Hist2D):
-                    obj.xaxis.title = titleX
-                    xaxis = obj.xaxis
-                    obj.yaxis.title = titleY
-                    yaxis = obj.yaxis
+                # if isinstance(obj, (_Hist2D, _Hist3D, HistStack)):
+                #     if titleX:
+                #         obj.xaxis.title = titleX
+                #     xaxis = obj.xaxis
+                #     if titleY:
+                #         obj.yaxis.title = titleY
+                #     yaxis = obj.yaxis
                 obj.Draw(auxDrawOpt)
                 auxDrawOpt = "SAME"
 
@@ -590,13 +632,10 @@ class NtuplePlotter(object):
 
             pad.Draw()
 
-            pad.xaxis = xaxis
-            pad.yaxis = yaxis
-
         def draw(self, drawOpts={}, outFile="", drawNow=False, 
                  xTitle="", xUnits="GeV", yTitle="Events", yUnits="",
                  drawLeg=True, legParamsOverride={}, stackErr=True,
-                 intLumi=40.03, simOnly=False):
+                 intLumi=40.03, simOnly=False, perUnitWidth=True):
             '''
             opts (dict): passed directly to rootpy.plotting.utils.draw
             outFile (str): location to save plot (not saved if empty str)
@@ -604,6 +643,7 @@ class NtuplePlotter(object):
             drawLeg (bool): paint a legend?
             legParams (dict): passed directly to rootpy.plotting.Legend constructor
             stackErr (bool): draw black hashed region to indicate MC stack error bars?
+            perUnitWidth affects only the y-axis title
             '''
             if drawNow and ROOT.gROOT.IsBatch():
                 ROOT.gROOT.SetBatch(kFALSE)
@@ -614,7 +654,7 @@ class NtuplePlotter(object):
             
             self.paintPad(self.mainPad(), self.objects, self.objectsAux, drawOpts, 
                           xTitle, xUnits, yTitle, yUnits, self.logy, legObjs, 
-                          legParamsOverride, stackErr)
+                          legParamsOverride, stackErr, perUnitWidth)
 
             if len(self.pads) > 1:
                 self.c.cd()
@@ -722,13 +762,13 @@ class NtuplePlotter(object):
             'category' : category,
             'channel' : channels,
             }
-        if len(binning) == 3:
+        if len(binning) == 3 or (len(binning) == 1 and isinstance(binning[0], Sequence)):
             h = self.WrappedHist(*binning, **histKWArgs)
         else:
             h = self.WrappedHist(binning, **histKWArgs)
 
         if isinstance(variables, str) and isinstance(selections, str):
-            for ch in self.expandChannelsFromArg(channels):
+            for ch in parseChannels(channels):
                 self.addToHist(h, category, sample, ch, variables, selections)
 
         elif len(variables) == len(selections):
@@ -741,10 +781,10 @@ class NtuplePlotter(object):
                 if scale > 0.:
                     if weight:
                         if selection == "":
-                            selection = "%s / abs(%s)"%(weight, weight)
+                            selection = weight
                         else:
-                            selection = "(%s / abs(%s)) * (%s)"%(weight, weight, selection)
-
+                            selection = "({0})*({1})".format(weight,selection)
+                            
                 self.addToHist(h, category, sample, channels[i], variables[i],
                                selection)
 
@@ -755,7 +795,7 @@ class NtuplePlotter(object):
 
 
     def makeHist2(self, category, sample, channels, variables, selections, 
-                  binningX, binningY, weight='', formatOpts={}):
+                  binning, scale=1., weight='', formatOpts={}):
         '''
         Make a histogram of variable(s) in channel(s) channel in sample subject
         to selection(s). If there is only one variable and selection (each
@@ -766,27 +806,24 @@ class NtuplePlotter(object):
         a histogram is made for each (channels[i], variables[i], selections[i]),
         and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
         regardless of channel.
-        If binning has length 6, it is interpreted as 
-        [nbinsX, lowBinX, highBinX, nbinsY, lowBinY, highBinY].
-        Otherwise, it is interpreted as a length-2 iterable of iterables
-        containing the edges of variably-sized bins. 
+        The binning is passed directly to Rootpy's Hist2D constructor.
         '''
+        if self.isData(category):
+            prettyName = category
+        else:
+            prettyName = sampleInfo[sample]['prettyName']
+
         histKWArgs = {
-            'title' : sampleInfo[sample]['prettyName'], 
+            'title' : prettyName,
             'sample' : sample, 
             'variable' : variables,
             'selection' : selections, 
             'category' : category,
             }
-        if len(binning) == 6:
-            h = self.WrappedHist2(*binning, **histKWArgs)
-        elif len(binning) == 2:
-            h = self.WrappedHist2(binning[0], binning[1], **histKWArgs)
-        else:
-            raise ValueError("I don't know how to interpret the binning for that histogram")
+        h = self.WrappedHist2(*binning, **histKWArgs)
 
         if isinstance(variables, str) and isinstance(selections, str):
-            for ch in self.expandChannelsFromArg(channels):
+            for ch in parseChannels(channels):
                 self.addToHist(h, category, sample, ch, variables, selections)
 
         elif len(variables) == len(selections):
@@ -796,17 +833,71 @@ class NtuplePlotter(object):
             for i in xrange(len(variables)):
                 selection = selections[i]
                 # weight appropriately
-                if scale > 0.:
+                if weight:
                     if selection == "":
-                        selection = "GenWeight/abs(GenWeight)"
+                        selection = weight
                     else:
-                        selection = "(GenWeight/abs(GenWeight))*(%s)"%selection
+                        selection = "({0})*({1})".format(weight,selection)
 
                 self.addToHist(h, category, sample, channels[i], variables[i],
                                selection)
 
-        self.formatHist(h, **formatOpts)
-        self.scaleHist(h, scale, perUnitWidth)
+        self.formatHist2(h, **formatOpts)
+        self.scaleHist2(h, scale)
+
+        return h
+
+
+    def makeHist3(self, category, sample, channels, variables, selections, 
+                  binning, scale=1., weight='', formatOpts={}):
+        '''
+        Make a 3D histogram of variable(s) in channel(s) channel in sample subject
+        to selection(s). If there is only one variable and selection (each
+        a string), a histogram of this combination is made for each channel and
+        these are summed.
+        If variables and selections are ordered iterables (which must have the 
+        same length), channels must be an iterator of the same length as well, 
+        a histogram is made for each (channels[i], variables[i], selections[i]),
+        and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
+        regardless of channel.
+        The binning is passed directly to Rootpy's Hist3D constructor
+        '''
+        if self.isData(category):
+            prettyName = category
+        else:
+            prettyName = sampleInfo[sample]['prettyName']
+
+        histKWArgs = {
+            'title' : prettyName,
+            'sample' : sample, 
+            'variable' : variables,
+            'selection' : selections, 
+            'category' : category,
+            }
+        h = self.WrappedHist3(*binning, **histKWArgs)
+
+        if isinstance(variables, str) and isinstance(selections, str):
+            for ch in parseChannels(channels):
+                self.addToHist(h, category, sample, ch, variables, selections)
+
+        elif len(variables) == len(selections):
+            assert isinstance(channels, Sequence) and \
+                len(channels) == len(variables), \
+                "Channel, variable, and selections lists must match"
+            for i in xrange(len(variables)):
+                selection = selections[i]
+                # weight appropriately
+                if weight:
+                    if selection == "":
+                        selection = weight
+                    else:
+                        selection = "({0})*({1})".format(weight,selection)
+
+                self.addToHist(h, category, sample, channels[i], variables[i],
+                               selection)
+
+        self.formatHist3(h, **formatOpts)
+        self.scaleHist3(h, scale)
 
         return h
 
@@ -826,7 +917,7 @@ class NtuplePlotter(object):
         if scale != -1.:
             # overall scale
             if scale > 0.:
-                scale *= (self.intLumi * sampleInfo[h.getSample()]['xsec'] / sampleInfo[h.getSample()]['n'])
+                scale *= (self.intLumi * sampleInfo[h.getSample()]['xsec'] / sampleInfo[h.getSample()]['sumW'])
             elif scale < 0.:
                 scale = abs(scale)
             else:
@@ -845,6 +936,14 @@ class NtuplePlotter(object):
 
         return h
         
+
+    def scaleHist2(self, h, scale=1.):
+        return self.scaleHist(h, scale, False)
+
+
+    def scaleHist3(self, h, scale=1.):
+        return self.scaleHist(h, scale, False)
+
 
     def formatHist(self, h, **opts):
         '''
@@ -879,6 +978,18 @@ class NtuplePlotter(object):
         return h
 
     
+    def formatHist3(self, h, **opts):
+        '''
+        With no keyword arguments, does nothing.
+        With keyword arguments, sets formatting variables (color
+        etc.) accordingly.
+        '''
+        for opt, val in opts.iteritems():
+            setattr(h, opt, val)
+ 
+        return h
+
+    
     def formatGraph(self, g, **opts):
         '''
         With no keyword arguments, does standard formatting based on data or MC
@@ -897,7 +1008,8 @@ class NtuplePlotter(object):
 
     
     def makeCategoryStack(self, category, channel, variable, selection,
-                          binning, scale=1., sortByMax=True):
+                          binning, scale=1., weight='', sortByMax=True, 
+                          perUnitWidth=True):
         '''
         Makes a stack of all histograms from the samples in category by 
         passing parameters to self.makeHist().
@@ -906,11 +1018,50 @@ class NtuplePlotter(object):
         hists = []
         for sample in self.ntuples[category]:
             hists.append(self.makeHist(category, sample, channel, variable, 
-                                       selection, binning, scale))
+                                       selection, binning, scale, weight, 
+                                       perUnitWidth=perUnitWidth))
 
         s = self.WrappedStack(self.orderForStack(hists, sortByMax),
                               category=category, variable=variable,
                               selection=selection)
+        
+        return s
+                  
+    
+    def makeCategoryStack2(self, category, channel, variable, selection,
+                           binning, scale=1., weight='', sortByMax=True):
+        '''
+        Makes a stack of all 2D histograms from the samples in category by 
+        passing parameters to self.makeHist2().
+        '''
+        assert not self.isData(category), "You can only stack MC, not data like %s!"%category
+        hists = []
+        for sample in self.ntuples[category]:
+            hists.append(self.makeHist2(category, sample, channel, variable, 
+                                       selection, binning, scale, weight))
+
+        s = self.WrappedStack(self.orderForStack(hists, sortByMax),
+                              category=category, variable=variable,
+                              selection=selection)
+        
+        return s
+                  
+    
+    def makeCategoryStack3(self, category, channel, variable, selection,
+                           binning, scale=1., weight='', sortByMax=True):
+        '''
+        Sums all 3D histograms from the samples in category by 
+        passing parameters to self.makeHist2().
+        '''
+        assert not self.isData(category), "You can only stack MC, not data!"
+        hists = []
+        for sample in self.ntuples[category]:
+            hists.append(self.makeHist3(category, sample, channel, variable, 
+                                        selection, binning, scale, weight))
+
+        s = hists[0].empty_clone()
+        for h in hists:
+            s += h
         
         return s
                   
@@ -935,7 +1086,7 @@ class NtuplePlotter(object):
 
     def fullPlot(self, name, channel, variable, selection, binning,
                  mcCategory='mc', dataCategory='data',
-                 canvasX=800, canvasY=800, logy=False, styleOpts={}, 
+                 canvasX=800, canvasY=1000, logy=False, styleOpts={}, 
                  ipynb=False, xTitle="", xUnits="GeV", yTitle="Events",
                  yUnits="", drawNow=False, outFile='', legParams={}, 
                  drawOpts={}):
@@ -945,13 +1096,16 @@ class NtuplePlotter(object):
         '''
         self.drawings[name] = self.Drawing(name, self.style, canvasX, canvasY, logy, ipynb)
         s = self.makeCategoryStack(mcCategory, channel, variable, selection,
-                                   binning, 1.)
+                                   binning, 1., "GenWeight")
         if len(s):
             self.drawings[name].addObject(s)
         h = self.makeHist(dataCategory, dataCategory, channel, variable, selection,
                           binning)
         if h.GetEntries():
             self.drawings[name].addObject(h)
+            
+            # add data/MC ratio plot
+            self.drawings[name].addRatio(h, s, yTitle="Data / MC")
 
         self.drawings[name].draw(drawOpts, self.outdir+outFile, drawNow, 
                                  xTitle, xUnits, yTitle, yUnits, True, 
