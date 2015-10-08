@@ -17,6 +17,7 @@ rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
 from rootpy import ROOT
 from rootpy.io import root_open
 from rootpy.plotting import Hist
+from rootpy.io.file import DoesNotExist
 import imp
 import os
 from itertools import combinations
@@ -41,8 +42,6 @@ class ZZAnalyzer(object):
         rowCleaner:  name of a module to clean out redundant rows. If an empty 
                          string (or other False boolean), no cleaning is performed.
         '''
-        self.channels = parseChannels(channels)
-
         self.cutSet = cutSet
         cutclass = self.getCutClass(cutSet)
 
@@ -61,10 +60,20 @@ class ZZAnalyzer(object):
         if self.maxEvents < float('inf'):
             self.ntupleSize = {}
 
-        self.ntuples = {}
-        for channel in self.channels:
-            self.ntuples[channel] = self.inFile.Get(channel+'/final/Ntuple')
+        self.channels = parseChannels(channels)
 
+        self.ntuples = {}
+        for channel in parseChannels(channels):
+            try:
+                nt = self.inFile.Get(channel+'/final/Ntuple')
+                # if not nt.GetEntries():
+                #     raise DoesNotExist('')
+                self.ntuples[channel] = nt
+            except DoesNotExist:
+                print "Ntuple for channel %s is empty or not found! Skipping."%channel
+                self.channels.remove(channel)
+                continue
+            
             if self.maxEvents < float('inf'):
                 self.ntupleSize[channel] = self.ntuples[channel].GetEntries()
 
@@ -140,6 +149,7 @@ class ZZAnalyzer(object):
                 rowCleaner.setChannel(channel)
                 self.cutsPassed[channel]["SelectBest"] = 0
 
+            iRow = -1 # in case of empty ntuple
             # Loop through and do the cuts
             for iRow, row in enumerate(self.ntuples[channel]):
                 # If we've hit maxEvents, we're done
