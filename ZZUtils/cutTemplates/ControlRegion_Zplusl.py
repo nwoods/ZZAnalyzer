@@ -30,6 +30,41 @@ class ControlRegion_Zplusl(ControlRegion_Base):
         '''
         temp = super(ControlRegion_Zplusl, self).getCutTemplate(self, *args)
 
+        # ee and mumu triggers only here
+        temp['Trigger'] = {
+            'cuts' : {
+                'doubleEPass' : (1, ">="),
+                'doubleMuPass' : (1, ">="),
+                },
+            'logic' : 'or',
+            }
+
+        # trigger object matching
+        temp['eTriggerMatch'] = {
+            'cuts' : {
+                'MatchesDoubleE' : (1., ">="),
+                },
+            'objects' : 1,
+            }
+        temp['mTriggerMatch'] = {
+            'cuts' : {
+                'MatchesDoubleMu' : (1., ">="),
+                },
+            'objects' : 1,
+            }
+        temp['leptonTriggerMatch'] = {
+            'cuts' : {
+                'trgMtch' : 'TYPETriggerMatch',
+                },
+            'objects' : 1,
+            }
+        temp['ZTriggerMatch'] = {
+            'cuts' : {
+                'trgMtch' : 'leptonTriggerMatch',
+                },
+            'logic' : 'objand',
+            }
+
         # Event is not in another category
         temp['4lVeto'] = {
             'cuts' : {
@@ -57,11 +92,12 @@ class ControlRegion_Zplusl(ControlRegion_Base):
         flow = OrderedDict()
         
         flow['Total'] = ('true', [])
-        flow['Vertex'] = ('Vertex', [])
         flow['Trigger'] = ('Trigger', [])
+        flow['METVeto'] = ('METVeto', [])
         flow['ExtraLepVeto'] = ('4lVeto', [])
         flow['ZLeptonID'] = ('GoodLeptons', [1,2])
         flow['ZLeptonIso'] = ('Isolation', [1,2])
+        flow['ZLeptonTriggerMatch'] = ('ZTriggerMatch', [1,2])
         flow['Lepton3ID'] = ('leptonLooseID', [3])
         flow['CrossCleaning'] = ('CrossCleaning', [1,2,3])
         flow['SIP'] = ('SIP', [1,2,3])
@@ -71,7 +107,7 @@ class ControlRegion_Zplusl(ControlRegion_Base):
         flow['Lepton1Pt'] = ('Lepton1Pt', [1,3])
         flow['Lepton2Pt'] = ('Lepton2Pt', [1,2,3])
         flow['QCDVeto'] = ('QCDVeto', [1,2,3])
-        flow['METVeto'] = ('METVeto', [])
+        flow['Vertex'] = ('Vertex', [])
         
         return flow
 
