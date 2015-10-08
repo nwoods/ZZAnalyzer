@@ -102,8 +102,10 @@ def parseChannels(channels):
     Take a string or list of strings and return a list of channels.
     '''
     if type(channels) == str:
-        if channels == '4l' or channels == 'zz' or channels == 'ZZ':
+        if channels in ['4l', 'zz', 'ZZ']:
             return ['eeee', 'eemm', 'mmmm']
+        elif channels in ['3l', 'zl', 'Zl', 'z+l', 'Z+l']:
+            return ['eee', 'eem', 'emm', 'mmm']
         else:
             chanList = channels.split(',')
             assert all(all(letter in ['e','m','t','g','j'] for letter in ch) and len(ch) <= 4 for ch in chanList),\
