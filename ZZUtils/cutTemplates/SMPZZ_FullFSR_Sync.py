@@ -30,6 +30,7 @@ class SMPZZ_FullFSR_Sync(FullSpectrum_FullFSR_Sync):
         temp['4lMass']['cuts']['Mass'+self.fsrVar] = (100, ">=")
         temp['mLooseID']['cuts']['Pt'] = (10, ">=")
         temp['eLooseID']['cuts']['Pt'] = (10, ">=")
+        temp['SIP']['cuts']['SIP3D'] = (10., "<")
         
         return temp
     
