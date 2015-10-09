@@ -2,16 +2,16 @@
 '''
 
 Cutter for skimming on lepton ID for the 2015 HZZ4l analysis.
-Inherits from the full spectrum cutter.
+Inherits from the SMP ZZ->4l Cutter.
 
 Author: Nate Woods, U. Wisconsin
 
 '''
 
-from FullSpectrum_FullFSR_Sync import FullSpectrum_FullFSR_Sync
+from SMPZZ_FullFSR_Sync import SMPZZ_FullFSR_Sync
 
 
-class LeptonIDSkim(FullSpectrum_FullFSR_Sync):
+class LeptonIDSkim(SMPZZ_FullFSR_Sync):
     def __init__(self, cutset="LeptonIDSkim"):
         super(LeptonIDSkim, self).__init__(cutset)
 
