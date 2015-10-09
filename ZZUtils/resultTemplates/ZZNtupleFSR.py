@@ -73,6 +73,14 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'Djet_VAJHU',
             'HZZCategory',
             'GenWeight',
+            'eVeto',
+            'eVetoIso',
+            'eVetoTight',
+            'eVetoTightIso',
+            'muVeto',
+            'muVetoIso',
+            'muVetoTight',
+            'muVetoTightIso',
         ]
 
         self.copyVars[1] = [
