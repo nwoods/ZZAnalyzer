@@ -34,6 +34,28 @@ class ControlRegion_OS_2P2F(ControlRegion_Base):
             'logic' : 'objand',
         }
 
+        # Make sure this event isn't in the 3P1F region by making sure 
+        # there's not a tight lepton of the same type as the fakes also
+        # in the event
+        temp['ExtraLepVeto'] = {
+            'cuts' : {
+                'veto' : 'TYPEVetoTightIso',
+                },
+            'objects' : 1,
+            }
+        temp['eVetoTightIso'] = {
+            'cuts' : {
+                'eVetoTightIso' : (0.9, "<"),
+                },
+            'objects' : 'ignore',
+            }
+        temp['mVetoTightIso'] = {
+            'cuts' : {
+                'muVetoTightIso' : (0.9, "<"),
+                },
+            'objects' : 'ignore',
+            }
+
         return temp
 
 
@@ -59,6 +81,7 @@ class ControlRegion_OS_2P2F(ControlRegion_Base):
                 crFlow['Z2FakeID'] = ('FakeID', [3,4])
             else:
                 crFlow[cut] = params
+        crFlow['ExtraLeptonVeto'] = ('ExtraLepVeto', [3])
 
         return crFlow
 

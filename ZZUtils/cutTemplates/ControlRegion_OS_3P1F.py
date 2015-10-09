@@ -53,6 +53,28 @@ class ControlRegion_OS_3P1F(ControlRegion_Base):
             'objects' : 2,
         }
 
+        # Make sure this event isn't in the signal region by making sure 
+        # there's not a tight lepton of the same type as the fake also
+        # in the event
+        temp['ExtraLepVeto'] = {
+            'cuts' : {
+                'veto' : 'TYPEVetoTightIso',
+                },
+            'objects' : 1,
+            }
+        temp['eVetoTightIso'] = {
+            'cuts' : {
+                'eVetoTightIso' : (0.9, "<"),
+                },
+            'objects' : 'ignore',
+            }
+        temp['mVetoTightIso'] = {
+            'cuts' : {
+                'muVetoTightIso' : (0.9, "<"),
+                },
+            'objects' : 'ignore',
+            }
+
         return temp
 
 
@@ -80,6 +102,7 @@ class ControlRegion_OS_3P1F(ControlRegion_Base):
                 pass # shouldn't happen, since we popped it
             else:
                 crFlow[cut] = params
+        crFlow['ExtraLeptonVeto'] = ('ExtraLepVeto', [3])
 
         return crFlow
 
