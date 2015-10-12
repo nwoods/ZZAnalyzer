@@ -125,6 +125,8 @@ def mapObjects(channel):
     Return a list of objects of the form ['e1','e2','m1','m2'] or ['e1','e2','m']
     Objects are in alphabetical/numerical order order
     '''
+    global _zzhelpers_object_maps_
+
     try:
         return _zzhelpers_object_maps_[channel]
     except KeyError:
