@@ -19,6 +19,7 @@ from rootpy.plotting.hist import _Hist, _Hist2D, _Hist3D
 from NtuplePlotter import NtuplePlotter
 from ZZHelpers import parseChannels, mapObjects
 
+from itertools import chain as iChain
 
 
 class ZZFakeRateCalculator(object):
@@ -168,6 +169,7 @@ class ZZFakeRateCalculator(object):
         if kwargs.pop('draw', False):
             self.drawFakeRate(name, nDims, drawablesData, drawablesMC, **kwargs)
 
+        self.outputs += outputs
         return outputs
         
        
@@ -258,6 +260,7 @@ class ZZFakeRateCalculator(object):
         Get the odd object out for this channel (the l in Z+l).
         E.g. 'm3' for channel 'mmm' or 'e' for channel 'emm'.
         '''
+        global _zzFakeRateCalculator_channelObjMap_
         try:
             return self._zzFakeRateCalculator_channelObjMap_[channel]
         except KeyError:
@@ -278,8 +281,8 @@ class ZZFakeRateCalculator(object):
 
     def writeOutput(self):
         with root_open(self.outFileName, "RECREATE") as f:
-            for h in self.outputs:
-                h.Write()
+            for op in self.outputs:
+                op.Write()
 
 
     
@@ -329,24 +332,34 @@ if __name__ == '__main__':
     etaBinning=[0.,0.8,1.47,2.5]#0.5,0.8,1.04,1.2,1.6,2.1,2.5]
 
     channelsByObject = {}
+    channelsByType = {}
     for ch in calc.channels:
         obj = calc.fakeObjectForChannel(ch)
         if obj not in channelsByObject:
             channelsByObject[obj] = [ch]
         else:
             channelsByObject[obj].append(ch)
+        objType = obj[0]
+        if objType not in channelsByType:
+            channelsByType[objType] = [ch]
+        else:
+            channelsByType[objType].append(ch)
 
-    for obj, chs in channelsByObject.iteritems():
-        calc.calculateFakeRate(obj+'FakeRate', chs,
+    for obj, chs in iChain(channelsByObject.iteritems(), channelsByType.iteritems()):
+        if len(chs) == 1:
+            objToPrint = obj[0]+'_'+chs[0]
+        else:
+            objToPrint = obj[0]
+        calc.calculateFakeRate(objToPrint+'_FakeRate', chs,
                                'Pt', ptBinning, 'Eta', etaBinning,
                                draw=args.paint,
                                xTitle='p_{T}', xUnits='GeV',
                                yTitle='\\eta')
-        calc.calculateFakeRate(obj+'FakeRatePt', chs,
+        calc.calculateFakeRate(objToPrint+'_FakeRatePt', chs,
                                'Pt', ptBinning,
                                draw=args.paint,
                                xTitle='p_{T}', xUnits='GeV')
-        calc.calculateFakeRate(obj+'FakeRateEta', chs,
+        calc.calculateFakeRate(objToPrint+'_FakeRateEta', chs,
                                'Eta', etaBinning,
                                draw=args.paint,
                                xTitle='\\eta')
