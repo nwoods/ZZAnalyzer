@@ -81,6 +81,7 @@ class ZZNtupleFSR(ZZNtupleSaver):
             'muVetoIso',
             'muVetoTight',
             'muVetoTightIso',
+            'type1_pfMetEt',
         ]
 
         self.copyVars[1] = [
@@ -101,6 +102,13 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sPFNeutralIso',
             '%sPFPhotonIso',
             '%sRho',
+            '%sMatchesDoubleESingleMu',
+            '%sMatchesDoubleMuSingleE',
+            '%sMatchesSingleESingleMu',
+            '%sMatchesSingleMuSingleE',
+            '%sHZZIsoPass',
+            '%sHZZLooseID',
+            '%sHZZTightID',
             ]
 
         self.flavoredCopyVars['e'] = [ 
@@ -112,6 +120,11 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sMissingHits',
             '%sNearestMuonDR',
             '%sRelPFIsoRhoFSR',
+            '%sMatchesDoubleE',
+            '%sMatchesSingleE',
+            '%sMatchesSingleE_leg1',
+            '%sMatchesSingleE_leg2',
+            '%sMatchesTripleE',
         ]
 
         self.flavoredCopyVars['m'] = [
@@ -123,6 +136,11 @@ class ZZNtupleFSR(ZZNtupleSaver):
             '%sPFPUChargedIso',
             '%sBestTrackType',
             '%sRelPFIsoDBFSR',
+            '%sMatchesDoubleMu',
+            '%sMatchesSingleMu',
+            '%sMatchesSingleMu_leg1',
+            '%sMatchesSingleMu_leg2',
+            '%sMatchesTripleMu',
             ]
 
         self.copyVars[2] = [

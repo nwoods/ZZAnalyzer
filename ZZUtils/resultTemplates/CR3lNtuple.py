@@ -67,6 +67,14 @@ class CR3lNtuple(ZZNtupleSaver):
             'jet4Eta',
             'nJets',
             'GenWeight',
+            'eVeto',
+            'eVetoIso',
+            'eVetoTight',
+            'eVetoTightIso',
+            'muVeto',
+            'muVetoIso',
+            'muVetoTight',
+            'muVetoTightIso',
             'type1_pfMetEt',
         ]
 
@@ -88,6 +96,10 @@ class CR3lNtuple(ZZNtupleSaver):
             '%sPFNeutralIso',
             '%sPFPhotonIso',
             '%sRho',
+            '%sMatchesDoubleESingleMu',
+            '%sMatchesDoubleMuSingleE',
+            '%sMatchesSingleESingleMu',
+            '%sMatchesSingleMuSingleE',
             ]
 
         self.flavoredCopyVars['e'] = [ 
@@ -99,6 +111,11 @@ class CR3lNtuple(ZZNtupleSaver):
             '%sMissingHits',
             '%sNearestMuonDR',
             # '%sRelPFIsoRhoFSR',
+            '%sMatchesDoubleE',
+            '%sMatchesSingleE',
+            '%sMatchesSingleE_leg1',
+            '%sMatchesSingleE_leg2',
+            '%sMatchesTripleE',
         ]
 
         self.flavoredCopyVars['m'] = [
@@ -110,6 +127,11 @@ class CR3lNtuple(ZZNtupleSaver):
             '%sPFPUChargedIso',
             '%sBestTrackType',
             # '%sRelPFIsoDBFSR',
+            '%sMatchesDoubleMu',
+            '%sMatchesSingleMu',
+            '%sMatchesSingleMu_leg1',
+            '%sMatchesSingleMu_leg2',
+            '%sMatchesTripleMu',
             ]
 
         self.copyVars[2] = [
