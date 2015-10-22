@@ -7,7 +7,7 @@ Author: N. Woods, U. Wisconsin
 '''
 
 from math import pi, sqrt
-
+from json import load as loadJSON
 
 def evVar(row, var):
     '''
@@ -152,3 +152,9 @@ def mapObjects(channel):
         return objects
 
 
+def dictFromJSONFile(fName):
+    '''
+    Take a JSON file, return a dict with the information.
+    '''
+    with open(fName) as f:
+        return loadJSON(f)
