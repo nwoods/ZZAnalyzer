@@ -27,20 +27,21 @@ rlog["/ROOT.TCanvas.Print"].setLevel(rlog.WARNING)
 rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
 rlog["/rootpy.tree.chain"].setLevel(rlog.WARNING)
 
-from rootpy.io import root_open, File
+from rootpy.io import root_open, File, DoesNotExist
 from rootpy.plotting import Hist, Hist2D, Hist3D, HistStack, Graph, Canvas, Legend, Pad
 from rootpy.plotting.hist import _Hist, _Hist2D, _Hist3D
 from rootpy.plotting.graph import _Graph1DBase
 from rootpy.plotting.utils import draw, get_band
 from rootpy.ROOT import kTRUE, kFALSE, TLine
 import rootpy.ROOT as ROOT
-from rootpy.tree import Tree, TreeChain
+from rootpy.tree import Tree, TreeChain, Cut
 from rootpy.plotting.base import Plottable
 from rootpy import asrootpy, QROOT
 
 from ZZPlotStyle import ZZPlotStyle
 from ZZMetadata import sampleInfo
 from ZZHelpers import makeNumberPretty, parseChannels
+from WeightStringMaker import makeWeightStringFromHist
 
 ROOT.gROOT.SetBatch(kTRUE)
 
@@ -169,6 +170,8 @@ class NtuplePlotter(object):
             self.dataOrMC[cat] = True
             self.files[cat] = {}
 
+        self.sumOfWeights = {} # for MC
+
         self.ntuples = {cat : {} for cat in mcFiles}
         self.ntuples.update({cat : {cat:{}} for cat in dataFiles})
         for cat, samples in self.files.iteritems():
@@ -186,8 +189,10 @@ class NtuplePlotter(object):
                         self.files[cat] = {}
                         self.ntuples[cat][cat] = {}
             else:
+                self.sumOfWeights[cat] = {}
                 for s in samples:
                     self.ntuples[cat][s] = { c : samples[s].Get("%s/final/Ntuple"%c) for c in self.channels }
+                    self.sumOfWeights[cat][s] = self.getWeightSum(samples[s])
 
         self.drawings = {}
 
@@ -327,6 +332,39 @@ class NtuplePlotter(object):
 
         return out, tempFile
         
+
+    def printPassingEvents(self, category, sample=''):
+        '''
+        If sample is blank, it is taken to be the same as category (as for
+        data).
+        '''
+        if not sample:
+            sample = category
+        for channel, ntuple in self.ntuples[category][sample].iteritems():
+            print "%s:"%channel
+            for row in ntuple:
+                print "    %d:%d:%d"%(row.run, row.lumi, row.evt)
+            print ''
+
+
+    def getWeightSum(self, inFile):
+        '''
+        Take the input file for a sample, and use a metaInfo tree to calculate
+        the sum of the MC weights originally generated. This is assumed to be 
+        the same for all channels, so they are tried in a ~random order until
+        an appropriate tree is found. If none is found, the value from 
+        ZZMetadata.py is used, but this is dangerous because I don't trust
+        myself to keep it up to date.
+        '''
+        for ch in self.channels:
+            try:
+                metaTree = inFile.Get("%s/metaInfo"%ch)
+            except DoesNotExist:
+                continue
+            return metaTree.Draw('1', 'summedWeights').Integral()
+        else: # no tree in any channel
+            return sampleInfo[sample]['sumW']
+
 
     WrappedHist = WrapPlottable(Hist)
     WrappedHist2 = WrapPlottable(Hist2D)
@@ -500,16 +538,17 @@ class NtuplePlotter(object):
             be an iterable of (possibly empty) strings with length equal to the
             number of histograms.
             '''
+            if obj.GetTitle() == '___DONOTADDTOLEGEND': return # don't ask
             if isinstance(obj, _Hist2D) or isinstance(obj, _Hist3D): 
                 # no legend for 2- or 3D Hist
                 return
             if isinstance(obj, HistStack):
-                if not bool(legendName) or isinstance(legendName, str):
+                if (not bool(legendName)) or isinstance(legendName, str):
                     legendName = ['' for h in obj]
                 else:
                     assert len(legendName) == len(obj), "Must have the same number of names as histograms."
                 for h, name in zip(obj, legendName):
-                    self.addToLegend(h, legendStyle, name)
+                    self.addToLegend(h, '', name)
                 return
             # if not hasattr(obj, "sample"):
             #     raise AttributeError("%s doesn't know what sample it's "
@@ -519,14 +558,7 @@ class NtuplePlotter(object):
             if legendStyle:
                 obj.legendStyle = legendStyle
             else:
-                # Anything that isn't in the sample information is assumed data
-                try:
-                    thisIsData = sampleInfo[obj.getSample()]['isData']
-                except KeyError:
-                    thisIsData = True
-                except AttributeError:
-                    thisIsData = False
-                if thisIsData:
+                if obj.getIsData() and obj.getIsSignal():
                     obj.legendstyle = "LPE"
                 else:
                     obj.legendstyle = "F"
@@ -723,8 +755,8 @@ class NtuplePlotter(object):
 
 
     def makeHist(self, category, sample, channels, variables, selections, 
-                 binning, scale=1, weight='', formatOpts={}, perUnitWidth=True,
-                 nameForLegend=''):
+                 binning, scale=1, weights='', formatOpts={}, perUnitWidth=True,
+                 nameForLegend='', isBackground=False):
         '''
         Make a histogram of variable(s) in channel(s) channel in sample subject
         to selection(s). If there is only one variable and selection (each
@@ -734,7 +766,8 @@ class NtuplePlotter(object):
         same length), channels must be an iterator of the same length as well, 
         a histogram is made for each (channels[i], variables[i], selections[i]),
         and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
-        regardless of channel.
+        regardless of channel. If either is a string, it is applied to all 
+        channels.
         If binning has length 3, it is interpreted as [nbins, lowBin, highBin].
         Otherwise, it is interpreted as the edges of variably-sized bins. In 
         the case of variably sized bins, if perUnitWidth is True, each bin is 
@@ -745,6 +778,11 @@ class NtuplePlotter(object):
         If nameForLegend is a nonempty string, it is used as the legend text
         for the histogram. Otherwise, the category/sample name is used for 
         data, and the sample's prettyName is used for MC.
+        If weights is a string, it is applied to all channels. If it is an 
+        iterable of strings, each item is expected to correspond to one channel
+        as with variables and selections.
+        isBackground forces the histogram to be formatted like MC even if it 
+        is data.
         '''
         if nameForLegend:
             prettyName = nameForLegend
@@ -754,6 +792,11 @@ class NtuplePlotter(object):
             else:
                 prettyName = sampleInfo[sample]['prettyName']
 
+        if self.isData(category):
+            isSignal = not isBackground
+        else:
+            isSignal = sampleInfo[sample]['isSignal']
+
         histKWArgs = {
             'title' : prettyName,
             'sample' : sample, 
@@ -761,41 +804,51 @@ class NtuplePlotter(object):
             'selection' : selections, 
             'category' : category,
             'channel' : channels,
+            'isData' : self.isData(category),
+            'isSignal' : isSignal,
             }
         if len(binning) == 3 or (len(binning) == 1 and isinstance(binning[0], Sequence)):
             h = self.WrappedHist(*binning, **histKWArgs)
         else:
             h = self.WrappedHist(binning, **histKWArgs)
 
-        if isinstance(variables, str) and isinstance(selections, str):
-            for ch in parseChannels(channels):
-                self.addToHist(h, category, sample, ch, variables, selections)
+        channels = parseChannels(channels)
 
-        elif len(variables) == len(selections):
-            assert isinstance(channels, Sequence) and \
-                len(channels) == len(variables), \
-                "Channel, variable, and selections lists must match"
-            for i in xrange(len(variables)):
-                selection = selections[i]
-                # weight appropriately
-                if scale > 0.:
-                    if weight:
-                        if selection == "":
-                            selection = weight
-                        else:
-                            selection = "({0})*({1})".format(weight,selection)
-                            
-                self.addToHist(h, category, sample, channels[i], variables[i],
-                               selection)
+        if isinstance(variables, str):
+            variables = [variables for c in channels]
+        if isinstance(selections, str):
+            selections = [selections for c in channels]
+        if isinstance(weights, str):
+            weights = [weights for c in channels]
 
-        self.formatHist(h, **formatOpts)
+        assert len(channels) == len(variables) and \
+            len(variables) == len(selections) and\
+            len(selections) == len(weights), \
+                "Channel, variable, selection, and weight lists must match"
+        for i in xrange(len(variables)):
+            variable = variables[i]
+            selection = selections[i]
+            weight = weights[i]
+            channel = channels[i]
+            # weight appropriately
+            if scale > 0.:
+                if weight:
+                    if selection == "":
+                        selection = weight
+                    else:
+                        selection = "({0})*({1})".format(weight,selection)
+                        
+            self.addToHist(h, category, sample, channel, variable,
+                           selection)
+
+        self.formatHist(h, background=isBackground, **formatOpts)
         self.scaleHist(h, scale, perUnitWidth)
 
         return h
 
 
     def makeHist2(self, category, sample, channels, variables, selections, 
-                  binning, scale=1., weight='', formatOpts={}):
+                  binning, scale=1., weights='', formatOpts={}):
         '''
         Make a histogram of variable(s) in channel(s) channel in sample subject
         to selection(s). If there is only one variable and selection (each
@@ -807,6 +860,9 @@ class NtuplePlotter(object):
         and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
         regardless of channel.
         The binning is passed directly to Rootpy's Hist2D constructor.
+        If weights is a string, it is applied to all channels. If it is an 
+        iterable of strings, each item is expected to correspond to one channel
+        as with variables and selections.
         '''
         if self.isData(category):
             prettyName = category
@@ -822,25 +878,34 @@ class NtuplePlotter(object):
             }
         h = self.WrappedHist2(*binning, **histKWArgs)
 
-        if isinstance(variables, str) and isinstance(selections, str):
-            for ch in parseChannels(channels):
-                self.addToHist(h, category, sample, ch, variables, selections)
+        channels = parseChannels(channels)
 
-        elif len(variables) == len(selections):
-            assert isinstance(channels, Sequence) and \
-                len(channels) == len(variables), \
-                "Channel, variable, and selections lists must match"
-            for i in xrange(len(variables)):
-                selection = selections[i]
-                # weight appropriately
-                if weight:
-                    if selection == "":
-                        selection = weight
-                    else:
-                        selection = "({0})*({1})".format(weight,selection)
+        if isinstance(variables, str):
+            variables = [variables for c in channels]
+        if isinstance(selections, str):
+            selections = [selections for c in channels]
+        if isinstance(weights, str):
+            weights = [weights for c in channels]
 
-                self.addToHist(h, category, sample, channels[i], variables[i],
-                               selection)
+        assert len(channels) == len(variables) and \
+            len(variables) == len(selections) and\
+            len(selections) == len(weights), \
+                "Channel, variable, selection, and weight lists must match"
+
+        for i in xrange(len(variables)):
+            variable = variables[i]
+            selection = selections[i]
+            weight = weights[i]
+            channel = channels[i]
+            # weight appropriately
+            if weight:
+                if selection == "":
+                    selection = weight
+                else:
+                    selection = "({0})*({1})".format(weight,selection)
+
+            self.addToHist(h, category, sample, channels[i], variables[i],
+                           selection)
 
         self.formatHist2(h, **formatOpts)
         self.scaleHist2(h, scale)
@@ -849,7 +914,7 @@ class NtuplePlotter(object):
 
 
     def makeHist3(self, category, sample, channels, variables, selections, 
-                  binning, scale=1., weight='', formatOpts={}):
+                  binning, scale=1., weights='', formatOpts={}):
         '''
         Make a 3D histogram of variable(s) in channel(s) channel in sample subject
         to selection(s). If there is only one variable and selection (each
@@ -860,7 +925,10 @@ class NtuplePlotter(object):
         a histogram is made for each (channels[i], variables[i], selections[i]),
         and these are summed. The idea is to allow, e.g., a plot of Z1 mass 
         regardless of channel.
-        The binning is passed directly to Rootpy's Hist3D constructor
+        The binning is passed directly to Rootpy's Hist3D constructor.
+        If weight is a string, it is applied to all channels. If it is an 
+        iterable of strings, each item is expected to correspond to one channel
+        as with variables and selections.
         '''
         if self.isData(category):
             prettyName = category
@@ -876,25 +944,34 @@ class NtuplePlotter(object):
             }
         h = self.WrappedHist3(*binning, **histKWArgs)
 
-        if isinstance(variables, str) and isinstance(selections, str):
-            for ch in parseChannels(channels):
-                self.addToHist(h, category, sample, ch, variables, selections)
+        channels = parseChannels(channels)
 
-        elif len(variables) == len(selections):
-            assert isinstance(channels, Sequence) and \
-                len(channels) == len(variables), \
-                "Channel, variable, and selections lists must match"
-            for i in xrange(len(variables)):
-                selection = selections[i]
-                # weight appropriately
-                if weight:
-                    if selection == "":
-                        selection = weight
-                    else:
-                        selection = "({0})*({1})".format(weight,selection)
+        if isinstance(variables, str):
+            variables = [variables for c in channels]
+        if isinstance(selections, str):
+            selections = [selections for c in channels]
+        if isinstance(weights, str):
+            weights = [weights for c in channels]
 
-                self.addToHist(h, category, sample, channels[i], variables[i],
-                               selection)
+        assert len(channels) == len(variables) and \
+            len(variables) == len(selections) and\
+            len(selections) == len(weights), \
+                "Channel, variable, selection, and weight lists must match"
+
+        for i in xrange(len(variables)):
+            variable = variables[i]
+            selection = selections[i]
+            weight = weights[i]
+            channel = channels[i]
+            # weight appropriately
+            if weight:
+                if selection == "":
+                    selection = weight
+                else:
+                    selection = "({0})*({1})".format(weight,selection)
+
+            self.addToHist(h, category, sample, channels[i], variables[i],
+                           selection)
 
         self.formatHist3(h, **formatOpts)
         self.scaleHist3(h, scale)
@@ -917,7 +994,7 @@ class NtuplePlotter(object):
         if scale != -1.:
             # overall scale
             if scale > 0.:
-                scale *= (self.intLumi * sampleInfo[h.getSample()]['xsec'] / sampleInfo[h.getSample()]['sumW'])
+                scale *= (self.intLumi * sampleInfo[h.getSample()]['xsec'] / self.sumOfWeights[h.getCategory()][h.getSample()])
             elif scale < 0.:
                 scale = abs(scale)
             else:
@@ -951,12 +1028,15 @@ class NtuplePlotter(object):
         conventions. With keyword arguments, sets formatting variables (color
         etc.) accordingly.
         '''
-        if self.isData(h.getCategory()):
+        if self.isData(h.getCategory()) and not opts.get('background', False):
             h.drawstyle = 'PE1'
         else:
             h.drawstyle = 'hist'
             h.fillstyle = 'solid'
-            h.fillcolor = sampleInfo[h.getSample()]['color']
+            if self.isData(h.getCategory()):
+                h.fillcolor = 'forestgreen'
+            else:
+                h.fillcolor = sampleInfo[h.getSample()]['color']
            
         for opt, val in opts.iteritems():
             setattr(h, opt, val)
@@ -1009,7 +1089,7 @@ class NtuplePlotter(object):
     
     def makeCategoryStack(self, category, channel, variable, selection,
                           binning, scale=1., weight='', sortByMax=True, 
-                          perUnitWidth=True):
+                          perUnitWidth=True, extraHists=[]):
         '''
         Makes a stack of all histograms from the samples in category by 
         passing parameters to self.makeHist().
@@ -1021,9 +1101,19 @@ class NtuplePlotter(object):
                                        selection, binning, scale, weight, 
                                        perUnitWidth=perUnitWidth))
 
-        s = self.WrappedStack(self.orderForStack(hists, sortByMax),
+        if extraHists:
+            hists += extraHists
+
+        hists = self.orderForStack(hists, sortByMax)
+
+        # workaround for bizarre ROOT bug
+        emptyHist = hists[0].empty_clone(title="___DONOTADDTOLEGEND") #Hist([e for e in hists[0]._edges(0)], title='___DONOTADDTOLEGEND') #
+        hists.append(emptyHist)
+
+        s = self.WrappedStack(hists,
                               category=category, variable=variable,
                               selection=selection)
+        s.drawstyle = 'histnoclear'
         
         return s
                   
@@ -1076,7 +1166,9 @@ class NtuplePlotter(object):
             binGetter = Hist.GetMaximumBin
         else:
             binGetter = Hist.GetMinimumBin
-        key = lambda h: (sampleInfo[h.getSample()]['isSignal'], 
+
+        # lazy way to prevent data hist from reaching sampleInfo query
+        key = lambda h: (not(self.isData(h.getCategory()) or not sampleInfo[h.getSample()]['isSignal']), 
                          h.GetBinContent(binGetter(h)))
 
         hists.sort(key=key)
@@ -1085,18 +1177,23 @@ class NtuplePlotter(object):
 
 
     def fullPlot(self, name, channel, variable, selection, binning,
-                 mcCategory='mc', dataCategory='data',
+                 mcCategory='mc', dataCategory='data', extraBkgs=[],
                  canvasX=800, canvasY=1000, logy=False, styleOpts={}, 
                  ipynb=False, xTitle="", xUnits="GeV", yTitle="Events",
                  yUnits="", drawNow=False, outFile='', legParams={}, 
-                 drawOpts={}):
+                 mcWeights='GenWeight', drawOpts={}):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
-        Store it in self.drawings keyed to name.
+        extraBkgs may be a list of other background histograms (e.g. a data-
+        driven background estimation) to be included in the stack with the MC.
+        Store it in self.drawings keyed to name, and save the plot if outFile
+        is specified.
         '''
-        self.drawings[name] = self.Drawing(name, self.style, canvasX, canvasY, logy, ipynb)
+        self.drawings[name] = self.Drawing(name, self.style, canvasX, canvasY, 
+                                           logy, ipynb)
         s = self.makeCategoryStack(mcCategory, channel, variable, selection,
-                                   binning, 1., "GenWeight")
+                                   binning, 1., mcWeights,
+                                   extraHists=extraBkgs)
         if len(s):
             self.drawings[name].addObject(s)
         h = self.makeHist(dataCategory, dataCategory, channel, variable, selection,
@@ -1107,10 +1204,11 @@ class NtuplePlotter(object):
             # add data/MC ratio plot
             self.drawings[name].addRatio(h, s, yTitle="Data / MC")
 
-        self.drawings[name].draw(drawOpts, self.outdir+outFile, drawNow, 
-                                 xTitle, xUnits, yTitle, yUnits, True, 
-                                 legParams, True, self.intLumi, 
-                                 h.GetEntries()==0)
+        if outFile:
+            self.drawings[name].draw(drawOpts, self.outdir+outFile, drawNow, 
+                                     xTitle, xUnits, yTitle, yUnits, True, 
+                                     legParams, True, self.intLumi, 
+                                     h.GetEntries()==0)
 
 
     def makeEfficiency(self, category, sample, channels, variables, 
