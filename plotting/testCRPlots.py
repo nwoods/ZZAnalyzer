@@ -2,13 +2,14 @@ from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS
 
 plotters = {}
-crs = ['SS', '3P1F', '2P2F']
+crs = ['3P1F', '2P2F']
 
 for cr in crs:
 
-    plotters[cr] = NtuplePlotter('zz', './plots/mcPlots25ns_anDraft/CR_%s'%cr,
-                                 {'mc':'/data/nawoods/ntuples/zzNtuples25ns_anDraft_0/results_CR_%s/*.root'%cr}, 
-                                 {'data':'/data/nawoods/ntuples/zzNtuples25ns_anDraft_0/results_CR_%s/data*.root'%cr}, 1000.)
+    plotters[cr] = NtuplePlotter('zz', './plots/CR_MCData2015CD_16oct/CR_%s'%cr,
+                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_12oct2015_0/results_%s/*.root'%cr}, 
+                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd_12oct2015_0/results_%s/data*.root'%cr}, 
+                                 592.27)
 
     for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
 
@@ -16,12 +17,12 @@ for cr in crs:
         if channel == 'zz':
             chdir = ''
 
-        plotters[cr].fullPlot('4lMassFSR_total', channel, 'MassFSR', '', [40, 0., 800], 
+        plotters[cr].fullPlot('4lMassFSR_total', channel, 'MassFSR', '', [20, 0., 800], 
                               'mc', 'data', canvasX=1000, logy=False, xTitle="m_{4\\ell}", 
-                              outFile='m4l%s.png'%chdir, )
+                              outFile='m4l%s.png'%chdir, mcWeights='GenWeight')
         plotters[cr].fullPlot('nJets_total', channel, 'nJets', '', [8, -0.5, 7.5], 'mc', 'data',
                               canvasX=1000, logy=False, xTitle="\\text{#Jets}", xUnits="",
-                              outFile='nJets%s.png'%chdir,
+                              outFile='nJets%s.png'%chdir, mcWeights='GenWeight',
                               # legParams={'leftmargin':0.6,'rightmargin':0.03,'textsize':0.023,
                               #            'entryheight':0.023,'entrysep':0.006} 
                               )

@@ -1,10 +1,10 @@
 from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS
 
-plotter = NtuplePlotter('zz', './plots/dataMC2015D_8oct2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_5oct2015_0/results/*.root'}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_5oct2015_test_0/results/data*.root'}, 
-                        intLumi=180)
+plotter = NtuplePlotter('zz', './plots/dataMC2015CD_14oct2015', 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_12oct2015_0/results/*.root'}, 
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd_12oct2015_0/results/data*.root'}, 
+                        intLumi=592.27)
 
 for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
 
@@ -38,10 +38,10 @@ zPlotSelections = ['', 'abs(e1_e2_MassFSR-%f) < abs(m1_m2_MassFSR-%f)'%(Z_MASS, 
 
 plotter.fullPlot('mZ1_total', zPlotChannels, z1PlotVariables, zPlotSelections, 
                  [30, 60., 120], 'mc', 'data', canvasX=1000, logy=False, xTitle="m_{Z_{1}}", 
-                 outFile='mZ1.png', )
+                 outFile='mZ1.png', mcWeights='GenWeight')
 plotter.fullPlot('mZ2_total', zPlotChannels, z2PlotVariables, zPlotSelections, 
                  [30, 60., 120], 'mc', 'data', canvasX=1000, logy=False, xTitle="m_{Z_{2}}", 
-                 outFile='mZ2.png', )
+                 outFile='mZ2.png', mcWeights='GenWeight')
 
 # ratioSample = plotter.ntuples['mc'].keys()[0]
 # ratioPlot = plotter.Drawing("ratioPlot", plotter.style, 800, 1000)
