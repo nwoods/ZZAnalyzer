@@ -62,7 +62,11 @@ plots
 plots/*
 *ipynb_checkpoints*
 recipe/vpython
+data
+data/*
 
 # EMACS temporary files
 *#*
 *~
+
+*nohup.out
