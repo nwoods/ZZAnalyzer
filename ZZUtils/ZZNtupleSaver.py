@@ -14,6 +14,7 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
+from rootpy.io import DoesNotExist
 from rootpy.tree import Tree, TreeModel, FloatCol, IntCol
 from ZZResultSaverBase import ZZResultSaverBase
 from ZZHelpers import * # evVar, objVar, nObjVar
@@ -29,7 +30,23 @@ class ZZNtupleSaver(ZZResultSaverBase):
         self.specialVarList = ['copy']
         # A few variables are saved as ints by FSA
         self.intVarList = set(['run', 'evt', 'lumi', 'isdata', 'pvIsValid', 'pvIsFake'])
+
         super(ZZNtupleSaver, self).__init__(fileName, channels, *args, **kwargs)
+
+        self.copyMetaData(channels)
+        
+
+    def copyMetaData(self, channels):
+        '''
+        Copy over metadata for each channel if it exists. If metaInfo tree
+        doesn't exist, print a warning but don't crash.
+        '''
+        for ch in channels:
+            chDir = self.inputs[ch].GetDirectory().GetMotherDir()
+            try:
+                chDir.copytree(self.outFile.Get(ch), "metaInfo")
+            except DoesNotExist:
+                print "WARNING: %s/metaInfo not found. Metadata will not be copied!"%ch
 
 
     def saveNumber(self, tree, num, var=''):
