@@ -185,6 +185,16 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                 'cuts' : {'id' : 'TYPETightID'},
                 'objects' : 1,
             },
+            'leptonLooseID' : {
+                'cuts' : {'id' : 'TYPELooseID'},
+                'objects' : 1,
+            },
+            'OKLeptons' : {
+                'cuts' : {
+                    'id' : 'leptonLooseID',
+                },
+                'logic' : 'objand',
+            },
             'GoodLeptons' : {
                 'cuts' : {
                     'id' : 'leptonTightID',
