@@ -14,7 +14,8 @@ Author: Nate Woods, U. Wisconsin
 
 from ControlRegion_Base import ControlRegion_Base
 from collections import OrderedDict
-from ZZHelpers import Z_MASS
+from ZZHelpers import Z_MASS, evVar, objVar
+from rootpy.vector import LorentzVector
 
 
 class ControlRegion_Zplusl(ControlRegion_Base):
@@ -78,9 +79,16 @@ class ControlRegion_Zplusl(ControlRegion_Base):
 
         temp['METVeto'] = {
             'cuts' : {
-                'type1_pfMetEt' : (20., "<"),
+                'type1_pfMetEt' : (25., "<"),
                 },
             }
+
+        temp['MtVeto'] = {
+            'cuts' : {
+                'MtToPfMet_type1' : (30., "<"),
+            },
+            'objects' : 1,
+        }
 
         return temp
 
@@ -99,6 +107,7 @@ class ControlRegion_Zplusl(ControlRegion_Base):
         flow['ZLeptonIso'] = ('Isolation', [1,2])
         flow['ZLeptonTriggerMatch'] = ('ZTriggerMatch', [1,2])
         flow['Lepton3ID'] = ('leptonLooseID', [3])
+        flow['MtVeto'] = ('MtVeto', [3])
         flow['CrossCleaning'] = ('CrossCleaning', [1,2,3])
         flow['SIP'] = ('SIP', [1,2,3])
         flow['GoodZ'] = ('GoodZ', [1,2])
