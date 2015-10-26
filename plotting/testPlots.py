@@ -1,10 +1,10 @@
 from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS
 
-plotter = NtuplePlotter('zz', './plots/dataMC2015CD_14oct2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_12oct2015_0/results/*.root'}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd_12oct2015_0/results/data*.root'}, 
-                        intLumi=592.27)
+plotter = NtuplePlotter('zz', './plots/dataMC2015D_22oct2015', 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_21oct2015_0/results/*.root'}, 
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_21oct2015_0/results/data*.root'}, 
+                        intLumi=1263.89)
 
 for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
 
@@ -20,7 +20,7 @@ for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
     elif channel == 'mmmm':
         particles = '4\\mu'
 
-    plotter.fullPlot('4lMassFSR%s'%chEnding, channel, 'MassFSR', '', [40, 0., 800], 
+    plotter.fullPlot('4lMassDREtFSR%s'%chEnding, channel, 'MassDREtFSR', '', [40, 0., 800], 
                      'mc', 'data', canvasX=1000, logy=False, xTitle="m_{%s}"%particles, 
                      outFile='m4l%s.png'%chEnding, )
 
@@ -29,12 +29,12 @@ plotter.fullPlot('nJets_total', 'zz', 'nJets', '', [6, -0.5, 5.5], 'mc', 'data',
                  outFile='nJets.png')
 
 zPlotChannels = ['eeee', 'eemm', 'eemm', 'mmmm']
-z1PlotVariables = ['e1_e2_MassFSR', 'e1_e2_MassFSR', 
-                   'm1_m2_MassFSR', 'm1_m2_MassFSR']
-z2PlotVariables = ['e3_e4_MassFSR', 'm1_m2_MassFSR', 
-                   'e1_e2_MassFSR', 'm3_m4_MassFSR']
-zPlotSelections = ['', 'abs(e1_e2_MassFSR-%f) < abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS), 
-                   'abs(m1_m2_MassFSR-%f) < abs(e1_e2_MassFSR-%f)'%(Z_MASS, Z_MASS), '']
+z1PlotVariables = ['e1_e2_MassDREtFSR', 'e1_e2_MassDREtFSR', 
+                   'm1_m2_MassDREtFSR', 'm1_m2_MassDREtFSR']
+z2PlotVariables = ['e3_e4_MassDREtFSR', 'm1_m2_MassDREtFSR', 
+                   'e1_e2_MassDREtFSR', 'm3_m4_MassDREtFSR']
+zPlotSelections = ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
+                   'abs(m1_m2_MassDREtFSR-%f) < abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), '']
 
 plotter.fullPlot('mZ1_total', zPlotChannels, z1PlotVariables, zPlotSelections, 
                  [30, 60., 120], 'mc', 'data', canvasX=1000, logy=False, xTitle="m_{Z_{1}}", 

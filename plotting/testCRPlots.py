@@ -6,10 +6,10 @@ crs = ['3P1F', '2P2F']
 
 for cr in crs:
 
-    plotters[cr] = NtuplePlotter('zz', './plots/CR_MCData2015CD_16oct/CR_%s'%cr,
-                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_12oct2015_0/results_%s/*.root'%cr}, 
-                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd_12oct2015_0/results_%s/data*.root'%cr}, 
-                                 592.27)
+    plotters[cr] = NtuplePlotter('zz', './plots/CR_MCData2015D_22oct/CR_%s'%cr,
+                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_21oct2015_0/results_%s/*.root'%cr}, 
+                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_21oct2015_0/results_%s/data*.root'%cr}, 
+                                 1263.89)
 
     for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
 
@@ -17,7 +17,7 @@ for cr in crs:
         if channel == 'zz':
             chdir = ''
 
-        plotters[cr].fullPlot('4lMassFSR_total', channel, 'MassFSR', '', [20, 0., 800], 
+        plotters[cr].fullPlot('4lMassFSR_total', channel, 'MassDREtFSR', '', [20, 0., 800], 
                               'mc', 'data', canvasX=1000, logy=False, xTitle="m_{4\\ell}", 
                               outFile='m4l%s.png'%chdir, mcWeights='GenWeight')
         plotters[cr].fullPlot('nJets_total', channel, 'nJets', '', [8, -0.5, 7.5], 'mc', 'data',
