@@ -13,7 +13,7 @@ from ZZHelpers import *
 
 
 class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
-    fsrVar = "FSR"
+    fsrVar = "DREtFSR"
 
     def __init__(self, cutset="FullSpectrum_FullFSR_Sync"):
         super(FullSpectrum_FullFSR_Sync, self).__init__(cutset)

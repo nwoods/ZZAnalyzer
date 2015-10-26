@@ -21,7 +21,7 @@ class SMPZZ_FullFSR_Sync(FullSpectrum_FullFSR_Sync):
     def getCutTemplate(self, *args):
         '''
         Full spectrum ZZ analysis, but requiring both Z candidates to be
-        on-shell (m4l > 60 GeV), and requiring the candidate m4l
+        on-shell (mll > 60 GeV), and requiring the candidate m4l
         to be greater than 100 GeV.
         '''
         temp = super(SMPZZ_FullFSR_Sync, self).getCutTemplate()
@@ -30,7 +30,6 @@ class SMPZZ_FullFSR_Sync(FullSpectrum_FullFSR_Sync):
         temp['4lMass']['cuts']['Mass'+self.fsrVar] = (100, ">=")
         temp['mLooseID']['cuts']['Pt'] = (10, ">=")
         temp['eLooseID']['cuts']['Pt'] = (10, ">=")
-        temp['SIP']['cuts']['SIP3D'] = (10., "<")
         
         return temp
     
