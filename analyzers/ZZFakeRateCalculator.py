@@ -328,7 +328,7 @@ if __name__ == '__main__':
                                 filesMCLoose, filesMCTight, args.channels,
                                 args.outFile, args.intLumi)
     
-    ptBinning=[0.,5.,10.,30.,60.,100.]#20.,40.,60.,100.,200.]
+    ptBinning=[10.,30.,60.,200.]#20.,40.,60.,100.,200.]
     etaBinning=[0.,0.8,1.47,2.5]#0.5,0.8,1.04,1.2,1.6,2.1,2.5]
 
     channelsByObject = {}
