@@ -46,6 +46,7 @@ sampleInfo["GluGluToZZTo2e2mu_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\mu',
     'isSignal' : True,
     'color' : 'aliceblue',
+    'kFactor' : 2.,
 }
 
 sampleInfo["GluGluToZZTo2mu2tau_BackgroundOnly_13TeV_MCFM"] = {
@@ -57,6 +58,7 @@ sampleInfo["GluGluToZZTo2mu2tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2\\mu2\\tau',
     'isSignal' : True,
     'color' : 'gray',
+    'kFactor' : 2.,
 }
 
 sampleInfo["GluGluToZZTo2e2tau_BackgroundOnly_13TeV_MCFM"] = {
@@ -68,6 +70,7 @@ sampleInfo["GluGluToZZTo2e2tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\tau',
     'isSignal' : True,
     'color' : 'slategray',
+    'kFactor' : 2.,
 }
 
 sampleInfo["GluGluToZZTo4mu_BackgroundOnly_13TeV_MCFM"] = {
@@ -79,6 +82,7 @@ sampleInfo["GluGluToZZTo4mu_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\mu',
     'isSignal' : True,
     'color' : 'lightblue',
+    'kFactor' : 2.,
 }
 
 sampleInfo["GluGluToZZTo4e_BackgroundOnly_13TeV_MCFM"] = {
@@ -90,6 +94,7 @@ sampleInfo["GluGluToZZTo4e_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4e',
     'isSignal' : True,
     'color' : 'lightsteelblue',
+    'kFactor' : 2.,
 }
 
 sampleInfo["GluGluToZZTo4tau_BackgroundOnly_13TeV_MCFM"] = {
@@ -101,6 +106,7 @@ sampleInfo["GluGluToZZTo4tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\tau',
     'isSignal' : True,
     'color' : 'darkgray',
+    'kFactor' : 2.,
 }
 
 sampleInfo["TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
@@ -134,6 +140,7 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'prettyName' : '\\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : True,
     'color' : 'skyblue',
+    'kFactor' : 1.074,
 }
 
 sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
@@ -146,4 +153,32 @@ sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
     'isSignal' : False,
     'color' : 'red',
 }
+
+sampleInfo['WWZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
+    'xsec' : 0.1651,
+    'isData' : False,
+    'isSignal' : False,
+    'shortName' : 'WWZ',
+    'prettyName' : "WWZ",
+    'color' : 'purple',
+}
+
+sampleInfo['WZZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
+    'xsec' : 0.05565,
+    'isData' : False,
+    'isSignal' : False,
+    'shortName' : 'WZZ',
+    'prettyName' : "WZZ",
+    'color' : 'mediumpurple',
+}
+
+sampleInfo['ZZZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
+    'xsec' : 0.01398,
+    'isData' : False,
+    'isSignal' : False,
+    'shortName' : 'ZZZ',
+    'prettyName' : "ZZZ",
+    'color' : 'violet',
+}
+
 
