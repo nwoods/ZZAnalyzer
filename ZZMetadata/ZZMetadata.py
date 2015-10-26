@@ -34,7 +34,7 @@ sampleInfo["DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
     'shortName' : 'DYJets',
     'prettyName' : '\\text{DY+Jets}',
     'isSignal' : False,
-    'color' : 'forestgreen',
+    'color' : '#669966', #'forestgreen',
 }
 
 sampleInfo["GluGluToZZTo2e2mu_BackgroundOnly_13TeV_MCFM"] = {
@@ -139,7 +139,7 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'shortName' : 'ZZ4l',
     'prettyName' : '\\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : True,
-    'color' : 'skyblue',
+    'color' : '#99ccff', #'skyblue',
     'kFactor' : 1.074,
 }
 
@@ -151,7 +151,7 @@ sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
     'shortName' : 'ggHZZ4l',
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{H} \\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : False,
-    'color' : 'red',
+    'color' : '#ffafaf', #'red',
 }
 
 sampleInfo['WWZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
