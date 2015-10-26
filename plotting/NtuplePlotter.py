@@ -137,8 +137,6 @@ def getMinBinWidth(obj):
         return min(obj.GetBinWidth(b) for b in range(1,len(obj)-1))
     if isinstance(obj, HistStack):
         return getMinBinWidth(obj.hists)
-    if isinstance(obj, _Graph1DBase):
-        return min(abs(obj[i][0]-obj[i-1][0]) for i in range(1,len(obj)))
     else:
         return float("Inf")
 
@@ -995,6 +993,8 @@ class NtuplePlotter(object):
             # overall scale
             if scale > 0.:
                 scale *= (self.intLumi * sampleInfo[h.getSample()]['xsec'] / self.sumOfWeights[h.getCategory()][h.getSample()])
+                if 'kFactor' in sampleInfo[h.getSample()]:
+                    scale *= sampleInfo[h.getSample()]['kFactor']
             elif scale < 0.:
                 scale = abs(scale)
             else:
