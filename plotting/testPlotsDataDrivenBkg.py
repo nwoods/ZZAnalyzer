@@ -22,39 +22,44 @@ from WeightStringMaker import makeWeightStringFromHist, makeWeightHistFromJSONDi
 
 from rootpy.io import root_open
 import rootpy.compiled as C
-from rootpy.plotting import HistStack
+from rootpy.plotting import HistStack, Canvas
+from rootpy.ROOT import Double
 
 import os
 
-plotter = NtuplePlotter('zz', './plots/dataMC2015CD_15oct2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_12oct2015_0/results/[GZ]*.root'}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd_12oct2015_0/results2/data*.root',
-                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015cd_12oct2015_0/results_3P1F/data*.root',
-                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015cd_12oct2015_0/results_2P2F/data*.root',}, 
-                        intLumi=592.27)
+plotter = NtuplePlotter('zz', './plots/dataBkgMC2015D_23oct2015', 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_21oct2015_0/results/[GZW]*.root'}, 
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_21oct2015_0/results/data*.root',
+                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015d_21oct2015_0/results_3P1F/data*.root',
+                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015d_21oct2015_0/results_2P2F/data*.root',}, 
+                        intLumi=1263.89)
+
+print plotter.ntuples['mc'].keys()
 
 plotter.printPassingEvents('data')
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_13oct2015_0.root')
+fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_22oct2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
 mFakeRateHist = fFake.Get('m_FakeRate').clone()
 
 eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', '{0}Eta')
 mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', '{0}Eta')
 
-eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_12oct2015.json')
-mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_12oct2015.json')
-mIDTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['MuonZZIDTight'], 'ratio', 'et', 'eta')
-mIDLooseTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['MuonZZIDLoose'], 'ratio', 'et', 'eta')
-mIsoFromTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['MuonZZIsolationFromTightID'], 'ratio', 'et', 'eta')
-mIsoFromLooseTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['MuonZZIsolationFromLooseID'], 'ratio', 'et', 'eta')
-mIDTightTPStrTemp = makeWeightStringFromHist(mIDTightTPHist, '{0}Pt', '{0}Eta')
-mIDLooseTPStrTemp = makeWeightStringFromHist(mIDLooseTPHist, '{0}Pt', '{0}Eta')
-mIsoFromTightTPStrTemp = makeWeightStringFromHist(mIsoFromTightTPHist, '{0}Pt', '{0}Eta')
-mIsoFromLooseTPStrTemp = makeWeightStringFromHist(mIsoFromLooseTPHist, '{0}Pt', '{0}Eta')
+eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_22oct2015.json')
+eIDTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta')
+eIDLooseTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZLoose'], 'ratio', 'pt', 'abseta')
+eIsoFromTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta')
+eIDTightTPStrTemp = makeWeightStringFromHist(eIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
+eIsoFromTightTPStrTemp = makeWeightStringFromHist(eIsoFromTightTPHist, '{0}Pt', 'abs({0}Eta)')
 
-z1eMCWeight = '1.' # still working on electron scale factors
-z2eMCWeight = '1.'
+mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_22oct2015.json')
+mIDTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta')
+mIsoFromTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta')
+mIDTightTPStrTemp = makeWeightStringFromHist(mIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
+mIsoFromTightTPStrTemp = makeWeightStringFromHist(mIsoFromTightTPHist, '{0}Pt', 'abs({0}Eta)')
+
+z1eMCWeight = '*'.join(eIDTightTPStrTemp.format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp.format('e%d'%ne) for ne in range(1,3))
+z2eMCWeight = '*'.join(eIDTightTPStrTemp.format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp.format('e%d'%ne) for ne in range(3,5))
 z1mMCWeight = '*'.join(mIDTightTPStrTemp.format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp.format('m%d'%nm) for nm in range(1,3))
 z2mMCWeight = '*'.join(mIDTightTPStrTemp.format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp.format('m%d'%nm) for nm in range(3,5))
 #z1emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1eMCWeight, z1mMCWeight)
@@ -65,19 +70,8 @@ mcWeight = {
     'eemm' : '(GenWeight*{0}*{1})'.format(z1eMCWeight, z1mMCWeight),
     'mmmm' : '(GenWeight*{0}*{1})'.format(z1mMCWeight, z2mMCWeight),
 }
+
 mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
-
-z1eMCWeightCR = '1.'
-z2eMCWeightCR = '1.'
-z1mMCWeightCR = '*'.join('(m{0}HZZTightID ? {1} * (m{0}HZZIsoPass ? {2} : 1.) : {3} * (m{0}HZZIsoPass ? {4} : 1.))'.format(nm, mIDTightTPStrTemp.format('m%d'%(nm)), mIsoFromTightTPStrTemp.format('m%d'%nm), mIDLooseTPStrTemp.format('m%d'%(nm)), mIsoFromLooseTPStrTemp.format('m%d'%nm)) for nm in range(1,3))
-z2mMCWeightCR = '*'.join('(m{0}HZZTightID ? {1} * (m{0}HZZIsoPass ? {2} : 1.) : {3} * (m{0}HZZIsoPass ? {4} : 1.))'.format(nm, mIDTightTPStrTemp.format('m%d'%(nm)), mIsoFromTightTPStrTemp.format('m%d'%nm), mIDLooseTPStrTemp.format('m%d'%(nm)), mIsoFromLooseTPStrTemp.format('m%d'%nm)) for nm in range(3,4))
-
-mcWeightCR = {
-    'eeee' : '(GenWeight*{0}*{1})'.format(z1eMCWeightCR, z2eMCWeightCR),
-    'eemm' : '(GenWeight*{0}*{1})'.format(z1eMCWeightCR, z1mMCWeightCR),
-    'mmmm' : '(GenWeight*{0}*{1})'.format(z1mMCWeightCR, z2mMCWeightCR),
-}
-mcWeightCR['zz'] = [mcWeightCR['eeee'], mcWeightCR['eemm'], mcWeightCR['mmmm']]
 
 cr3PScale = {
     'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(3,5)),
@@ -105,10 +99,10 @@ double dPhi(double phi1, double phi2)
 argle = C.dPhi(1,1) # force to compile
 
 binning4l = {
-    'MassFSR' : [40,0.,800.],
-    'EtaFSR' : [20, -5., 5.],
-    'PtFSR' : [40, 0., 200.],
-    'PhiFSR' : [12, -3.15, 3.15],
+    'MassDREtFSR' : [20,0.,800.],
+    'EtaDREtFSR' : [16, -5., 5.],
+    'PtDREtFSR' : [30, 0., 180.],
+    'PhiDREtFSR' : [12, -3.15, 3.15],
     'nJets' : [6, -0.5, 5.5],
     'type1_pfMetEt' : [10, 0., 100.],
     'type1_pfMetPhi' : [16, -3.2, 3.2],
@@ -116,13 +110,13 @@ binning4l = {
     }
 
 vars4l = {v:v for v in binning4l}
-vars4l['dPhiToPFMET'] = 'dPhi(PhiFSR, type1_pfMetPhi)'
+vars4l['dPhiToPFMET'] = 'dPhi(PhiDREtFSR, type1_pfMetPhi)'
 
 xTitle4l = {
-    'MassFSR' : 'm_{__PARTICLES__}',
-    'EtaFSR' : '\\eta_{__PARTICLES__}',
-    'PtFSR' : 'p_{T_{__PARTICLES__}}',
-    'PhiFSR' : '\\phi_{__PARTICLES__}',
+    'MassDREtFSR' : 'm_{__PARTICLES__}',
+    'EtaDREtFSR' : '\\eta_{__PARTICLES__}',
+    'PtDREtFSR' : 'p_{T_{__PARTICLES__}}',
+    'PhiDREtFSR' : '\\phi_{__PARTICLES__}',
     'nJets' : '\\text{# Jets}',
     'type1_pfMetEt' : 'ME_{T}',
     'type1_pfMetPhi' : '\\phi (ME_{T})',
@@ -130,10 +124,10 @@ xTitle4l = {
     }
 
 units = {
-    'MassFSR' : 'GeV',
-    'PhiFSR' : '',
-    'EtaFSR' : '',
-    'PtFSR' : 'GeV',
+    'MassDREtFSR' : 'GeV',
+    'PhiDREtFSR' : '',
+    'EtaDREtFSR' : '',
+    'PtDREtFSR' : 'GeV',
     'nJets' : '',
     'type1_pfMetEt' : 'GeV',
     'type1_pfMetPhi' : '',
@@ -171,10 +165,15 @@ for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
                                   bins, weights=cr2PScale[channel], 
                                   perUnitWidth=False, nameForLegend='Z+X (From Data)',
                                   isBackground=True)
+
         cr3P1F -= cr2P2F
         for b in cr3P1F:
             if b.value < 0.:
                 b.value = 0.
+
+        cr3P1F.sumw2()
+        expectedErrorBkg = Double(0)
+        integralBkg = cr3P1F.IntegralAndError(0,cr3P1F.GetNbinsX(), expectedErrorBkg)
 
         plotter.fullPlot('4l%s%s'%(varName,chEnding), channel, var, '', 
                          bins, 'mc', 'data', canvasX=1000, logy=False, 
@@ -187,19 +186,28 @@ for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
                 mcStack = ob
                 break
 
+        if 'Mass' in var:
+            expectedTotal = sum(mcStack.hists)
+            expectedTotal.sumw2()
+            expectedError = Double(0)
+            integralSig = expectedTotal.IntegralAndError(0,expectedTotal.GetNbinsX(), expectedError)
+            print "%6s:"%chEnding
+            print "    SR   : %f +/- %f"%(integralSig, expectedError)
+            print "    Bkg  : %f +/- %f"%(integralBkg, expectedErrorBkg)
+
 binning2l = {
-    'MassFSR' : [30, 60., 120.],
-    'EtaFSR' : [20, -5., 5.],
-    'PtFSR' : [30, 0., 150.],
-    'PhiFSR' : [12, -3.15, 3.15],
+    'MassDREtFSR' : [30, 60., 120.],
+    'EtaDREtFSR' : [20, -5., 5.],
+    'PtDREtFSR' : [30, 0., 150.],
+    'PhiDREtFSR' : [12, -3.15, 3.15],
     'dPhiToPFMET' : [16, -3.2, 3.2],
     }
 
 xTitles2l = {
-    'MassFSR' : 'm_{%s}',
-    'EtaFSR' : '\\eta_{%s}',
-    'PtFSR' : 'p_{T_{%s}}',
-    'PhiFSR' : '\\phi_{%s}',
+    'MassDREtFSR' : 'm_{%s}',
+    'EtaDREtFSR' : '\\eta_{%s}',
+    'PtDREtFSR' : 'p_{T_{%s}}',
+    'PhiDREtFSR' : '\\phi_{%s}',
     'dPhiToPFMET' : '\\Delta \\phi (%s, \\text{MET})'
     }
 
@@ -213,14 +221,14 @@ channels2l = {
     }
 
 selections2l = {
-    'z1' : ['', 'abs(e1_e2_MassFSR-%f) < abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS), 
-            'abs(m1_m2_MassFSR-%f) < abs(e1_e2_MassFSR-%f)'%(Z_MASS, Z_MASS), ''],
-    'z2' : ['', 'abs(e1_e2_MassFSR-%f) > abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS), 
-            'abs(m1_m2_MassFSR-%f) > abs(e1_e2_MassFSR-%f)'%(Z_MASS, Z_MASS), ''],
-    'z1e' : ['', 'abs(e1_e2_MassFSR-%f) < abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS)],
-    'z2e' : ['', 'abs(e1_e2_MassFSR-%f) > abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS)],
-    'z1m' : ['abs(e1_e2_MassFSR-%f) > abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS), ''],
-    'z2m' : ['abs(e1_e2_MassFSR-%f) < abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS), ''],
+    'z1' : ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
+            'abs(m1_m2_MassDREtFSR-%f) < abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+    'z2' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
+            'abs(m1_m2_MassDREtFSR-%f) > abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+    'z1e' : ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS)],
+    'z2e' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS)],
+    'z1m' : ['abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+    'z2m' : ['abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
     }
 
 varTemplates2l = {
@@ -245,7 +253,7 @@ for z, channels in channels2l.iteritems():
     
     for var, bins in binning2l.iteritems():
         if var == 'dPhiToPFMET':
-            variables = ['dPhi(%s, type1_pfMetPhi)'%(v%'PhiFSR') for v in varTemplates2l[z]]
+            variables = ['dPhi(%s, type1_pfMetPhi)'%(v%'PhiDREtFSR') for v in varTemplates2l[z]]
         else:
             variables = [v%var for v in varTemplates2l[z]]
 
@@ -291,7 +299,7 @@ vars1l = {
     'Phi' : {lep:'Phi' for lep in ['e', 'm']},
     'PVDXY' : {lep:'PVDXY' for lep in ['e', 'm']},
     'PVDZ' : {lep:'PVDZ' for lep in ['e', 'm']},
-    'Iso' : {'e' : 'RelPFIsoRhoFSR', 'm' : 'RelPFIsoDBFSR'},
+    'Iso' : {'e' : 'RelPFIsoRhoDREtFSR', 'm' : 'RelPFIsoDBDREtFSR'},
     }
 
 xTitles1l = {
@@ -388,12 +396,12 @@ for channel in etaSumChannels:
 
 
 # zPlotChannels = ['eeee', 'eemm', 'eemm', 'mmmm']
-# z1PlotVariables = ['e1_e2_MassFSR', 'e1_e2_MassFSR', 
-#                    'm1_m2_MassFSR', 'm1_m2_MassFSR']
-# z2PlotVariables = ['e3_e4_MassFSR', 'm1_m2_MassFSR', 
-#                    'e1_e2_MassFSR', 'm3_m4_MassFSR']
-# zPlotSelections = ['', 'abs(e1_e2_MassFSR-%f) < abs(m1_m2_MassFSR-%f)'%(Z_MASS, Z_MASS), 
-#                    'abs(m1_m2_MassFSR-%f) < abs(e1_e2_MassFSR-%f)'%(Z_MASS, Z_MASS), '']
+# z1PlotVariables = ['e1_e2_MassDREtFSR', 'e1_e2_MassDREtFSR', 
+#                    'm1_m2_MassDREtFSR', 'm1_m2_MassDREtFSR']
+# z2PlotVariables = ['e3_e4_MassDREtFSR', 'm1_m2_MassDREtFSR', 
+#                    'e1_e2_MassDREtFSR', 'm3_m4_MassDREtFSR']
+# zPlotSelections = ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
+#                    'abs(m1_m2_MassDREtFSR-%f) < abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), '']
 # 
 # plotter.fullPlot('mZ1_total', zPlotChannels, z1PlotVariables, zPlotSelections, 
 #                  [30, 60., 120], 'mc', 'data', canvasX=1000, logy=False, xTitle="m_{Z_{1}}", 
