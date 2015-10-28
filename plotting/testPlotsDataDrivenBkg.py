@@ -38,6 +38,18 @@ print plotter.ntuples['mc'].keys()
 
 plotter.printPassingEvents('data')
 
+print ""
+print "3P1F CR (data):"
+print '    eeee: %d'%plotter.ntuples['3P1F']['3P1F']['eeee'].GetEntries()
+print '    eemm: %d'%plotter.ntuples['3P1F']['3P1F']['eemm'].GetEntries()
+print '    mmmm: %d'%plotter.ntuples['3P1F']['3P1F']['mmmm'].GetEntries()
+
+print ""
+print "2P2F CR (data):"
+print '    eeee: %d'%plotter.ntuples['2P2F']['2P2F']['eeee'].GetEntries()
+print '    eemm: %d'%plotter.ntuples['2P2F']['2P2F']['eemm'].GetEntries()
+print '    mmmm: %d'%plotter.ntuples['2P2F']['2P2F']['mmmm'].GetEntries()
+
 fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_26oct2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
 mFakeRateHist = fFake.Get('m_FakeRate').clone()
