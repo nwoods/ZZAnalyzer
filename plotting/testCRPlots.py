@@ -6,9 +6,9 @@ crs = ['3P1F', '2P2F']
 
 for cr in crs:
 
-    plotters[cr] = NtuplePlotter('zz', './plots/CR_MCData2015D_22oct/CR_%s'%cr,
-                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_21oct2015_0/results_%s/*.root'%cr}, 
-                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_21oct2015_0/results_%s/data*.root'%cr}, 
+    plotters[cr] = NtuplePlotter('zz', './plots/CR_MCData2015D_26oct/CR_%s'%cr,
+                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26oct2015_0/results_%s/*.root'%cr}, 
+                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_%s/data*.root'%cr}, 
                                  1263.89)
 
     for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
