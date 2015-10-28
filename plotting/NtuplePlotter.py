@@ -162,7 +162,7 @@ class NtuplePlotter(object):
         self.files = {}
         for cat, files in mcFiles.iteritems():
             self.dataOrMC[cat] = False
-            self.storeFilesFromArg(files, cat)
+            self.storeMCFileNamesFromArg(files, cat)
         # don't open data files now; chain will do that
         for cat in dataFiles:
             self.dataOrMC[cat] = True
@@ -188,9 +188,13 @@ class NtuplePlotter(object):
                         self.ntuples[cat][cat] = {}
             else:
                 self.sumOfWeights[cat] = {}
-                for s in samples:
-                    self.ntuples[cat][s] = { c : samples[s].Get("%s/final/Ntuple"%c) for c in self.channels }
-                    self.sumOfWeights[cat][s] = self.getWeightSum(samples[s])
+                for sample, fileNames in samples.iteritems():
+                    self.sumOfWeights[cat][sample] = self.getWeightSum(fileNames)
+                    if len(fileNames) == 1:
+                        self.files[cat][sample] = root_open(fileNames[0])
+                        self.ntuples[cat][sample] = { c : self.files[cat][sample].Get("%s/final/Ntuple"%c) for c in self.channels }
+                    else:
+                        self.ntuples[cat][sample] = { c : TreeChain("%s/final/Ntuple"%c, fileNames) for c in self.channels }
 
         self.drawings = {}
 
@@ -212,33 +216,30 @@ class NtuplePlotter(object):
         '''
         return self.dataOrMC[category]
         
-
-    def storeFilesFromArg(self, files, category):
+    # string ends with an underscore followed by an integer
+    subSampleEnding = re.compile('_\d+$') 
+    def storeMCFileNamesFromArg(self, files, category):
         '''
-        Get files from this argument and store them in group category (data, mc, etc....)
+        Extract MC file names from a string, and store them in lists for each
+        sample. A file name like 'XXX_N.root' where N is some integer, is 
+        taken to be one of several files in sample XXX.
         '''
         if category not in self.files:
             self.files[category] = {}
             
-        try:
-            self.files[category].update({k:root_open(f) for k,f in self.getFileNamesFromArg(files).iteritems()})
-        except TypeError:
-            print "Invalid %s file list"%category
-            print files
-            print "(must be string of paths, list of string of paths, list "+\
-                "of files, or dictionary of files)"
-            raise
-        except:
-            print "Failed to open %s files"%category
-            print files
-            raise
+        for k,f in self.getFileNamesFromArg(files).iteritems():
+            sampleName = self.subSampleEnding.sub("", k)
+            if sampleName in self.files[category]:
+                self.files[category][sampleName].append(f)
+            else:
+                self.files[category][sampleName] = [f]
 
 
     def getFileNamesFromArg(self, files):
         '''
         If files is a string, it is interpreted as a comma-separated list of 
         wildcards pointing to root files, or directories containing root files
-        (which are assumed to have names ending in ',root'). Then a dict is
+        (which are assumed to have names ending in '.root'). Then a dict is
         returned with the (open) root files keyed to their file names (without
         the path or '.root'). 
         If files is a list of strings, they are assumed to be wildcards or
@@ -345,9 +346,10 @@ class NtuplePlotter(object):
             print ''
 
 
-    def getWeightSum(self, inFile):
+    def getWeightSum(self, inFiles):
         '''
-        Take the input file for a sample, and use a metaInfo tree to calculate
+        Take the list of input file names for a sample, and use the metaInfo 
+        trees to calculate
         the sum of the MC weights originally generated. This is assumed to be 
         the same for all channels, so they are tried in a ~random order until
         an appropriate tree is found. If none is found, the value from 
@@ -355,11 +357,20 @@ class NtuplePlotter(object):
         myself to keep it up to date.
         '''
         for ch in self.channels:
-            try:
-                metaTree = inFile.Get("%s/metaInfo"%ch)
-            except DoesNotExist:
-                continue
-            return metaTree.Draw('1', 'summedWeights').Integral()
+            if len(inFiles) == 1:
+                try:
+                    with root_open(inFiles[0]) as f:
+                        metaTree = f.Get("%s/metaInfo"%ch)
+                        return metaTree.Draw('1', 'summedWeights').Integral()
+                except DoesNotExist:
+                    continue
+            else:
+                try:
+                    metaChain = TreeChain('%s/metaInfo'%ch, inFiles)
+                    return metaChain.Draw('1', 'summedWeights').Integral()
+                except DoesNotExist:
+                    continue
+            
         else: # no tree in any channel
             return sampleInfo[sample]['sumW']
 
