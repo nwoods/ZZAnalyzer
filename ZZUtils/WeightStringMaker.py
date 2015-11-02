@@ -64,10 +64,14 @@ def makeWeightHistFromJSONDict(jd, weightVar, *binVars, **kwargs):
     with a suffix taken from kwargs['loSuffix'] and kwargs['hiSuffix']. 
     The error on the weight is taken to be weightVar+kwargs['errSuffix'] 
     (there is taken to be no error if kwargs['errSuffix'] evaluates to False).
+    If kwargs['scale'] is 'up' ('down') the histogram has its error
+    added to (subtracted from) the mean value.
     '''
     loSuffix=kwargs.get('loSuffix', '_lo')
     hiSuffix=kwargs.get('hiSuffix', '_hi')
     errSuffix=kwargs.get('errSuffix', '_err')
+    scale = kwargs.get('scale', '')
+
     binEdges = {v:set() for v in binVars}
     varsLo = [v+loSuffix for v in binVars]
     varsHi = [v+hiSuffix for v in binVars]
@@ -94,6 +98,11 @@ def makeWeightHistFromJSONDict(jd, weightVar, *binVars, **kwargs):
         h.SetBinContent(binInd, w)
         if errVar:
             h.SetBinError(binInd, errs[center])
+            
+            if scale == 'up':
+                h.SetBinContent(binInd, w+errs[center])
+            elif scale == 'down':
+                h.SetBinContent(binInd, w-errs[center])
 
     return h
 
