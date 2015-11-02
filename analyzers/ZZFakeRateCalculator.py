@@ -177,7 +177,7 @@ class ZZFakeRateCalculator(object):
         '''
         Create a .png with the fake rate plot, with numbers superimposed over 
         each (1- and 2-D only), and for the numerator and denominator. For 1-D,
-        MC and data are drawn on the same plot and with a ratio, if applicable.
+        MC and data are drawn on the same plot.
         '''
         drawings = {}
         if nDims == 1 and bool(drawablesData) and bool(drawablesMC):
@@ -193,9 +193,9 @@ class ZZFakeRateCalculator(object):
                                                    legendStyle="L")
                 else:
                     drawings[typeToPlot].addObject(drawablesMC[typeToPlot])
-                drawings[typeToPlot].addRatio(drawablesData[typeToPlot], 
-                                              drawablesMC[typeToPlot], 0.23, 
-                                              yTitle="Data / MC")
+                # drawings[typeToPlot].addRatio(drawablesData[typeToPlot], 
+                #                               drawablesMC[typeToPlot], 0.23, 
+                #                               yTitle="Data / MC")
 
                 if typeToPlot == 'fakeRate':
                     fakeRateData = self.plotter.WrappedGraph(type='asymm', 
@@ -215,6 +215,7 @@ class ZZFakeRateCalculator(object):
                                                               name, typeToPlot), 
                                           xTitle=kwargs.get('xTitle', ''), 
                                           xUnits=kwargs.get('xUnits', ''),
+                                          yTitle='Fake Rate',
                                           intLumi=self.intLumi, 
                                           perUnitWidth=False)
         else:
