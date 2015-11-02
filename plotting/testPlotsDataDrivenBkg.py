@@ -27,28 +27,14 @@ from rootpy.ROOT import Double
 
 import os
 
-plotter = NtuplePlotter('zz', './plots/dataBkgMC2015D_27oct2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26oct2015_0/results/[GZW]*.root'}, 
+plotter = NtuplePlotter('zz', './plots/dataBkgMC2015D_2nov2015', 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo2e2m*.root'}, 
                         {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results/data*.root',
                          '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_3P1F/data*.root',
                          '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_2P2F/data*.root',}, 
                         intLumi=1263.89)
 
-print plotter.ntuples['mc'].keys()
-
-plotter.printPassingEvents('data')
-
-print ""
-print "3P1F CR (data):"
-print '    eeee: %d'%plotter.ntuples['3P1F']['3P1F']['eeee'].GetEntries()
-print '    eemm: %d'%plotter.ntuples['3P1F']['3P1F']['eemm'].GetEntries()
-print '    mmmm: %d'%plotter.ntuples['3P1F']['3P1F']['mmmm'].GetEntries()
-
-print ""
-print "2P2F CR (data):"
-print '    eeee: %d'%plotter.ntuples['2P2F']['2P2F']['eeee'].GetEntries()
-print '    eemm: %d'%plotter.ntuples['2P2F']['2P2F']['eemm'].GetEntries()
-print '    mmmm: %d'%plotter.ntuples['2P2F']['2P2F']['mmmm'].GetEntries()
+tpVersionHash = 'v1.1-1-g4cbf52a_v2'
 
 fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_26oct2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
@@ -57,13 +43,13 @@ mFakeRateHist = fFake.Get('m_FakeRate').clone()
 eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', '{0}Eta')
 mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', '{0}Eta')
 
-eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_22oct2015.json')
+eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
 eIDTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta')
 eIsoFromTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta')
 eIDTightTPStrTemp = makeWeightStringFromHist(eIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
 eIsoFromTightTPStrTemp = makeWeightStringFromHist(eIsoFromTightTPHist, '{0}Pt', 'abs({0}Eta)')
 
-mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_22oct2015.json')
+mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_%s.json'%tpVersionHash)
 mIDTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta')
 mIsoFromTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta')
 mIDTightTPStrTemp = makeWeightStringFromHist(mIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
@@ -76,10 +62,14 @@ z2mMCWeight = '*'.join(mIDTightTPStrTemp.format('m%d'%nm)+'*'+mIsoFromTightTPStr
 #z1emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1eMCWeight, z1mMCWeight)
 #z2emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1mMCWeight, z1eMCWeight)
 
+fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_28Oct2015.root')
+puScaleFactorHist = fPUScale.Get("puScaleFactor")
+puScaleFactorStr = makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
+
 mcWeight = {
-    'eeee' : '(GenWeight*{0}*{1})'.format(z1eMCWeight, z2eMCWeight),
-    'eemm' : '(GenWeight*{0}*{1})'.format(z1eMCWeight, z1mMCWeight),
-    'mmmm' : '(GenWeight*{0}*{1})'.format(z1mMCWeight, z2mMCWeight),
+    'eeee' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr, z1eMCWeight, z2eMCWeight),
+    'eemm' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr, z1eMCWeight, z1mMCWeight),
+    'mmmm' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr, z1mMCWeight, z2mMCWeight),
 }
 
 mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
@@ -104,6 +94,7 @@ binning4l = {
     'PtDREtFSR' : [30, 0., 180.],
     'PhiDREtFSR' : [12, -3.15, 3.15],
     'nJets' : [6, -0.5, 5.5],
+    'nvtx' : [40,0.,40.],
     }
 
 vars4l = {v:v for v in binning4l}
@@ -114,6 +105,7 @@ xTitle4l = {
     'PtDREtFSR' : 'p_{T_{__PARTICLES__}}',
     'PhiDREtFSR' : '\\phi_{__PARTICLES__}',
     'nJets' : '\\text{# Jets}',
+    'nvtx' : '\\text{# PVs}',
     }
 
 units = {
@@ -129,9 +121,10 @@ units = {
     'Iso' : '',
     'PVDXY' : '',
     'PVDZ' : '',
+    'nvtx' : '',
     }
 
-for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
+for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
 
     chEnding = ''
     if channel != 'zz':
@@ -149,11 +142,11 @@ for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
         var = vars4l[varName]
         cr3P1F = plotter.makeHist('3P1F', '3P1F', channel, var, '', 
                                   bins, weights=cr3PScale[channel], 
-                                  perUnitWidth=False, nameForLegend='Z+X (From Data)',
+                                  perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
         cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, var, '', 
                                   bins, weights=cr2PScale[channel], 
-                                  perUnitWidth=False, nameForLegend='Z+X (From Data)',
+                                  perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
 
         cr3P1F -= cr2P2F
@@ -162,29 +155,13 @@ for channel in ['eeee', 'zz', 'eemm', 'mmmm']:
                 b.value = 0.
 
         cr3P1F.sumw2()
-        expectedErrorBkg = Double(0)
-        integralBkg = cr3P1F.IntegralAndError(0,cr3P1F.GetNbinsX(), expectedErrorBkg)
 
         plotter.fullPlot('4l%s%s'%(varName,chEnding), channel, var, '', 
                          bins, 'mc', 'data', canvasX=1000, logy=False, 
                          xTitle=xTitle4l[varName].replace('__PARTICLES__',particles), 
                          xUnits=units[varName],
                          extraBkgs=[cr3P1F], outFile='%s%s.png'%(varName,chEnding), 
-                         mcWeights=mcWeight[channel])
-        for ob in plotter.drawings['4l%s%s'%(varName, chEnding)].objects:
-            if isinstance(ob, HistStack):
-                mcStack = ob
-                break
-
-        if 'Mass' in var:
-            expectedTotal = sum(mcStack.hists)
-            expectedTotal.sumw2()
-            expectedError = Double(0)
-            integralSig = expectedTotal.IntegralAndError(0,expectedTotal.GetNbinsX(), expectedError)
-            print "%6s:"%chEnding
-            print "    SR   : %f +/- %f"%(integralSig, expectedError)
-            print "    Bkg  : %f +/- %f"%(integralBkg, expectedErrorBkg)
-
+                         mcWeights=mcWeight[channel], drawRatio=False)
 binning2l = {
     'MassDREtFSR' : [30, 60., 120.],
     'EtaDREtFSR' : [20, -5., 5.],
@@ -246,13 +223,13 @@ for z, channels in channels2l.iteritems():
                                   selections2l[z], bins, 
                                   weights=[cr3PScale[c] for c in channels], 
                                   perUnitWidth=False, 
-                                  nameForLegend='Z+X (From Data)',
+                                  nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
         cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables,
                                   selections2l[z], bins,
                                   weights=[cr2PScale[c] for c in channels], 
                                   perUnitWidth=False, 
-                                  nameForLegend='Z+X (From Data)',
+                                  nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
         cr3P1F -= cr2P2F
         for b in cr3P1F:
@@ -265,7 +242,8 @@ for z, channels in channels2l.iteritems():
                          xTitle=xTitles2l[var]%objects2l[z],
                          xUnits=units[var],
                          extraBkgs=[cr3P1F], outFile='%s%s.png'%(z,var), 
-                         mcWeights=[mcWeight[c] for c in channels])
+                         mcWeights=[mcWeight[c] for c in channels], 
+                         drawRatio=False)
 
 
 binning1l = {
@@ -318,12 +296,12 @@ for lep, channels in channels1l.iteritems():
         cr3P1F = plotter.makeHist('3P1F', '3P1F', channels, variables, '', bins,
                                   weights=[cr3PScale[c] for c in channels], 
                                   perUnitWidth=False, 
-                                  nameForLegend='Z+X (From Data)',
+                                  nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
         cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables, '', bins,
                                   weights=[cr2PScale[c] for c in channels], 
                                   perUnitWidth=False, 
-                                  nameForLegend='Z+X (From Data)',
+                                  nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
         cr3P1F -= cr2P2F
         for b in cr3P1F:
@@ -335,7 +313,8 @@ for lep, channels in channels1l.iteritems():
                          xTitle=xTitles1l[var]%objName1l[lep],
                          xUnits=units[var],
                          extraBkgs=[cr3P1F], outFile='%s%s.png'%(lep,var), 
-                         mcWeights=[mcWeight[c] for c in channels])
+                         mcWeights=[mcWeight[c] for c in channels], 
+                         drawRatio=False)
 
 
 
