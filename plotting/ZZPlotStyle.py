@@ -42,13 +42,13 @@ class ZZPlotStyle(object):
         gStyle.SetPalette(1)
 
         # Make axis title and labels just a little smaller and (for Y) closer to the axis
-        gStyle.SetTitleSize(0.04, "XYZ")
-        gStyle.SetLabelSize(0.03, "XYZ")
-        gStyle.SetTitleYOffset(1.25)
-#        gStyle.SetTitleXOffset(0.85)
+        gStyle.SetTitleSize(0.044, "XYZ")
+        gStyle.SetLabelSize(0.033, "XYZ")
+        gStyle.SetTitleYOffset(1.15)
+        gStyle.SetTitleXOffset(0.95)
         gStyle.SetPadLeftMargin(0.1)
         gStyle.SetPadRightMargin(0.025)
-        gStyle.SetPadBottomMargin(0.082)
+        gStyle.SetPadBottomMargin(0.095)
         gStyle.SetTitleAlign(12)
 
         # Apply changes
