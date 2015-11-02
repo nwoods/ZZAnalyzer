@@ -46,7 +46,8 @@ sampleInfo["GluGluToZZTo2e2mu_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\mu',
     'isSignal' : True,
     'color' : 'aliceblue',
-    'kFactor' : 2.,
+    # 'kFactor' : 2.,
+    'group' : 'ggZZ4l',
 }
 
 sampleInfo["GluGluToZZTo2mu2tau_BackgroundOnly_13TeV_MCFM"] = {
@@ -58,7 +59,8 @@ sampleInfo["GluGluToZZTo2mu2tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2\\mu2\\tau',
     'isSignal' : True,
     'color' : 'gray',
-    'kFactor' : 2.,
+    # 'kFactor' : 2.,
+    'group' : 'ggZZ2l2t',
 }
 
 sampleInfo["GluGluToZZTo2e2tau_BackgroundOnly_13TeV_MCFM"] = {
@@ -70,7 +72,8 @@ sampleInfo["GluGluToZZTo2e2tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\tau',
     'isSignal' : True,
     'color' : 'slategray',
-    'kFactor' : 2.,
+    # 'kFactor' : 2.,
+    'group' : 'ggZZ2l2t',
 }
 
 sampleInfo["GluGluToZZTo4mu_BackgroundOnly_13TeV_MCFM"] = {
@@ -82,7 +85,8 @@ sampleInfo["GluGluToZZTo4mu_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\mu',
     'isSignal' : True,
     'color' : 'lightblue',
-    'kFactor' : 2.,
+    # 'kFactor' : 2.,
+    'group' : 'ggZZ4l',
 }
 
 sampleInfo["GluGluToZZTo4e_BackgroundOnly_13TeV_MCFM"] = {
@@ -94,7 +98,8 @@ sampleInfo["GluGluToZZTo4e_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4e',
     'isSignal' : True,
     'color' : 'lightsteelblue',
-    'kFactor' : 2.,
+    # 'kFactor' : 2.,
+    'group' : 'ggZZ4l',
 }
 
 sampleInfo["GluGluToZZTo4tau_BackgroundOnly_13TeV_MCFM"] = {
@@ -106,7 +111,8 @@ sampleInfo["GluGluToZZTo4tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\tau',
     'isSignal' : True,
     'color' : 'darkgray',
-    'kFactor' : 2.,
+    # 'kFactor' : 2.,
+    'group' : 'ggZZ2l2t',
 }
 
 sampleInfo["TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
@@ -137,10 +143,10 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'sumW' : 6652512.,
     'isData' : False,
     'shortName' : 'ZZ4l',
-    'prettyName' : '\\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : '\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : True,
     'color' : '#99ccff', #'skyblue',
-    'kFactor' : 1.074,
+    # 'kFactor' : 1.074,
 }
 
 sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
@@ -161,6 +167,7 @@ sampleInfo['WWZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
     'shortName' : 'WWZ',
     'prettyName' : "WWZ",
     'color' : 'purple',
+    'group' : 'VVV',
 }
 
 sampleInfo['WZZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
@@ -170,6 +177,7 @@ sampleInfo['WZZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
     'shortName' : 'WZZ',
     'prettyName' : "WZZ",
     'color' : 'mediumpurple',
+    'group' : 'VVV',
 }
 
 sampleInfo['ZZZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
@@ -179,6 +187,30 @@ sampleInfo['ZZZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
     'shortName' : 'ZZZ',
     'prettyName' : "ZZZ",
     'color' : 'violet',
+    'group' : 'VVV',
 }
+
+
+sampleGroups = {}
+
+sampleGroups['ggZZ4l'] = {
+    'isSignal' : True,
+    'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',
+    'color' : "#3366ff",
+}
+
+sampleGroups['ggZZ2l2t'] = {
+    'isSignal' : False,
+    'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2\\ell 2\\tau',
+    'color' : "darkgray",
+}
+
+sampleGroups['VVV'] = {
+    'isSignal' : False,
+    'prettyName' : '\\text{VVV}',
+    'color' : "purple",
+}
+
+
 
 

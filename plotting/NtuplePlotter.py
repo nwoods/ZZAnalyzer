@@ -39,7 +39,7 @@ from rootpy.plotting.base import Plottable
 from rootpy import asrootpy, QROOT
 
 from ZZPlotStyle import ZZPlotStyle
-from ZZMetadata import sampleInfo
+from ZZMetadata import sampleInfo, sampleGroups
 from ZZHelpers import makeNumberPretty, parseChannels
 from WeightStringMaker import makeWeightStringFromHist
 
@@ -627,7 +627,7 @@ class NtuplePlotter(object):
                     'leftmargin' : 0.5,
                     'topmargin' : 0.05,
                     'rightmargin' : 0.05,
-                    'textsize' : 0.03,
+                    'textsize' : 0.033,
                     }
                 legParams.update(legParamsOverride)
 
@@ -797,7 +797,10 @@ class NtuplePlotter(object):
             prettyName = nameForLegend
         else:
             if self.isData(category):
-                prettyName = category
+                if category == 'data':
+                    prettyName = '\\text{Data}'
+                else:
+                    prettyName = category
             else:
                 prettyName = sampleInfo[sample]['prettyName']
 
@@ -856,6 +859,43 @@ class NtuplePlotter(object):
         return h
 
 
+    def makeGroupHist(self, category, samples, *args, **kwargs):
+        '''
+        For a few samples in a category (assumed to all be in the same group),
+        make a single combined histogram for the group, scaling each sample 
+        correctly, etc.
+        args and kwargs are all makeHist() arguments except category and 
+        sample.
+        '''
+        group = sampleInfo[samples[0]]['group']
+        sampleHists = [self.makeHist(category, s, *args, **kwargs) for s in samples]
+        for s in sampleHists:
+            s.sumw2()
+        histKWArgs = {
+            'title' : sampleGroups[group]['prettyName'],
+            'group' : group,
+            'sample' : samples,
+            'variable' : sampleHists[0].getVariable(),
+            'selection' : sampleHists[0].getSelection(), 
+            'category' : category,
+            'channel' : sampleHists[0].getChannel(),
+            'isData' : self.isData(category),
+            'isSignal' : sampleHists[0].getIsSignal(),
+            }
+        h = self.WrappedHist(sampleHists[0].empty_clone(), **histKWArgs)
+
+        for s in sampleHists:
+            h.Add(s)
+        h.sumw2()
+
+        h.drawstyle = 'hist'
+        h.fillstyle = 'solid'
+        h.fillcolor = sampleGroups[group]['color']
+        h.linecolor = 'black'
+
+        return h
+
+
     def makeHist2(self, category, sample, channels, variables, selections, 
                   binning, scale=1., weights='', formatOpts={}):
         '''
@@ -878,12 +918,18 @@ class NtuplePlotter(object):
         else:
             prettyName = sampleInfo[sample]['prettyName']
 
+        if self.isData(category):
+            isSignal = True
+        else:
+            isSignal = sampleInfo[sample]['isSignal']
+
         histKWArgs = {
             'title' : prettyName,
             'sample' : sample, 
             'variable' : variables,
             'selection' : selections, 
             'category' : category,
+            'isSignal' : isSignal,
             }
         h = self.WrappedHist2(*binning, **histKWArgs)
 
@@ -1045,7 +1091,7 @@ class NtuplePlotter(object):
             h.drawstyle = 'hist'
             h.fillstyle = 'solid'
             if self.isData(h.getCategory()):
-                h.fillcolor = 'forestgreen'
+                h.fillcolor = '#669966'
             else:
                 h.fillcolor = sampleInfo[h.getSample()]['color']
            
@@ -1107,10 +1153,24 @@ class NtuplePlotter(object):
         '''
         assert not self.isData(category), "You can only stack MC, not data!"
         hists = []
+        groups = {}
         for sample in self.ntuples[category]:
-            hists.append(self.makeHist(category, sample, channel, variable, 
-                                       selection, binning, scale, weight, 
-                                       perUnitWidth=perUnitWidth))
+            if 'group' in sampleInfo[sample]:
+                group = sampleInfo[sample]['group']
+                if group in groups:
+                    groups[group].append(sample)
+                else:
+                    groups[group] = [sample]
+            else:
+                hists.append(self.makeHist(category, sample, channel, variable, 
+                                           selection, binning, scale, weight, 
+                                           perUnitWidth=perUnitWidth))
+
+        for group in groups:
+            hists.append(self.makeGroupHist(category, groups[group], channel,
+                                            variable, selection, binning, 
+                                            scale, weight, 
+                                            perUnitWidth=perUnitWidth))
 
         if extraHists:
             hists += extraHists
@@ -1179,7 +1239,7 @@ class NtuplePlotter(object):
             binGetter = Hist.GetMinimumBin
 
         # lazy way to prevent data hist from reaching sampleInfo query
-        key = lambda h: (not(self.isData(h.getCategory()) or not sampleInfo[h.getSample()]['isSignal']), 
+        key = lambda h: (not(self.isData(h.getCategory()) or not h.getIsSignal()), 
                          h.GetBinContent(binGetter(h)))
 
         hists.sort(key=key)
@@ -1192,7 +1252,7 @@ class NtuplePlotter(object):
                  canvasX=800, canvasY=1000, logy=False, styleOpts={}, 
                  ipynb=False, xTitle="", xUnits="GeV", yTitle="Events",
                  yUnits="", drawNow=False, outFile='', legParams={}, 
-                 mcWeights='GenWeight', drawOpts={}):
+                 mcWeights='GenWeight', drawOpts={}, drawRatio=True):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
         extraBkgs may be a list of other background histograms (e.g. a data-
@@ -1213,7 +1273,8 @@ class NtuplePlotter(object):
             self.drawings[name].addObject(h)
             
             # add data/MC ratio plot
-            self.drawings[name].addRatio(h, s, yTitle="Data / MC")
+            if drawRatio:
+                self.drawings[name].addRatio(h, s, yTitle="Data / MC")
 
         if outFile:
             self.drawings[name].draw(drawOpts, self.outdir+outFile, drawNow, 
