@@ -649,9 +649,26 @@ class NtuplePlotter(object):
             if titleY and 'ytitle' not in opts:
                 opts['ytitle'] = titleY
 
+            # An unweighted histogram should be drawn with Poisson errors. 
+            # Since that doesn't seem to work in rootpy (:-(), we'll replace 
+            # it with a TGraphAsymmErrors that has the correct error bars
+            toDraw = []
+            for iObj, obj in enumerate(objects):
+                if isinstance(obj, _Hist) and obj.GetEffectiveEntries() == obj.GetEntries():
+                    # if this is the first item, make sure the axes don't get messed up
+                    if iObj == 0:
+                        toDraw.append(obj.empty_clone())
+                    pois = obj.poisson_errors()
+                    pois.drawstyle = "PE"
+                    pois.linecolor = obj.linecolor
+                    pois.markercolor = obj.markercolor
+                    toDraw.append(pois)
+                else:
+                    toDraw.append(obj)
+
             auxDrawOpt = '' # draw option for all auxiliary plotted objects
-            if(objects):
-                (xaxis, yaxis), axisRanges = draw(objects, pad, logy=logy, **opts)
+            if(toDraw):
+                (xaxis, yaxis), axisRanges = draw(toDraw, pad, logy=logy, **opts)
                 auxDrawOpt = "SAME"
                 pad.xaxis = xaxis
                 pad.yaxis = yaxis
