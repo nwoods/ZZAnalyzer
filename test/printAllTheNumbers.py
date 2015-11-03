@@ -29,7 +29,9 @@ import os
 from math import sqrt
 
 plotter = NtuplePlotter('zz', './plots/counting_2nov2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/ZZTo*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo2e2m*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/*HToZZ*.root'}, 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/ZZTo*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo2e2m*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/*HToZZ*.root',
+                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_3P1F/*.root',
+                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_2P2F/*.root',}, 
                         {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results/data*.root',
                          '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_3P1F/data*.root',
                          '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_2P2F/data*.root',}, 
@@ -92,6 +94,12 @@ cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
 
 cr2PScale = cr3PScale
 
+# samples to subtract off of CRs based on MC
+subtractSamples = []
+for s in plotter.ntuples['mc3P1F']:
+    if s[:7] == 'GluGluT' or s[:3] == 'ZZT':
+        subtractSamples.append(s)
+
 for scaleSet in [['', '', ''], # [id, iso, PU]
                  ['up', '', ''], ['down', '', ''],
                  ['', 'up', ''], ['', 'down', ''],
@@ -109,8 +117,13 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         'eemm' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr[scaleSet[2]], z1eMCWeight, z1mMCWeight),
         'mmmm' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr[scaleSet[2]], z1mMCWeight, z2mMCWeight),
     }
+
+    cr3PScaleMC = {c:'*'.join([mcWeight[c], cr3PScale[c]]) for c in mcWeight}
                  
     mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
+    cr3PScaleMC['zz'] = [cr3PScaleMC[c] for c in ['eeee','eemm','mmmm']]
+
+    cr2PScaleMC = cr3PScaleMC
 
     print ''
     if scaleSet[0]:
@@ -130,26 +143,54 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
                                   bins, weights=cr3PScale[channel], 
                                   perUnitWidth=False, nameForLegend='Z+X (From Data)',
                                   isBackground=True)
-        cr3P1F.sumw2()
-        expectedError3P1F = Double(0)
-        integral3P1F = cr3P1F.IntegralAndError(0,cr3P1F.GetNbinsX(), expectedError3P1F)
-
         cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, '1.', '', 
                                   bins, weights=cr2PScale[channel], 
                                   perUnitWidth=False, nameForLegend='Z+X (From Data)',
                                   isBackground=True)
+        cr3P1F.sumw2()
         cr2P2F.sumw2()
+
+        for ss in subtractSamples:
+            sub3P = plotter.makeHist("mc3P1F", ss, channel,
+                                     '1.', '', bins,
+                                     weights=cr3PScaleMC[channel],
+                                     perUnitWidth=False)
+            cr3P1F -= sub3P
+            sub2P = plotter.makeHist("mc2P2F", ss, channel,
+                                     '1.', '', bins,
+                                     weights=cr2PScaleMC[channel],
+                                     perUnitWidth=False)
+            cr2P2F -= sub2P
+
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
+        for b3P, b2P in zip(cr3P1F, cr2P2F):
+            if b3P.value <= 0 or b2P.value > b3P.value:
+                b3P.value = 0.
+                b3P.error = 0.
+                b2P.value = 0.
+                b2P.error = 0.
+            if b2P.value < 0.:
+                b2P.value = 0.
+        
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
+        expectedError3P1F = Double(0)
+        integral3P1F = cr3P1F.IntegralAndError(0,cr3P1F.GetNbinsX(), expectedError3P1F)
         expectedError2P2F = Double(0)
         integral2P2F = cr2P2F.IntegralAndError(0,cr2P2F.GetNbinsX(), expectedError2P2F)
 
         cr3P1F -= cr2P2F
-        for b in cr3P1F:
-            if b.value < 0.:
-                b.value = 0.
 
         cr3P1F.sumw2()
+
         expectedErrorBkg = Double(0)
         integralBkg = cr3P1F.IntegralAndError(0,cr3P1F.GetNbinsX(), expectedErrorBkg)
+        bkgPoisson = cr3P1F.poisson_errors()
+        expectedErrorBkgUp = bkgPoisson.GetErrorYhigh(0)
+        expectedErrorBkgDown = bkgPoisson.GetErrorYlow(0)
 
         plotter.fullPlot('count_%s_ID%s_Iso%s_PU%s'%(channel,scaleSet[0], scaleSet[1], scaleSet[2]), 
                          channel, '1.', '', 
@@ -170,7 +211,7 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         print "    %4s:"%channel
         print "        Tot  : %f +/- %f"%(integralSig, expectedError)
         print "        SR   : %f +/- %f"%(integralSig-integralBkg, sqrt(expectedError**2 - expectedErrorBkg**2))
-        print "        Bkg  : %f +/- %f"%(integralBkg, expectedErrorBkg)
+        print "        Bkg  : %f +/- %f (+%f / -%f)"%(integralBkg, expectedErrorBkg, expectedErrorBkgUp, expectedErrorBkgDown)
         print "        3P1F : %f +/- %f"%(integral3P1F, expectedError3P1F)
         print "        2P2F : %f +/- %f"%(integral2P2F, expectedError2P2F)
         for h in mcStack:

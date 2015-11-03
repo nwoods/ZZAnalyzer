@@ -27,8 +27,10 @@ from rootpy.ROOT import Double
 
 import os
 
-plotter = NtuplePlotter('zz', './plots/dataBkgMC2015D_2nov2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo2e2m*.root'}, 
+plotter = NtuplePlotter('zz', './plots/dataBkgMC2015D_3nov2015', 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo2e2m*.root',
+                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_3P1F/*.root',
+                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_2P2F/*.root',}, 
                         {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results/data*.root',
                          '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_3P1F/data*.root',
                          '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_2P2F/data*.root',}, 
@@ -74,14 +76,24 @@ mcWeight = {
 
 mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
 
+# samples to subtract off of CRs based on MC
+subtractSamples = []
+for s in plotter.ntuples['mc3P1F']:
+    if s[:7] == 'GluGluT' or s[:3] == 'ZZT':
+        subtractSamples.append(s)
+
 cr3PScale = {
     'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
     'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
     'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
 }
+cr3PScaleMC = {c:'*'.join([cr3PScale[c], mcWeight[c]]) for c in cr3PScale}
+
 cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
+cr3PScaleMC['zz'] = [cr3PScaleMC[c] for c in ['eeee','eemm','mmmm']]
 
 cr2PScale = cr3PScale
+cr2PScaleMC = cr3PScaleMC
 
 binning4l = {
     'MassDREtFSR' : [20,0.,800.],
@@ -144,10 +156,37 @@ for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
                                   perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
 
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+
+        for ss in subtractSamples:
+            sub3P = plotter.makeHist("mc3P1F", ss, channel,
+                                     var, '', bins,
+                                     weights=cr3PScaleMC[channel],
+                                     perUnitWidth=False)
+            cr3P1F -= sub3P
+            sub2P = plotter.makeHist("mc2P2F", ss, channel,
+                                     var, '', bins,
+                                     weights=cr2PScaleMC[channel],
+                                     perUnitWidth=False)
+            cr2P2F -= sub2P
+
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
+        for b3P, b2P in zip(cr3P1F, cr2P2F):
+            if b3P.value <= 0 or b2P.value > b3P.value:
+                b3P.value = 0.
+                b3P.error = 0.
+                b2P.value = 0.
+                b2P.error = 0.
+            if b2P.value < 0.:
+                b2P.value = 0.
+        
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
         cr3P1F -= cr2P2F
-        for b in cr3P1F:
-            if b.value < 0.:
-                b.value = 0.
 
         cr3P1F.sumw2()
 
@@ -226,10 +265,40 @@ for z, channels in channels2l.iteritems():
                                   perUnitWidth=False, 
                                   nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
+
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+
+        for ss in subtractSamples:
+            sub3P = plotter.makeHist("mc3P1F", ss, channels,
+                                     variables, selections2l[z], bins,
+                                     weights=[cr3PScaleMC[c] for c in channels],
+                                     perUnitWidth=False)
+            cr3P1F -= sub3P
+            sub2P = plotter.makeHist("mc2P2F", ss, channels,
+                                     variables, selections2l[z], bins,
+                                     weights=[cr2PScaleMC[c] for c in channels],
+                                     perUnitWidth=False)
+            cr2P2F -= sub2P
+
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
+        for b3P, b2P in zip(cr3P1F, cr2P2F):
+            if b3P.value <= 0 or b2P.value > b3P.value:
+                b3P.value = 0.
+                b3P.error = 0.
+                b2P.value = 0.
+                b2P.error = 0.
+            if b2P.value < 0.:
+                b2P.value = 0.
+        
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
         cr3P1F -= cr2P2F
-        for b in cr3P1F:
-            if b.value < 0.:
-                b.value = 0.
+
+        cr3P1F.sumw2()
 
         plotter.fullPlot('%s%s'%(z, var), channels, variables, 
                          selections2l[z], 
@@ -298,10 +367,40 @@ for lep, channels in channels1l.iteritems():
                                   perUnitWidth=False, 
                                   nameForLegend='\\text{Z/WZ+X}',
                                   isBackground=True)
+
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+
+        for ss in subtractSamples:
+            sub3P = plotter.makeHist("mc3P1F", ss, channels,
+                                     variables, '', bins,
+                                     weights=[cr3PScaleMC[c] for c in channels],
+                                     perUnitWidth=False)
+            cr3P1F -= sub3P
+            sub2P = plotter.makeHist("mc2P2F", ss, channels,
+                                     variables, '', bins,
+                                     weights=[cr2PScaleMC[c] for c in channels],
+                                     perUnitWidth=False)
+            cr2P2F -= sub2P
+
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
+        for b3P, b2P in zip(cr3P1F, cr2P2F):
+            if b3P.value <= 0 or b2P.value > b3P.value:
+                b3P.value = 0.
+                b3P.error = 0.
+                b2P.value = 0.
+                b2P.error = 0.
+            if b2P.value < 0.:
+                b2P.value = 0.
+        
+        cr3P1F.sumw2()
+        cr2P2F.sumw2()
+            
         cr3P1F -= cr2P2F
-        for b in cr3P1F:
-            if b.value < 0.:
-                b.value = 0.
+
+        cr3P1F.sumw2()
 
         plotter.fullPlot('%s%s'%(lep, var), channels, variables, '',
                          bins, 'mc', 'data', canvasX=1000, logy=False, 
