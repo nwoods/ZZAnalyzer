@@ -36,7 +36,7 @@ plotter = NtuplePlotter('zz', './plots/dataBkgMC2015D_2nov2015',
 
 tpVersionHash = 'v1.1-1-g4cbf52a_v2'
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_26oct2015_0.root')
+fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2nov2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
 mFakeRateHist = fFake.Get('m_FakeRate').clone()
 
@@ -75,18 +75,13 @@ mcWeight = {
 mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
 
 cr3PScale = {
-    'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(3,5)),
+    'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
     'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
-    'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(3,5)),
+    'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
 }
 cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
 
-cr2PScale = {
-    'eeee' : '*'.join(eFakeRateStrTemp.format('e%d'%ne) for ne in range(3,5)),
-    'eemm' : cr3PScale['eemm'],
-    'mmmm' : '*'.join(mFakeRateStrTemp.format('m%d'%nm) for nm in range(3,5)),
-}
-cr2PScale['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
+cr2PScale = cr3PScale
 
 binning4l = {
     'MassDREtFSR' : [20,0.,800.],
