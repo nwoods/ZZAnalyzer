@@ -12,6 +12,15 @@ Author: Nate Woods, U. Wisconsin
 '''
 
 
+# include logging stuff first so other imports don't babble at us
+import logging
+from rootpy import log as rlog; rlog = rlog["/ZZFakeRateCalculator"]
+# don't show most silly ROOT messages
+logging.basicConfig(level=logging.WARNING)
+rlog["/ROOT.TGraphAsymmErrors.Divide"].setLevel(rlog.ERROR)
+rlog["/rootpy.compiled"].setLevel(rlog.WARNING)
+rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
+
 from rootpy.io import root_open
 from rootpy import asrootpy
 from rootpy.plotting.hist import _Hist, _Hist2D, _Hist3D
@@ -73,11 +82,11 @@ class ZZFakeRateCalculator(object):
             self.plotter.makeHist3,
             ]
         self.stackMakers = [
-            lambda *args, **kwargs: self.plotter.makeCategoryStack(*args,
-                                                                    perUnitWidth=False,
-                                                                    **kwargs),
-            self.plotter.makeCategoryStack2, # THistStack same for 1- and 2-D
-            self.plotter.makeCategoryStack3,
+            lambda *args, **kwargs: self.plotter.makeStack(*args,
+                                                            perUnitWidth=False,
+                                                            **kwargs),
+            self.plotter.makeStack2, # THistStack same for 1- and 2-D
+            self.plotter.makeStack3,
             ]
         self.extractHistFromStack = [
             lambda s: self.WrappedHists[0](asrootpy(s.GetStack().Last()),
@@ -108,7 +117,13 @@ class ZZFakeRateCalculator(object):
         If keyword argument 'draw' evaluates to True, a .png file is created
         in the same directory as the eventual output with a plot of the
         fake rate.
+        If a list of subtraction samples is provided, by kwargs['subtractSamples'], 
+        the MC contributions of these samples are subtracted from the numerator and 
+        denominator before the fake rate is calculated. No bin may be less 
+        than 0.
         '''
+        subtractSamples = kwargs.pop('subtractSamples', [])
+
         if len(varsAndBinnings) % 2 == 1 or len(varsAndBinnings) < 2 or len(varsAndBinnings) > 6:
             raise ValueError("Invalid list of variables and their binnings")
         nDims = len(varsAndBinnings) / 2
@@ -132,12 +147,17 @@ class ZZFakeRateCalculator(object):
         outputs = []
         drawablesMC = {}
         if self.hasMC:
-            sNum = self.stackMakers[nDims-1]("numMC", channels, varList,
-                                             selecList, binning, weight="GenWeight")
+            samplesToDraw = [s for s in self.plotter.ntuples['numMC'].keys() if s not in subtractSamples]
+
+            sNum = self.stackMakers[nDims-1]("numMC", samplesToDraw, channels, 
+                                             varList, selecList, binning, 
+                                             weight="GenWeight")
             drawablesMC['num'] = sNum
             numMC = self.extractHistFromStack[nDims-1](sNum)
-            sDenom = self.stackMakers[nDims-1]("denomMC", channels, varList,
-                                               selecList, binning, weight="GenWeight")
+            sDenom = self.stackMakers[nDims-1]("denomMC", samplesToDraw, 
+                                               channels, varList,
+                                               selecList, binning, 
+                                               weight="GenWeight")
             drawablesMC['denom'] = sDenom
             denomMC = self.extractHistFromStack[nDims-1](sDenom)
             
@@ -153,6 +173,29 @@ class ZZFakeRateCalculator(object):
                                            selecList, binning)
             denom = self.histMakers[nDims-1]("denom", "denom", channels, varList, 
                                              selecList, binning)
+
+            num.sumw2()
+            denom.sumw2()
+
+            for ss in subtractSamples:
+                subNum = self.histMakers[nDims-1]("numMC", ss, channels,
+                                                  varList, selecList, binning,
+                                                  1., weights="GenWeight")
+                num -= subNum
+                subDenom = self.histMakers[nDims-1]("denomMC", ss, channels,
+                                                    varList, selecList, binning,
+                                                    1., weights="GenWeight")
+                denom -= subDenom
+
+            for bNum, bDenom in zip(num, denom):
+                if bNum.value < 0. or bDenom.value <= 0.:
+                    bNum.value = 0.
+                    bNum.error = 0.
+                    bDenom.value = 0.0000001
+                    bDenom.error = 0.
+            
+            num.sumw2()
+            denom.sumw2()
 
             out = self.WrappedHists[nDims-1](asrootpy(num.Clone()),
                                              name=name)
@@ -332,6 +375,12 @@ if __name__ == '__main__':
     ptBinning=[10.,30.,60.,200.]#20.,40.,60.,100.,200.]
     etaBinning=[0.,0.8,1.47,2.5]#0.5,0.8,1.04,1.2,1.6,2.1,2.5]
 
+    samplesToSubtract = []
+    if 'numMC' in calc.plotter.ntuples:
+        for s in calc.plotter.ntuples['numMC']:
+            if s[:4] == "ZZTo" or s[:4] == "WZTo":
+                samplesToSubtract.append(s)
+
     channelsByObject = {}
     channelsByType = {}
     for ch in calc.channels:
@@ -346,7 +395,7 @@ if __name__ == '__main__':
         else:
             channelsByType[objType].append(ch)
 
-    for obj, chs in iChain(channelsByObject.iteritems(), channelsByType.iteritems()):
+    for obj, chs in iChain(channelsByType.iteritems(), channelsByObject.iteritems()):
         if len(chs) == 1:
             objToPrint = obj[0]+'_'+chs[0]
         else:
@@ -354,14 +403,17 @@ if __name__ == '__main__':
         calc.calculateFakeRate(objToPrint+'_FakeRate', chs,
                                'Pt', ptBinning, 'Eta', etaBinning,
                                draw=args.paint,
+                               subtractSamples=samplesToSubtract,
                                xTitle='p_{T}', xUnits='GeV',
                                yTitle='\\eta')
         calc.calculateFakeRate(objToPrint+'_FakeRatePt', chs,
                                'Pt', ptBinning,
+                               subtractSamples=samplesToSubtract,
                                draw=args.paint,
                                xTitle='p_{T}', xUnits='GeV')
         calc.calculateFakeRate(objToPrint+'_FakeRateEta', chs,
                                'Eta', etaBinning,
+                               subtractSamples=samplesToSubtract,
                                draw=args.paint,
                                xTitle='\\eta')
 
