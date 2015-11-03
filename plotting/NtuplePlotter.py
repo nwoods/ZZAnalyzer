@@ -189,7 +189,7 @@ class NtuplePlotter(object):
             else:
                 self.sumOfWeights[cat] = {}
                 for sample, fileNames in samples.iteritems():
-                    self.sumOfWeights[cat][sample] = self.getWeightSum(fileNames)
+                    self.sumOfWeights[cat][sample] = self.getWeightSum(fileNames, sample)
                     if len(fileNames) == 1:
                         self.files[cat][sample] = root_open(fileNames[0])
                         self.ntuples[cat][sample] = { c : self.files[cat][sample].Get("%s/final/Ntuple"%c) for c in self.channels }
@@ -346,7 +346,7 @@ class NtuplePlotter(object):
             print ''
 
 
-    def getWeightSum(self, inFiles):
+    def getWeightSum(self, inFiles, sample):
         '''
         Take the list of input file names for a sample, and use the metaInfo 
         trees to calculate
@@ -1144,17 +1144,17 @@ class NtuplePlotter(object):
         return g
 
     
-    def makeCategoryStack(self, category, channel, variable, selection,
-                          binning, scale=1., weight='', sortByMax=True, 
-                          perUnitWidth=True, extraHists=[]):
+    def makeStack(self, category, samples, channel, variable, selection,
+                  binning, scale=1., weight='', sortByMax=True, 
+                  perUnitWidth=True, extraHists=[]):
         '''
-        Makes a stack of all histograms from the samples in category by 
-        passing parameters to self.makeHist().
+        Makes a stack of histograms from several samples from the same category
+        by passing parameters to self.makeHist().
+        If extraHists are specified, these hists are also stacked.
         '''
-        assert not self.isData(category), "You can only stack MC, not data!"
         hists = []
         groups = {}
-        for sample in self.ntuples[category]:
+        for sample in samples:
             if 'group' in sampleInfo[sample]:
                 group = sampleInfo[sample]['group']
                 if group in groups:
@@ -1183,23 +1183,39 @@ class NtuplePlotter(object):
 
         s = self.WrappedStack(hists,
                               category=category, variable=variable,
-                              selection=selection)
+                              selection=selection, sample=samples)
         s.drawstyle = 'histnoclear'
         
         return s
                   
     
-    def makeCategoryStack2(self, category, channel, variable, selection,
-                           binning, scale=1., weight='', sortByMax=True):
+    def makeCategoryStack(self, category, channel, variable, selection,
+                          binning, scale=1., weight='', sortByMax=True, 
+                          perUnitWidth=True, extraHists=[]):
         '''
-        Makes a stack of all 2D histograms from the samples in category by 
+        Makes a stack of all histograms from the samples in category by 
+        passing parameters to self.makeStack() (which in turn passes them
+        to self.makeHist()).
+        If extraHists are specified, these hists are also stacked.
+        '''
+        assert not self.isData(category), "You can only stack MC, not data!"
+        samples = self.ntuples[category].keys()
+
+        return self.makeStack(category, samples, channel, variable, 
+                              selection, binning, scale, weight, sortByMax,
+                              perUnitWidth, extraHists)
+
+    
+    def makeStack2(self, category, samples, channel, variable, selection,
+                   binning, scale=1., weight='', sortByMax=True):
+        '''
+        Makes a stack of 2D histograms from samples in the same category by 
         passing parameters to self.makeHist2().
         '''
-        assert not self.isData(category), "You can only stack MC, not data like %s!"%category
         hists = []
-        for sample in self.ntuples[category]:
+        for sample in samples:
             hists.append(self.makeHist2(category, sample, channel, variable, 
-                                       selection, binning, scale, weight))
+                                        selection, binning, scale, weight))
 
         s = self.WrappedStack(self.orderForStack(hists, sortByMax),
                               category=category, variable=variable,
@@ -1208,15 +1224,28 @@ class NtuplePlotter(object):
         return s
                   
     
-    def makeCategoryStack3(self, category, channel, variable, selection,
+    def makeCategoryStack2(self, category, channel, variable, selection,
                            binning, scale=1., weight='', sortByMax=True):
         '''
-        Sums all 3D histograms from the samples in category by 
-        passing parameters to self.makeHist2().
+        Makes a stack of all 2D histograms from the samples in category by 
+        passing parameters to self.makeStack2() (which passes them on to 
+        self.makeHist2()).
         '''
-        assert not self.isData(category), "You can only stack MC, not data!"
+        assert not self.isData(category), "You can only stack MC, not data like %s!"%category
+
+        samples = self.ntuples[category].keys()
+        return self.makeStack2(category, samples, channel, variable, selection,
+                               binning, scale=1., weight='', sortByMax=True)
+
+    
+    def makeStack3(self, category, samples, channel, variable, selection,
+                   binning, scale=1., weight='', sortByMax=True):
+        '''
+        Sums 3D histograms from samples in the same category by 
+        passing parameters to makeHist3().
+        '''
         hists = []
-        for sample in self.ntuples[category]:
+        for sample in samples:
             hists.append(self.makeHist3(category, sample, channel, variable, 
                                         selection, binning, scale, weight))
 
@@ -1225,6 +1254,21 @@ class NtuplePlotter(object):
             s += h
         
         return s
+    
+    
+    def makeCategoryStack3(self, category, channel, variable, selection,
+                           binning, scale=1., weight='', sortByMax=True):
+        '''
+        Sums all 3D histograms from the samples in category by 
+        passing parameters to self.makeStack2() (which passes them on to
+        self.makeHist3()).
+        '''
+        assert not self.isData(category), "You can only stack MC, not data!"
+        samples =  self.ntuples[category].keys()
+        
+        return makeStack3(self, category, samples, channel, variable, selection,
+                          binning, scale, weight, sortByMax)
+
                   
     
     def orderForStack(self, hists, sortByMax=True):
