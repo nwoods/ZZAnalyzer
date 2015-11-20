@@ -35,6 +35,19 @@ sampleInfo["DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
     'prettyName' : '\\text{DY+Jets}',
     'isSignal' : False,
     'color' : '#669966', #'forestgreen',
+    'group' : 'DYJets',
+}
+
+sampleInfo["DYJetsToLL_M-10to50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
+    'xsec' : 18610., 
+    'n' : 30535559,
+    'sumW' : 905265086464.,
+    'isData' : False,
+    'shortName' : 'DYJets_M10to50',
+    'prettyName' : '\\text{DY+Jets} (m_{\\ell\\ell} < 50)',
+    'isSignal' : False,
+    'color' : 'forestgreen',
+    'group' : 'DYJets',
 }
 
 sampleInfo["GluGluToZZTo2e2mu_BackgroundOnly_13TeV_MCFM"] = {
@@ -211,6 +224,10 @@ sampleGroups['VVV'] = {
     'color' : "purple",
 }
 
-
+sampleGroups['DYJets'] = {
+    'isSignal' : False,
+    'prettyName' : '\\text{Z}/\\gamma^\\ast \\text{ + jets}',
+    'color' : '#669966',
+}
 
 
