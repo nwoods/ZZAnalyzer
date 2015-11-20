@@ -28,11 +28,11 @@ from rootpy.ROOT import Double
 import os
 from math import sqrt
 
-plotter = NtuplePlotter('zz', './plots/counting_2nov2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/ZZTo*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/GluGluToZZTo2e2m*.root,/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results/*HToZZ*.root',
+plotter = NtuplePlotter('zz', './plots/counting_19nov2015', 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/ZZTo*.root,/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/GluGluToZZTo2e2m*.root,/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/*HToZZ*.root',
                          'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_3P1F/*.root',
                          'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_2P2F/*.root',}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results/data*.root',
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_13nov2015_0/results/data*.root',
                          '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_3P1F/data*.root',
                          '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_2P2F/data*.root',}, 
                         intLumi=1263.89)
@@ -52,7 +52,7 @@ print '    eemm: %d'%plotter.ntuples['2P2F']['2P2F']['eemm'].GetEntries()
 print '    mmmm: %d'%plotter.ntuples['2P2F']['2P2F']['mmmm'].GetEntries()
 print ''
 
-tpVersionHash = 'v1.1-1-g4cbf52a_v2'
+tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
 
 fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_26oct2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
@@ -68,16 +68,20 @@ eIDTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 
 eIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
 
 eIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIDTightTPHist.iteritems()}
+eIDTightTPStrTemp['down'] = '1.'
 eIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIsoFromTightTPHist.iteritems()}
+eIsoFromTightTPStrTemp['down'] = '1.'
 
 mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_%s.json'%tpVersionHash)
 mIDTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
 mIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
 
 mIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIDTightTPHist.iteritems()}
+mIDTightTPStrTemp['down'] = '1'
 mIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIsoFromTightTPHist.iteritems()}
+mIsoFromTightTPStrTemp['down'] = '1.'
 
-fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_28Oct2015.root')
+fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_13Nov2015.root')
 puScaleFactorHist = {
     '' : fPUScale.Get("puScaleFactor"),
     'up' : fPUScale.Get("puScaleFactor_ScaleUp"),
