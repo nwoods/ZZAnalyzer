@@ -25,7 +25,7 @@ puDistName = "pileupDist_2015mix25ns_startup"
 ####
 # Inputs and outputs (change as necessary)
 ####
-puDataSetID = "28Oct2015" # identifier for all PU data root files
+puDataSetID = "13Nov2015" # identifier for all PU data root files
 histname = 'pileup'
 baseFileName = os.path.join(os.environ["zza"], 'data/pileupReweighting', "PileUpData_%s{0}.root"%puDataSetID)
 scaleSuffixes = {
