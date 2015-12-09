@@ -161,10 +161,20 @@ class ZZFakeRateCalculator(object):
             drawablesMC['denom'] = sDenom
             denomMC = self.extractHistFromStack[nDims-1](sDenom)
             
-            outMC = self.WrappedHists[nDims-1](asrootpy(numMC.Clone()),
+            fMC = self.WrappedHists[nDims-1](asrootpy(numMC.Clone()),
+                                             name=name+"MC_fakeRate",
+                                             isData=False)
+            fMC.Divide(denomMC)
+            drawablesMC['fakeRate'] = fMC
+
+            # actual scale factor, f/(1-f)
+            outMC = self.WrappedHists[nDims-1](asrootpy(numMC.empty_clone()),
                                                name=name+"MC")
-            outMC.Divide(denomMC)
-            drawablesMC['fakeRate'] = outMC
+            for fb, b in zip(fMC, outMC):
+                if b.overflow:
+                    continue
+                b.value = fb.value / (1. - fb.value)
+
             outputs.append(outMC)
 
         drawablesData = {}
@@ -197,12 +207,20 @@ class ZZFakeRateCalculator(object):
             num.sumw2()
             denom.sumw2()
 
-            out = self.WrappedHists[nDims-1](asrootpy(num.Clone()),
-                                             name=name)
-            out.Divide(denom)
+            f = self.WrappedHists[nDims-1](asrootpy(num.Clone()),
+                                           name=name+"_fakeRate")
+            f.Divide(denom)
             drawablesData['num'] = num
             drawablesData['denom'] = denom
-            drawablesData['fakeRate'] = out
+            drawablesData['fakeRate'] = f
+
+            out = self.WrappedHists[nDims-1](asrootpy(num.empty_clone()),
+                                             name=name)
+            for fb, b in zip(f, out):
+                if b.overflow:
+                    continue
+                b.value = fb.value / (1. - fb.value)
+
             outputs.append(out)
 
         for o in outputs:
@@ -378,7 +396,7 @@ if __name__ == '__main__':
     samplesToSubtract = []
     if 'numMC' in calc.plotter.ntuples:
         for s in calc.plotter.ntuples['numMC']:
-            if s[:4] == "ZZTo" or s[:4] == "WZTo":
+            if s[:4] == "ZZTo" or "uZZTo" in s or s[:4] == "WZTo":
                 samplesToSubtract.append(s)
 
     channelsByObject = {}
@@ -397,6 +415,7 @@ if __name__ == '__main__':
 
     for obj, chs in iChain(channelsByType.iteritems(), channelsByObject.iteritems()):
         if len(chs) == 1:
+            continue # speed up because we don't usually care
             objToPrint = obj[0]+'_'+chs[0]
         else:
             objToPrint = obj[0]
