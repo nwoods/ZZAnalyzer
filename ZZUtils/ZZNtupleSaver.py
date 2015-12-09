@@ -16,6 +16,8 @@ Author: Nate Woods, U. Wisconsin
 
 from rootpy.io import DoesNotExist
 from rootpy.tree import Tree, TreeModel, FloatCol, IntCol
+from rootpy import lookup_by_name
+
 from ZZResultSaverBase import ZZResultSaverBase
 from ZZHelpers import * # evVar, objVar, nObjVar
 from collections import OrderedDict
@@ -28,8 +30,6 @@ class ZZNtupleSaver(ZZResultSaverBase):
         More stuff may be set up in daughter class __init__ methods.
         '''
         self.specialVarList = ['copy']
-        # A few variables are saved as ints by FSA
-        self.intVarList = set(['run', 'evt', 'lumi', 'isdata', 'pvIsValid', 'pvIsFake'])
 
         super(ZZNtupleSaver, self).__init__(fileName, channels, *args, **kwargs)
 
@@ -64,6 +64,26 @@ class ZZNtupleSaver(ZZResultSaverBase):
         return self.specialVarList
 
 
+    _columnTypes_ = {
+        lookup_by_name("Float_t") : FloatCol,
+        lookup_by_name("Int_t") : IntCol,
+        }
+
+    @classmethod
+    def getColumnType(cls, dataType):
+        '''
+        Get the type of the column to use for this object in a TreeModel.
+        '''
+        try:
+            return cls._columnTypes_[dataType]
+        except KeyError:
+            # inherits from rootpy.tree.treetypes.Column
+            class NewColumn(FloatCol.__bases__[0]): 
+                type = dataType
+            cls._columnTypes_[dataType] = NewColumn
+            return NewColumn
+
+
     def setupResultObjects(self, resultArgs, *args, **kwargs):
         '''
         Dict with an Ntuple keyed to 'Ntuple'
@@ -71,40 +91,39 @@ class ZZNtupleSaver(ZZResultSaverBase):
         if not resultArgs:
             return {}
 
-        cols = []
+        cols = {} # cols[branchName] = BranchType (FloatCol is default)
         # default values of copy variables
         copyFrom = False # will be an ntuple if copying
         copyOnly = None # will be a list of branches to copy if needed
         copyExcept = None # will be a list of branches *not* to copy if needed
 
         if 'copy' in resultArgs:
+            copyCols = []
             copyVars = resultArgs.pop('copy')
             copyFrom = copyVars.pop('ntuple')
             if 'only' in copyVars:
                 assert 'except' not in copyVars, \
                     "Can't have both an only list and an except list for ntuple %s!"%copyFrom.GetName()
-                copyOnly = copyVars['only']
-                cols += copyOnly
+                copyCols = copyVars['only']
             elif 'except' in copyVars:
                 copyExcept = copyVars['except']
                 for b in copyFrom.iterbranchnames():
                     if b not in copyExcept:
-                        cols.append(b)
+                        copyCols.append(b)
             else: # otherwise, just copy everything
-                cols += copyFrom.branchnames
+                copyCols = copyFrom.branchnames
+            
+            for col in copyCols:
+                typeName = Tree.branch_type(copyFrom.GetBranch(col))
+                cols[col] = ZZNtupleSaver.getColumnType(lookup_by_name(typeName))
 
         # Everything else in resultArgs should be new branches
-        cols += resultArgs.keys()
+        cols.update({c:FloatCol for c in resultArgs.keys()})
 
         modelCols = {}
-
         # Sort so entries are in alphabetical order in TBrowser
         for col in sorted(cols):
-            if col in self.intVarList:
-                # These are not floats
-                modelCols[col] = IntCol()
-            else:
-                modelCols[col] = FloatCol()
+            modelCols[col] = cols[col]()
     
         ntupleModel = type("aModel", (TreeModel,), modelCols)
         ntuple = Tree("Ntuple", model=ntupleModel)
