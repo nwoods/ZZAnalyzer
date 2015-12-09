@@ -27,10 +27,10 @@ from rootpy.ROOT import Double
 
 import os
 
-plotter = NtuplePlotter('z', './plots/singleZ_2015D_17nov2015', 
-                        {'mc':'/data/nawoods/ntuples/singlez_mc_09nov2015_0/results/*.root'},
-                        {'data':'/data/nawoods/ntuples/singlez_data_2015d_13nov2015_0/results/*.root'},
-                        intLumi=1263.89)
+plotter = NtuplePlotter('z', './plots/singleZ_2015CD1280_07dec2015', 
+                        {'mc':'/data/nawoods/ntuples/singlez_mc_03dec2015_0/results/*.root'},
+                        {'data':'/data/nawoods/ntuples/singlez_data_2015cd1280_03dec2015_0/results/*.root'},
+                        intLumi=1341.) # 1280.23)
 
 tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
 
@@ -57,7 +57,6 @@ mcWeight = {
     'e' : '(GenWeight*{0}*{1})'.format(puScaleFactorStr, z1eMCWeight),
     'm' : '(GenWeight*{0}*{1})'.format(puScaleFactorStr, z1mMCWeight),
 }
-
 
 channels = {
     'e' : 'ee',
@@ -151,7 +150,7 @@ objectTextL = {
     'zm' : '\\mu',
     }
 
-for z, objects in objectsZ.iteritems():
+for z in []:#, objects in objectsZ.iteritems():
     
     channel = [channels[lep] for lep in objectsZ[z]]
     weight = [mcWeight[lep] for lep in objectsZ[z]]
@@ -160,7 +159,7 @@ for z, objects in objectsZ.iteritems():
                                   [1,0.,2.], 1., weight)
     h = plotter.makeHist('data', 'data', channel, '1.', '', [1,0.,2.])
 
-    mcScale = 1. #h.GetEntries() / s.GetStack().Last().Integral()
+    mcScale = h.GetEntries() / s.GetStack().Last().Integral()
 
     # print z, mcScale
     # continue
@@ -185,5 +184,44 @@ for z, objects in objectsZ.iteritems():
                          xTitle=xTitlesL[var]%objectTextL[z],
                          xUnits=units[var], outFile='%sLep%s.png'%(z,var), 
                          mcWeights=weight)
+
+mcWeight_noPU = {
+    'e' : '(GenWeight*{0})'.format(z1eMCWeight),
+    'm' : '(GenWeight*{0})'.format(z1mMCWeight),
+}
+
+plotter.fullPlot('nvtx_noNorm', ['ee','mm'], 'nvtx', 
+                 '', [40,0.,40.], 'mc', 'data', canvasX=1000, logy=False, 
+                 xTitle="\# PVs",
+                 xUnits="", outFile='nvtx_noNorm.png',
+                 mcWeights=[mcWeight['e'],mcWeight['m']])
+
+plotter.fullPlot('nvtx_noReweight_noNorm', ['ee','mm'], 'nvtx', 
+                 '', [40,0.,40.], 'mc', 'data', canvasX=1000, logy=False, 
+                 xTitle="\# PVs",
+                 xUnits="", outFile='nvtx_noReweight_noNorm.png',
+                 mcWeights=[mcWeight_noPU['e'],mcWeight_noPU['m']])
+
+s = plotter.makeCategoryStack('mc', ['ee','mm'], '1.', '',
+                              [1,0.,2.], 1., [mcWeight['e'],mcWeight['m']])
+h = plotter.makeHist('data', 'data', ['ee','mm'], '1.', '', [1,0.,2.])
+
+mcScale = h.GetEntries() / s.GetStack().Last().Integral()
+
+s_noPU = plotter.makeCategoryStack('mc', ['ee','mm'], '1.', '',
+                                   [1,0.,2.], 1., [mcWeight_noPU['e'],mcWeight_noPU['m']])
+mcScale_noPU = h.GetEntries() / s_noPU.GetStack().Last().Integral()
+
+plotter.fullPlot('nvtx', ['ee','mm'], 'nvtx', 
+                 '', [40,0.,40.], 'mc', 'data', canvasX=1000, logy=False, 
+                 xTitle="\# PVs",
+                 xUnits="", outFile='nvtx.png',
+                 mcWeights=[mcWeight['e']*mcScale,mcWeight['m']*mcScale])
+
+plotter.fullPlot('nvtx_noReweight', ['ee','mm'], 'nvtx', 
+                 '', [40,0.,40.], 'mc', 'data', canvasX=1000, logy=False, 
+                 xTitle="\# PVs",
+                 xUnits="", outFile='nvtx_noReweight.png',
+                 mcWeights=[mcWeight_noPU['e']*mcScale_noPU,mcWeight_noPU['m']*mcScale_noPU])
 
 

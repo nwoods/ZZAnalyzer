@@ -28,14 +28,14 @@ from rootpy.ROOT import Double
 import os
 from math import sqrt
 
-plotter = NtuplePlotter('zz', './plots/counting_19nov2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/ZZTo*.root,/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/GluGluToZZTo4[em]*.root,/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/GluGluToZZTo2e2m*.root,/data/nawoods/ntuples/zzNtuples_mc_06nov2015_0/results/*HToZZ*.root',
-                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_3P1F/*.root',
-                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_2P2F/*.root',}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_13nov2015_0/results/data*.root',
-                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_3P1F/data*.root',
-                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_2P2F/data*.root',}, 
-                        intLumi=1263.89)
+plotter = NtuplePlotter('zz', './plots/counting_07dec2015', 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/GluGluToZZTo*.root',
+                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_3P1F/*.root',
+                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_2P2F/*.root',}, 
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results/data*.root',
+                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_3P1F/data*.root',
+                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_2P2F/data*.root',}, 
+                        intLumi=1341.) # 1280.23)
 
 plotter.printPassingEvents('data')
 
@@ -54,7 +54,7 @@ print ''
 
 tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_26oct2015_0.root')
+fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_04dec2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
 mFakeRateHist = fFake.Get('m_FakeRate').clone()
 
@@ -89,11 +89,20 @@ puScaleFactorHist = {
 }
 puScaleFactorStr = {s:makeWeightStringFromHist(h, 'nTruePU') for s,h in puScaleFactorHist.iteritems()}
 
+eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs(e{0}SCEta)", bdt="e{0}MVANonTrigID")
+
 cr3PScale = {
-    'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
-    'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
+    'eeee' : '*'.join(('(%s || e{0}HZZIsoPass < 0.9 ? {1} : 1.)'%eTightIDStr).format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)), 
+    # '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)), # e{0}RelPFIsoRhoDREtFSR > .5
+    'eemm' : '*'.join(('(%s || e{0}HZZIsoPass < 0.9 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'%eTightIDStr).format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
+    # '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
     'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
 }
+# cr3PScale = {
+#     'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
+#     'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
+#     'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
+# }
 cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
 
 cr2PScale = cr3PScale
@@ -101,7 +110,8 @@ cr2PScale = cr3PScale
 # samples to subtract off of CRs based on MC
 subtractSamples = []
 for s in plotter.ntuples['mc3P1F']:
-    if s[:7] == 'GluGluT' or s[:3] == 'ZZT':
+    if s[:3] == 'ZZT' or s[:10] == 'GluGluToZZ' and 'tau' not in s:
+    #if s[:7] == 'GluGluT' or s[:3] == 'ZZT':
         subtractSamples.append(s)
 
 for scaleSet in [['', '', ''], # [id, iso, PU]
@@ -154,6 +164,10 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         cr3P1F.sumw2()
         cr2P2F.sumw2()
 
+        # print '\n', channel, ":" 
+        # print "    Init:"
+        # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+
         for ss in subtractSamples:
             sub3P = plotter.makeHist("mc3P1F", ss, channel,
                                      '1.', '', bins,
@@ -166,21 +180,27 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
                                      perUnitWidth=False)
             cr2P2F -= sub2P
 
-        cr3P1F.sumw2()
-        cr2P2F.sumw2()
+            cr3P1F.sumw2()
+            cr2P2F.sumw2()
             
+            # print "    Subtracted %s:"%ss
+            # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+
         for b3P, b2P in zip(cr3P1F, cr2P2F):
             if b3P.value <= 0 or b2P.value > b3P.value:
                 b3P.value = 0.
-                b3P.error = 0.
+                #b3P.error = 0.
                 b2P.value = 0.
-                b2P.error = 0.
+                #b2P.error = 0.
             if b2P.value < 0.:
                 b2P.value = 0.
         
         cr3P1F.sumw2()
         cr2P2F.sumw2()
             
+        # print "    Negatives zeroed:"
+        # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+
         expectedError3P1F = Double(0)
         integral3P1F = cr3P1F.IntegralAndError(0,cr3P1F.GetNbinsX(), expectedError3P1F)
         expectedError2P2F = Double(0)
@@ -189,6 +209,10 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         cr3P1F -= cr2P2F
 
         cr3P1F.sumw2()
+
+        # print "    3P1F-2P2F:"
+        # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+        # continue
 
         expectedErrorBkg = Double(0)
         integralBkg = cr3P1F.IntegralAndError(0,cr3P1F.GetNbinsX(), expectedErrorBkg)
@@ -234,3 +258,4 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
             print "        %s: %f +/- %f"%(sNameToPrint, sampleInt, sampleError)
 
 
+    #break

@@ -19,9 +19,9 @@ from rootpy.ROOT import Double
 import os
 
 
-tpVersionHash = 'v1.1-1-g4cbf52a_v2'
+tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2nov2015_0.root')
+fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_04dec2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
 mFakeRateHist = fFake.Get('m_FakeRate').clone()
 
@@ -48,9 +48,11 @@ mIsoFromLooseTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_pas
 mIDLooseTPStrTemp = makeWeightStringFromHist(mIDLooseTPHist, '{0}Pt', 'abs({0}Eta)')
 mIsoFromLooseTPStrTemp = makeWeightStringFromHist(mIsoFromLooseTPHist, '{0}Pt', 'abs({0}Eta)')
 
-singleLepTPStr = '({0}HZZTightID > 0.5 ? %s * ({0}HZZIsoPass ? %s : 1.) : %s * ({0}HZZIsoPass ? %s : 1.))'
-singleETPStrTemp = singleLepTPStr%(eIDTightTPStrTemp, eIsoFromTightTPStrTemp, eIDLooseTPStrTemp, eIsoFromLooseTPStrTemp)
-singleMuTPStrTemp = singleLepTPStr%(mIDTightTPStrTemp, mIsoFromTightTPStrTemp, mIDLooseTPStrTemp, mIsoFromLooseTPStrTemp)
+eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs({0}SCEta)", bdt="{0}MVANonTrigID")
+singleETPStrBase = '(%s ? %%s * ({0}HZZIsoPass ? %%s : 1.) : %%s * ({0}HZZIsoPass ? %%s : 1.))'%eTightIDStr
+singleMTPStrBase = '({0}HZZTightID > 0.5 ? %s * ({0}HZZIsoPass ? %s : 1.) : %s * ({0}HZZIsoPass ? %s : 1.))'
+singleETPStrTemp = singleETPStrBase%(eIDTightTPStrTemp, eIsoFromTightTPStrTemp, eIDLooseTPStrTemp, eIsoFromLooseTPStrTemp)
+singleMuTPStrTemp = singleMTPStrBase%(mIDTightTPStrTemp, mIsoFromTightTPStrTemp, mIDLooseTPStrTemp, mIsoFromLooseTPStrTemp)
 
 z1eMCWeight = '*'.join(singleETPStrTemp.format('e%d'%ne) for ne in range(1,3))
 z2eMCWeight = '*'.join(singleETPStrTemp.format('e%d'%ne) for ne in range(3,5))
@@ -59,7 +61,7 @@ z2mMCWeight = '*'.join(singleMuTPStrTemp.format('m%d'%ne) for ne in range(3,5))
 #z1emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1eMCWeight, z1mMCWeight)
 #z2emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1mMCWeight, z1eMCWeight)
 
-fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_28Oct2015.root')
+fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_13Nov2015.root')
 puScaleFactorHist = fPUScale.Get("puScaleFactor")
 puScaleFactorStr = makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
 
@@ -77,14 +79,14 @@ crs = ['3P1F', '2P2F']
 
 for cr in crs:
 
-    plotters[cr] = NtuplePlotter('zz', './plots/CR_MCData2015D_3nov2015/CR_%s'%cr,
-                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_29oct2015_0/results_%s/*.root'%cr}, 
-                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015d_26oct2015_0/results_%s/data*.root'%cr}, 
-                                 1263.89)
+    plotters[cr] = NtuplePlotter('zz', './plots/CR_MCData2015D_07dec2015/CR_%s'%cr,
+                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_%s/*.root'%cr}, 
+                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_%s/data*.root'%cr}, 
+                                 1341.) #1280.23) #63.89)
 
-    print "%s:"%cr
-    plotters[cr].printPassingEvents('data')
-    print ""
+    # print "%s:"%cr
+    # plotters[cr].printPassingEvents('data')
+    # print ""
 
     for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
 
