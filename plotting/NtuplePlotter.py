@@ -145,7 +145,7 @@ class NtuplePlotter(object):
     def __init__(self, channels, outdir='./plots', mcFiles={}, 
                  dataFiles={}, intLumi=-1.):
         self.intLumi = float(intLumi)
-        if outdir[0] == '.':
+        if not outdir or outdir[0] == '.':
             self.outdir = os.environ['zza'] + outdir[1:]
         elif '$zza' in outdir:
             self.outdir = outdir.replace('$zza', os.environ['zza'])
@@ -298,6 +298,8 @@ class NtuplePlotter(object):
             if len(path) < 5 or path[-5:] != ".root":
                 path += '*.root'
             files += glob(path)
+
+        assert files, "No files found for path %s !"%f
                                           
         return { fi.split('/')[-1].replace('.root','') : fi for fi in files }
                                           
@@ -340,7 +342,7 @@ class NtuplePlotter(object):
         if not sample:
             sample = category
         for channel, ntuple in self.ntuples[category][sample].iteritems():
-            print "%s:"%channel
+            print "%s (%d):"%(channel, ntuple.GetEntries())
             for row in ntuple:
                 print "    %d:%d:%d"%(row.run, row.lumi, row.evt)
             print ''
@@ -485,16 +487,30 @@ class NtuplePlotter(object):
                      bottomMargin=0.3, topMargin=0.06, yTitle=""):
             self.addPadBelow(height, bottomMargin, topMargin)
             if isinstance(num, HistStack):
-                ratio = asrootpy(num.GetStack().Last()).clone()
+                for h in num.hists:
+                    h.sumw2()
+                hNum = sum(num.hists)
             else:
-                ratio = num.clone()
-            ratio.sumw2()
+                hNum = num.clone()
+            hNum.sumw2()
+            numerator = Graph(hNum)
             if isinstance(denom, HistStack):
-                stackTop = asrootpy(denom.GetStack().Last()).clone()
-                stackTop.sumw2()
-                ratio.Divide(stackTop)
+                hDenom = sum(denom.hists)
             else:
-                ratio.Divide(denom)
+                hDenom = denom.clone()
+            hDenom.sumw2()
+            denominator = Graph(hDenom)
+
+            nRemoved = 0
+            for i in range(numerator.GetN()):
+                if hDenom[i+1].value <= 0. or hNum[i+1].value <= 0.:
+                    numerator.RemovePoint(i - nRemoved)
+                    denominator.RemovePoint(i - nRemoved)
+                    nRemoved += 1
+
+            ratio = numerator / denominator
+
+            ratio.drawstyle = 'PE'
             ratio.color = 'black'
             opts = {
                 'xaxis':ratio.xaxis,
@@ -503,7 +519,7 @@ class NtuplePlotter(object):
                 'ydivisions':5,
                 }
 
-            unity = TLine(ratio.lowerbound(), 1, ratio.upperbound(), 1)
+            unity = TLine(hNum.lowerbound(), 1, hNum.upperbound(), 1)
             unity.SetLineStyle(7)
 
             self.paintPad(self.pads[1], [ratio], [unity], opts, "", "", 
@@ -654,7 +670,8 @@ class NtuplePlotter(object):
             # it with a TGraphAsymmErrors that has the correct error bars
             toDraw = []
             for iObj, obj in enumerate(objects):
-                if isinstance(obj, _Hist) and obj.GetEffectiveEntries() == obj.GetEntries():
+                if isinstance(obj, _Hist) and obj.GetEffectiveEntries() == obj.GetEntries() and\
+                        obj.getIsData():
                     # if this is the first item, make sure the axes don't get messed up
                     if iObj == 0:
                         toDraw.append(obj.empty_clone())
