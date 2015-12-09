@@ -73,7 +73,7 @@ sampleInfo["GluGluToZZTo2mu2tau_BackgroundOnly_13TeV_MCFM"] = {
     'isSignal' : True,
     'color' : 'gray',
     # 'kFactor' : 2.,
-    'group' : 'ggZZ2l2t',
+    'group' : 'ggZZ4l', #'ggZZ2l2t',
 }
 
 sampleInfo["GluGluToZZTo2e2tau_BackgroundOnly_13TeV_MCFM"] = {
@@ -86,7 +86,7 @@ sampleInfo["GluGluToZZTo2e2tau_BackgroundOnly_13TeV_MCFM"] = {
     'isSignal' : True,
     'color' : 'slategray',
     # 'kFactor' : 2.,
-    'group' : 'ggZZ2l2t',
+    'group' : 'ggZZ4l', #'ggZZ2l2t',
 }
 
 sampleInfo["GluGluToZZTo4mu_BackgroundOnly_13TeV_MCFM"] = {
@@ -125,7 +125,7 @@ sampleInfo["GluGluToZZTo4tau_BackgroundOnly_13TeV_MCFM"] = {
     'isSignal' : True,
     'color' : 'darkgray',
     # 'kFactor' : 2.,
-    'group' : 'ggZZ2l2t',
+    'group' : 'ggZZ4l', #'ggZZ2l2t',
 }
 
 sampleInfo["TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
