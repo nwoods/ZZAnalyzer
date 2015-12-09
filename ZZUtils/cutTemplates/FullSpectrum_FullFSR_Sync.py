@@ -251,6 +251,9 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
                 'cuts' : { 'RelPFIsoRho'+self.fsrVar : (0.5, "<") },
                 'objects' : 1,
             },
+            # 'eIso' : {
+            #     'logic' : 'other',
+            # },
             'LeptonIso' : {
                 'cuts' : {
                     'isolation' : 'TYPEIso',
@@ -380,6 +383,7 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
         others = {}
         others['eMVAID'] = lambda row, obj: self.eIDTight2012(temp['eMVAID'], row, obj)
         others['SmartCut'] = lambda row, *obj: self.doSmartCut(row, *obj)
+        #others['eIso'] = lambda row, obj: self.eIsoScaledEA(row, obj)
 
         return others
 
@@ -427,3 +431,28 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
             zBMass = altZMass[0]
 
         return not (zACompatibility < z1Compatibility and zBMass < 12)
+
+
+    def eIsoScaledEA(self, row, obj):
+        '''
+        Recalculate (and cut on) electron isolation, scaling the effective
+        area for the difference between a cone of 0.3 and 0.4.
+        '''
+        neutralIso = objVar(row, "PFNeutralIso", obj) + objVar(row, "PFPhotonIso", obj)
+        neutralIso -= objVar(row, "Rho", obj) * objVar(row, "EffectiveAreaSpring15", obj) * 16. / 9.
+        
+        fsrPt = objVar(row, "DREtFSRPt", obj)
+        if fsrPt > 0.:
+            fsrDR = deltaR(objVar(row, "Eta", obj),
+                           objVar(row, "Phi", obj),
+                           objVar(row, "DREtFSREta", obj),
+                           objVar(row, "DREtFSRPhi", obj))
+            if fsrDR < 0.4 and (objVar(row, "SCEta", obj) < 1.479 or fsrDR > 0.08):
+                neutralIso -= fsrPt
+
+        if neutralIso < 0.:
+            neutralIso = 0.
+
+        chargedIso = objVar(row, "PFChargedIso", obj)
+
+        return (chargedIso + neutralIso) / objVar(row, "Pt", obj) < 0.5
