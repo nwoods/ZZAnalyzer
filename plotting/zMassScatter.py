@@ -21,7 +21,7 @@ plotter = NtuplePlotter('zz', '',
 
 
 colors = {'eeee':'b','eemm':'r','mmmm':'forestgreen'}
-markers = {'eeee':'+','eemm':'o','mmmm':'*'}
+markers = {'eeee':20,'eemm':21,'mmmm':22}
 titles = {'eeee':'4\\text{e}','eemm':'2\\text{e}2\\mu','mmmm':'4\\mu'}
 g = {}
 for ch in plotter.channels:
@@ -29,6 +29,7 @@ for ch in plotter.channels:
     g[ch].color = colors[ch]
     g[ch].markerstyle = markers[ch]
     g[ch].drawstyle = 'P'
+    g[ch].SetMarkerSize(g[ch].GetMarkerSize()*1.5)
 
 massVar = 'MassDREtFSR'
 
@@ -66,11 +67,13 @@ for ch in plotter.channels:
 #c.Update()
 c = Canvas(1200,1000)
 (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} [\\text{GeV}]', 
-                            ytitle='m_{Z_2} [\\text{GeV}]',
-                            xlimits=(60.,120.), ylimits=(60.,120.))
+                             ytitle='m_{Z_2} [\\text{GeV}]',
+                             xlimits=(60.,120.), ylimits=(60.,120.))
 yaxis.SetTitleSize(yaxis.GetTitleSize()*0.9)
 c.Update()
-leg = Legend(g.values(), c, leftmargin=0.6, textsize=0.04)
+leg = Legend(g.values(), c, leftmargin=0.6, textsize=0.04, 
+             header='\\text{     Data}', entrysep=0.01,
+             entryheight=0.04)
 leg.Draw("same")
 plotter.style.setCMSStyle(c, "", True, "Preliminary", 13, 1341.) #1263.89)
 
