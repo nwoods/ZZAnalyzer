@@ -27,7 +27,7 @@ from rootpy.ROOT import Double
 
 import os
 
-plotter = NtuplePlotter('z', './plots/singleZ_2015CD1280_07dec2015', 
+plotter = NtuplePlotter('z', './plots/singleZ_2015CD1280_10dec2015', 
                         {'mc':'/data/nawoods/ntuples/singlez_mc_03dec2015_0/results/*.root'},
                         {'data':'/data/nawoods/ntuples/singlez_data_2015cd1280_03dec2015_0/results/*.root'},
                         intLumi=1341.) # 1280.23)
@@ -86,7 +86,7 @@ binningZ = {
     'Mass' : [30, 60., 120.],
     'EtaDREtFSR' : [20, -5., 5.],
     'PtDREtFSR' : [30, 0., 150.],
-    #'PhiDREtFSR' : [12, -3.15, 3.15],
+    # 'PhiDREtFSR' : [12, -3.15, 3.15],
     }
 
 xTitlesZ = {
@@ -150,7 +150,7 @@ objectTextL = {
     'zm' : '\\mu',
     }
 
-for z in []:#, objects in objectsZ.iteritems():
+for z, objects in objectsZ.iteritems():
     
     channel = [channels[lep] for lep in objectsZ[z]]
     weight = [mcWeight[lep] for lep in objectsZ[z]]
@@ -179,11 +179,19 @@ for z in []:#, objects in objectsZ.iteritems():
         channel = [channels[lep] for nLep in range(1,3) for lep in objectsZ[z]]
         weight = [('%f*'%mcScale)+mcWeight[lep] for nLep in range(1,3) for lep in objectsZ[z]]
 
+        if var == "Eta":
+            legParams = {'leftmargin':0.3,'rightmargin':0.3,'topmargin':0.5}
+            legSolid = True
+        else:
+            legParams = {}
+            legSolid = False
+
         plotter.fullPlot('%sLep%s'%(z, var), channel, variables, 
                          '', bins, 'mc', 'data', canvasX=1000, logy=False, 
                          xTitle=xTitlesL[var]%objectTextL[z],
                          xUnits=units[var], outFile='%sLep%s.png'%(z,var), 
-                         mcWeights=weight)
+                         mcWeights=weight, legParams=legParams,
+                         legSolid=legSolid)
 
 mcWeight_noPU = {
     'e' : '(GenWeight*{0})'.format(z1eMCWeight),
@@ -216,12 +224,12 @@ plotter.fullPlot('nvtx', ['ee','mm'], 'nvtx',
                  '', [40,0.,40.], 'mc', 'data', canvasX=1000, logy=False, 
                  xTitle="\# PVs",
                  xUnits="", outFile='nvtx.png',
-                 mcWeights=[mcWeight['e']*mcScale,mcWeight['m']*mcScale])
+                 mcWeights=[mcWeight['e']+'*%f'%mcScale,mcWeight['m']+'*%f'%mcScale])
 
 plotter.fullPlot('nvtx_noReweight', ['ee','mm'], 'nvtx', 
                  '', [40,0.,40.], 'mc', 'data', canvasX=1000, logy=False, 
                  xTitle="\# PVs",
                  xUnits="", outFile='nvtx_noReweight.png',
-                 mcWeights=[mcWeight_noPU['e']*mcScale_noPU,mcWeight_noPU['m']*mcScale_noPU])
+                 mcWeights=[mcWeight_noPU['e']+'*%f'%mcScale_noPU,mcWeight_noPU['m']+'*%f'%mcScale_noPU])
 
 
