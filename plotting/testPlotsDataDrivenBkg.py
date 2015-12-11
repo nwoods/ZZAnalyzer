@@ -27,9 +27,9 @@ from rootpy.ROOT import Double
 
 import os
 
-noBKG = False
+noBKG = False #True
 
-plotter = NtuplePlotter('zz', './plots/dataMC2015D_07dec2015%s'%('_noBKG' if noBKG else ''), 
+plotter = NtuplePlotter('zz', './plots/dataMC2015D_10dec2015%s'%('_noBKG' if noBKG else ''), 
                         {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/GluGluToZZTo*.root',
                          'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_3P1F/*.root',
                          'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_2P2F/*.root',}, 
@@ -221,7 +221,8 @@ for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
                          xTitle=xTitle4l[varName].replace('__PARTICLES__',particles), 
                          xUnits=units[varName],
                          extraBkgs=extraBkgs, outFile='%s%s.png'%(varName,chEnding), 
-                         mcWeights=mcWeight[channel], drawRatio=False)
+                         mcWeights=mcWeight[channel], drawRatio=False,
+                         widthInYTitle=bool(units[var]))
 # exit()
 
 
@@ -240,6 +241,7 @@ xTitles2l = {
     }
 
 channels2l = {
+    'z' : ['eeee', 'eeee', 'eemm', 'eemm', 'mmmm', 'mmmm',],
     'z1' : ['eeee', 'eemm', 'eemm', 'mmmm'],
     'z2' : ['eeee', 'eemm', 'eemm', 'mmmm'],
     'z1e' : ['eeee', 'eemm'],
@@ -249,6 +251,7 @@ channels2l = {
     }
 
 selections2l = {
+    'z' : '',
     'z1' : ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
             'abs(m1_m2_MassDREtFSR-%f) < abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
     'z2' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
@@ -260,6 +263,7 @@ selections2l = {
     }
 
 varTemplates2l = {
+    'z' : ['e1_e2_%s', 'e3_e4_%s', 'e1_e2_%s', 'm1_m2_%s', 'm1_m2_%s', 'm3_m4_%s'],
     'z1' : ['e1_e2_%s', 'e1_e2_%s', 'm1_m2_%s', 'm1_m2_%s'],
     'z2' : ['e3_e4_%s', 'e1_e2_%s', 'm1_m2_%s', 'm3_m4_%s'],
     'z1e' : ['e1_e2_%s' for i in range(2)],
@@ -269,6 +273,7 @@ varTemplates2l = {
     }
 
 objects2l = {
+    'z' : 'Z',
     'z1' : 'Z_{1}',
     'z2' : 'Z_{2}',
     'z1e' : 'Z_{1} \\left(ee \\right)',
@@ -339,9 +344,11 @@ for z, channels in channels2l.iteritems():
                          bins, 'mc', 'data', canvasX=1000, logy=False, 
                          xTitle=xTitles2l[var]%objects2l[z],
                          xUnits=units[var],
+                         yTitle="Z Bosons" if z=='z' else 'Events',
                          extraBkgs=extraBkgs, outFile='%s%s.png'%(z,var), 
                          mcWeights=[mcWeight[c] for c in channels], 
-                         drawRatio=False)
+                         drawRatio=False,
+                         widthInYTitle=bool(units[var]))
 
 
 binning1l = {
@@ -445,9 +452,11 @@ for lep, channels in channels1l.iteritems():
                          bins, 'mc', 'data', canvasX=1000, logy=False, 
                          xTitle=xTitles1l[var]%objName1l[lep],
                          xUnits=units[var],
+                         yTitle='Electrons' if lep == 'e' else 'Muons',
                          extraBkgs=extraBkgs, outFile='%s%s.png'%(lep,var), 
                          mcWeights=[mcWeight[c] for c in channels], 
-                         drawRatio=False)
+                         drawRatio=False,
+                         widthInYTitle=bool(units[var]))
 
 
 
