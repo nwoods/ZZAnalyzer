@@ -28,7 +28,7 @@ from rootpy.ROOT import Double
 import os
 from math import sqrt
 
-plotter = NtuplePlotter('zz', './plots/counting_07dec2015', 
+plotter = NtuplePlotter('zz', './plots/counting_09dec2015', 
                         {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/GluGluToZZTo*.root',
                          'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_3P1F/*.root',
                          'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_2P2F/*.root',}, 
