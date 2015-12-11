@@ -59,7 +59,7 @@ sampleInfo["GluGluToZZTo2e2mu_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\mu',
     'isSignal' : True,
     'color' : 'aliceblue',
-    # 'kFactor' : 2.,
+    'kFactor' : 1.7,
     'group' : 'ggZZ4l',
 }
 
@@ -72,7 +72,7 @@ sampleInfo["GluGluToZZTo2mu2tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2\\mu2\\tau',
     'isSignal' : True,
     'color' : 'gray',
-    # 'kFactor' : 2.,
+    'kFactor' : 1.7,
     'group' : 'ggZZ4l', #'ggZZ2l2t',
 }
 
@@ -85,7 +85,7 @@ sampleInfo["GluGluToZZTo2e2tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\tau',
     'isSignal' : True,
     'color' : 'slategray',
-    # 'kFactor' : 2.,
+    'kFactor' : 1.7,
     'group' : 'ggZZ4l', #'ggZZ2l2t',
 }
 
@@ -98,7 +98,7 @@ sampleInfo["GluGluToZZTo4mu_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\mu',
     'isSignal' : True,
     'color' : 'lightblue',
-    # 'kFactor' : 2.,
+    'kFactor' : 1.7,
     'group' : 'ggZZ4l',
 }
 
@@ -111,7 +111,7 @@ sampleInfo["GluGluToZZTo4e_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4e',
     'isSignal' : True,
     'color' : 'lightsteelblue',
-    # 'kFactor' : 2.,
+    'kFactor' : 1.7,
     'group' : 'ggZZ4l',
 }
 
@@ -124,7 +124,7 @@ sampleInfo["GluGluToZZTo4tau_BackgroundOnly_13TeV_MCFM"] = {
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\tau',
     'isSignal' : True,
     'color' : 'darkgray',
-    # 'kFactor' : 2.,
+    'kFactor' : 1.7,
     'group' : 'ggZZ4l', #'ggZZ2l2t',
 }
 
@@ -159,7 +159,7 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'prettyName' : '\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : True,
     'color' : '#99ccff', #'skyblue',
-    # 'kFactor' : 1.074,
+    'kFactor' : 1.1, #1.074,
 }
 
 sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
