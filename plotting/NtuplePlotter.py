@@ -616,7 +616,7 @@ class NtuplePlotter(object):
                     else:
                         yUnitsText = " [%s]"%yUnits
                     yTitle = "%s %s"%(yTitle, yUnitsText)
-                elif perUnitWidth and (not self.uniformBins) and self.minBinWidth != -1:
+                elif perUnitWidth and self.minBinWidth != -1:
                     yTitle = "%s / %s"%(yTitle, makeNumberPretty(self.minBinWidth, 2))
                     if xUnits:
                         yTitle = "%s %s"%(yTitle, xUnitsText if '\\' in yTitle else xUnits)
@@ -628,13 +628,17 @@ class NtuplePlotter(object):
         def paintPad(self, pad, objects, objectsAux, drawOpts={}, xTitle="", 
                      xUnits="GeV", yTitle="Events", yUnits="", logy=False,
                      legObjects=[], legParamsOverride={}, stackErr=True, 
-                     perUnitWidth=True):
+                     perUnitWidth=True, legSolid=False, widthInYTitle=False):
             '''
             Draws objects (Hists, HistStacks, and Graphs) and objectsAux
             (anything else) on pad.
             drawLeg (bool): paint a legend?
-            legParamsOverride (dict): passed directly to rootpy.plotting.Legend constructor
-            stackErr (bool): draw black hashed region to indicate MC stack error bars?
+            legParamsOverride (dict): passed directly to rootpy.plotting.Legend
+                                      constructor
+            stackErr (bool): draw black hashed region to indicate MC stack 
+                             error bars?
+            legSolid (bool): Make the legend background a solid white box 
+                             instead of transparent
             '''
             if legObjects:
                 legParams = {
@@ -648,13 +652,17 @@ class NtuplePlotter(object):
                 legParams.update(legParamsOverride)
 
                 leg = Legend(legObjects[::-1], pad, **legParams)
+                
+                if legSolid:
+                    leg.SetFillStyle(1001)
 
             if stackErr:
                 for ob in objects:
                     if isinstance(ob, HistStack) and len(ob):
                         objects.append(self.getStackErrors(ob))
 
-            yTitlePerUnitWidth = perUnitWidth and not any(isinstance(obX, _Hist2D) or isinstance(obX, _Hist3D) for obX in objectsAux)
+            yTitlePerUnitWidth = widthInYTitle or \
+                (perUnitWidth and not any(isinstance(obX, _Hist2D) or isinstance(obX, _Hist3D) for obX in objectsAux))
 
             # make a copy to avoid some weird kind of namespace contamination
             opts = {k:v for k,v in drawOpts.iteritems()}
@@ -710,15 +718,21 @@ class NtuplePlotter(object):
         def draw(self, drawOpts={}, outFile="", drawNow=False, 
                  xTitle="", xUnits="GeV", yTitle="Events", yUnits="",
                  drawLeg=True, legParamsOverride={}, stackErr=True,
-                 intLumi=40.03, simOnly=False, perUnitWidth=True):
+                 intLumi=40.03, simOnly=False, perUnitWidth=True,
+                 legSolid=False, widthInYTitle=False):
             '''
             opts (dict): passed directly to rootpy.plotting.utils.draw
             outFile (str): location to save plot (not saved if empty str)
             drawNow (bool): paint on-screen now?
             drawLeg (bool): paint a legend?
-            legParams (dict): passed directly to rootpy.plotting.Legend constructor
-            stackErr (bool): draw black hashed region to indicate MC stack error bars?
+            legParams (dict): passed directly to rootpy.plotting.Legend 
+                              constructor
+            stackErr (bool): draw black hashed region to indicate MC stack 
+                             error bars?
             perUnitWidth affects only the y-axis title
+            legSolid (bool): Make the legend background a solid white box 
+                             instead of transparent
+            widthInYTitle (bool): Append " / [binsize] [units]" to y axis title
             '''
             if drawNow and ROOT.gROOT.IsBatch():
                 ROOT.gROOT.SetBatch(kFALSE)
@@ -729,7 +743,8 @@ class NtuplePlotter(object):
             
             self.paintPad(self.mainPad(), self.objects, self.objectsAux, drawOpts, 
                           xTitle, xUnits, yTitle, yUnits, self.logy, legObjs, 
-                          legParamsOverride, stackErr, perUnitWidth)
+                          legParamsOverride, stackErr, perUnitWidth, legSolid,
+                          widthInYTitle)
 
             if len(self.pads) > 1:
                 self.c.cd()
@@ -1330,7 +1345,8 @@ class NtuplePlotter(object):
                  canvasX=800, canvasY=1000, logy=False, styleOpts={}, 
                  ipynb=False, xTitle="", xUnits="GeV", yTitle="Events",
                  yUnits="", drawNow=False, outFile='', legParams={}, 
-                 mcWeights='GenWeight', drawOpts={}, drawRatio=True):
+                 mcWeights='GenWeight', drawOpts={}, drawRatio=True,
+                 legSolid=False, widthInYTitle=False):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
         extraBkgs may be a list of other background histograms (e.g. a data-
@@ -1358,7 +1374,8 @@ class NtuplePlotter(object):
             self.drawings[name].draw(drawOpts, self.outdir+outFile, drawNow, 
                                      xTitle, xUnits, yTitle, yUnits, True, 
                                      legParams, True, self.intLumi, 
-                                     h.GetEntries()==0)
+                                     h.GetEntries()==0, legSolid=legSolid,
+                                     widthInYTitle=widthInYTitle)
 
 
     def makeEfficiency(self, category, sample, channels, variables, 
