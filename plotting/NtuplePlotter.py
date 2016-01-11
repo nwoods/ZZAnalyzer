@@ -628,7 +628,8 @@ class NtuplePlotter(object):
         def paintPad(self, pad, objects, objectsAux, drawOpts={}, xTitle="", 
                      xUnits="GeV", yTitle="Events", yUnits="", logy=False,
                      legObjects=[], legParamsOverride={}, stackErr=True, 
-                     perUnitWidth=True, legSolid=False, widthInYTitle=False):
+                     perUnitWidth=True, legSolid=False, widthInYTitle=False,
+                     mcSystFracUp=0., mcSystFracDown=0.):
             '''
             Draws objects (Hists, HistStacks, and Graphs) and objectsAux
             (anything else) on pad.
@@ -639,6 +640,8 @@ class NtuplePlotter(object):
                              error bars?
             legSolid (bool): Make the legend background a solid white box 
                              instead of transparent
+            mcSystFrac* (float): systematic errors on MC yield given as a 
+                                 fraction (i.e. 0.1 for 10%)
             '''
             if legObjects:
                 legParams = {
@@ -659,7 +662,9 @@ class NtuplePlotter(object):
             if stackErr:
                 for ob in objects:
                     if isinstance(ob, HistStack) and len(ob):
-                        objects.append(self.getStackErrors(ob))
+                        objects.append(self.getStackErrors(ob, mcSystFracUp,
+                                                           mcSystFracDown)
+                                       )
 
             yTitlePerUnitWidth = widthInYTitle or \
                 (perUnitWidth and not any(isinstance(obX, _Hist2D) or isinstance(obX, _Hist3D) for obX in objectsAux))
@@ -719,7 +724,8 @@ class NtuplePlotter(object):
                  xTitle="", xUnits="GeV", yTitle="Events", yUnits="",
                  drawLeg=True, legParamsOverride={}, stackErr=True,
                  intLumi=40.03, simOnly=False, perUnitWidth=True,
-                 legSolid=False, widthInYTitle=False):
+                 legSolid=False, widthInYTitle=False,
+                 mcSystFracUp=0., mcSystFracDown=0.):
             '''
             opts (dict): passed directly to rootpy.plotting.utils.draw
             outFile (str): location to save plot (not saved if empty str)
@@ -733,6 +739,8 @@ class NtuplePlotter(object):
             legSolid (bool): Make the legend background a solid white box 
                              instead of transparent
             widthInYTitle (bool): Append " / [binsize] [units]" to y axis title
+            mcSystFrac* (float): systematic errors on MC yield given as a 
+                                 fraction (i.e. 0.1 for 10%)
             '''
             if drawNow and ROOT.gROOT.IsBatch():
                 ROOT.gROOT.SetBatch(kFALSE)
@@ -744,7 +752,7 @@ class NtuplePlotter(object):
             self.paintPad(self.mainPad(), self.objects, self.objectsAux, drawOpts, 
                           xTitle, xUnits, yTitle, yUnits, self.logy, legObjs, 
                           legParamsOverride, stackErr, perUnitWidth, legSolid,
-                          widthInYTitle)
+                          widthInYTitle, mcSystFracUp, mcSystFracDown)
 
             if len(self.pads) > 1:
                 self.c.cd()
@@ -766,17 +774,23 @@ class NtuplePlotter(object):
             if outFile:
                 self.c.Print(outFile)
 
-        def getStackErrors(self, stack):
+        def getStackErrors(self, stack, systErrFracUp=0.,systErrFracDown=0.):
             '''
             Make a hatched black band to represent the error bars on stack.
+            Systematic errors are taken to be systErrFracX x bin height and 
+            are added to the statistical error in quadrature.
             '''
             total = sum(stack.hists)
             total.sumw2()
             lo = total.empty_clone()
             hi = total.empty_clone()
             for i in xrange(1,total.GetNbinsX()+1):
-                lo[i].value = total[i].value - total.GetBinErrorLow(i)
-                hi[i].value = total[i].value + total.GetBinErrorUp(i)
+                errUp = sqrt(total.GetBinErrorUp(i) ** 2 + 
+                             (total[i].value * systErrFracUp) ** 2)
+                errDn = sqrt(total.GetBinErrorLow(i) ** 2 + 
+                             (total[i].value * systErrFracDown) ** 2)
+                lo[i].value = total[i].value - errDn
+                hi[i].value = total[i].value + errUp
             err = get_band(lo, hi, total)
 
             err.fillstyle = 'x'
@@ -1346,7 +1360,8 @@ class NtuplePlotter(object):
                  ipynb=False, xTitle="", xUnits="GeV", yTitle="Events",
                  yUnits="", drawNow=False, outFile='', legParams={}, 
                  mcWeights='GenWeight', drawOpts={}, drawRatio=True,
-                 legSolid=False, widthInYTitle=False):
+                 legSolid=False, widthInYTitle=False,
+                 mcSystFracUp=0., mcSystFracDown=0.):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
         extraBkgs may be a list of other background histograms (e.g. a data-
@@ -1375,7 +1390,9 @@ class NtuplePlotter(object):
                                      xTitle, xUnits, yTitle, yUnits, True, 
                                      legParams, True, self.intLumi, 
                                      h.GetEntries()==0, legSolid=legSolid,
-                                     widthInYTitle=widthInYTitle)
+                                     widthInYTitle=widthInYTitle,
+                                     mcSystFracUp=mcSystFracUp, 
+                                     mcSystFracDown=mcSystFracDown)
 
 
     def makeEfficiency(self, category, sample, channels, variables, 

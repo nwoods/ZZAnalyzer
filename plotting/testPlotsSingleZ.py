@@ -25,9 +25,13 @@ import rootpy.compiled as C
 from rootpy.plotting import HistStack, Canvas
 from rootpy.ROOT import Double
 
+from datetime import date
 import os
 
-plotter = NtuplePlotter('z', './plots/singleZ_2015CD1280_10dec2015', 
+outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/singleZ_2015CD1280_{0}'.format(date.today().strftime('%d%b%Y').lower())
+link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/singleZ_latest'
+
+plotter = NtuplePlotter('z', outdir, 
                         {'mc':'/data/nawoods/ntuples/singlez_mc_03dec2015_0/results/*.root'},
                         {'data':'/data/nawoods/ntuples/singlez_data_2015cd1280_03dec2015_0/results/*.root'},
                         intLumi=1341.) # 1280.23)
@@ -172,7 +176,8 @@ for z, objects in objectsZ.iteritems():
                          '', bins, 'mc', 'data', canvasX=1000, logy=False, 
                          xTitle=xTitlesZ[var]%objectTextZ[z],
                          xUnits=units[var], outFile='%s%s.png'%(z,var), 
-                         mcWeights=weight)
+                         mcWeights=weight,
+                         widthInYTitle=bool(units[var]),)
 
     for var, bins in binningL.iteritems():
         variables = ['%s%d%s'%(lep, nLep, varsL[var][lep]) for nLep in range(1,3) for lep in objectsZ[z]]
@@ -191,7 +196,8 @@ for z, objects in objectsZ.iteritems():
                          xTitle=xTitlesL[var]%objectTextL[z],
                          xUnits=units[var], outFile='%sLep%s.png'%(z,var), 
                          mcWeights=weight, legParams=legParams,
-                         legSolid=legSolid)
+                         legSolid=legSolid,
+                         widthInYTitle=bool(units[var]),)
 
 mcWeight_noPU = {
     'e' : '(GenWeight*{0})'.format(z1eMCWeight),
@@ -232,4 +238,11 @@ plotter.fullPlot('nvtx_noReweight', ['ee','mm'], 'nvtx',
                  xUnits="", outFile='nvtx_noReweight.png',
                  mcWeights=[mcWeight_noPU['e']+'*%f'%mcScale_noPU,mcWeight_noPU['m']+'*%f'%mcScale_noPU])
 
+
+try:
+    os.unlink(link)
+except:
+    pass
+
+os.symlink(outdir, link)
 

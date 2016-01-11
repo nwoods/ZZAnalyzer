@@ -26,10 +26,17 @@ from rootpy.plotting import HistStack, Canvas
 from rootpy.ROOT import Double
 
 import os
+from datetime import date
+
+from math import sqrt
 
 noBKG = False #True
+outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015D_{0}{1}'.format(date.today().strftime('%d%b%Y').lower(),
+                                                                                ('_noBKG' if noBKG else ''))
+link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_latest'
 
-plotter = NtuplePlotter('zz', './plots/dataMC2015D_10dec2015%s'%('_noBKG' if noBKG else ''), 
+
+plotter = NtuplePlotter('zz', outdir+"NoFSR", 
                         {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/GluGluToZZTo*.root',
                          'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_3P1F/*.root',
                          'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_2P2F/*.root',}, 
@@ -101,6 +108,30 @@ cr3PScaleMC['zz'] = [cr3PScaleMC[c] for c in ['eeee','eemm','mmmm']]
 cr2PScale = cr3PScale
 cr2PScaleMC = cr3PScaleMC
 
+stackSystSqNoTheo = {
+    'eeee' : 0.0297 ** 2 + 0.046 ** 2, # syst + lumi
+    'eemm' : 0.0307 ** 2 + 0.045 ** 2,
+    'mmmm' : 0.0325 ** 2 + 0.045 ** 2,
+    'zz' : 0.0187 ** 2 + 0.045 ** 2,
+    }
+
+stackTheoSqUp = {
+    'eemm' : .0355 ** 2,
+    'mmmm' : .0359 ** 2,
+    'eeee' : .0359 ** 2,
+    'zz' : .0219 **2
+    }
+
+stackTheoSqDown = {
+    'eemm' : .0319 ** 2,
+    'mmmm' : .0328 ** 2,
+    'eeee' : .0332 ** 2,
+    'zz' : .0198 **2
+    }
+
+stackSystUp = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqUp[c]) for c in stackSystSqNoTheo}
+stackSystDown = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqDown[c]) for c in stackSystSqNoTheo}
+
 binning4l = {
     'MassDREtFSR' : [20,0.,800.],
     'EtaDREtFSR' : [16, -5., 5.],
@@ -113,6 +144,7 @@ binning4l = {
 vars4l = {v:v for v in binning4l}
 
 xTitle4l = {
+    'Mass' : 'm_{__PARTICLES__}',
     'MassDREtFSR' : 'm_{__PARTICLES__}',
     'EtaDREtFSR' : '\\eta_{__PARTICLES__}',
     'PtDREtFSR' : 'p_{T_{__PARTICLES__}}',
@@ -122,6 +154,7 @@ xTitle4l = {
     }
 
 units = {
+    'Mass' : 'GeV',
     'MassDREtFSR' : 'GeV',
     'PhiDREtFSR' : '',
     'EtaDREtFSR' : '',
@@ -222,7 +255,9 @@ for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
                          xUnits=units[varName],
                          extraBkgs=extraBkgs, outFile='%s%s.png'%(varName,chEnding), 
                          mcWeights=mcWeight[channel], drawRatio=False,
-                         widthInYTitle=bool(units[var]))
+                         widthInYTitle=bool(units[var]),
+                         mcSystFracUp=stackSystUp[channel],
+                         mcSystFracDown=stackSystDown[channel])
 # exit()
 
 
@@ -234,6 +269,7 @@ binning2l = {
     }
 
 xTitles2l = {
+    'Mass' : 'm_{%s}',
     'MassDREtFSR' : 'm_{%s}',
     'EtaDREtFSR' : '\\eta_{%s}',
     'PtDREtFSR' : 'p_{T_{%s}}',
@@ -348,7 +384,9 @@ for z, channels in channels2l.iteritems():
                          extraBkgs=extraBkgs, outFile='%s%s.png'%(z,var), 
                          mcWeights=[mcWeight[c] for c in channels], 
                          drawRatio=False,
-                         widthInYTitle=bool(units[var]))
+                         widthInYTitle=bool(units[var]),
+                         mcSystFracUp=stackSystUp[channel],
+                         mcSystFracDown=stackSystDown[channel])
 
 
 binning1l = {
@@ -456,9 +494,17 @@ for lep, channels in channels1l.iteritems():
                          extraBkgs=extraBkgs, outFile='%s%s.png'%(lep,var), 
                          mcWeights=[mcWeight[c] for c in channels], 
                          drawRatio=False,
-                         widthInYTitle=bool(units[var]))
+                         widthInYTitle=bool(units[var]),
+                         mcSystFracUp=stackSystUp[channel],
+                         mcSystFracDown=stackSystDown[channel])
 
 
 
 
+# try:
+#     os.unlink(link)
+# except:
+#     pass
+# 
+# os.symlink(outdir, link)
 
