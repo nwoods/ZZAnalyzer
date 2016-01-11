@@ -65,7 +65,7 @@ for ch in plotter.channels:
 #    gr.yaxis.SetTitleOffset(gr.yaxis.GetTitleOffset()*0.8)
 #    gr.yaxis.SetTitleSize(gr.yaxis.GetTitleSize()*0.9)
 #c.Update()
-c = Canvas(1200,1000)
+c = Canvas(1000,1000)
 (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} [\\text{GeV}]', 
                              ytitle='m_{Z_2} [\\text{GeV}]',
                              xlimits=(60.,120.), ylimits=(60.,120.))
