@@ -99,7 +99,7 @@ class ZZPlotStyle(object):
                     unit = "fb^{-1}"
                 else:
                     unit = "pb^{-1}"
-                iLStr = makeNumberPretty(iL, 2)
+                iLStr = makeNumberPretty(iL, 1)
             else:
                 iLStr = ""
                 unit = ""
