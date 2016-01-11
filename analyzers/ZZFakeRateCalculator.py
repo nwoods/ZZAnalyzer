@@ -245,7 +245,7 @@ class ZZFakeRateCalculator(object):
             for typeToPlot in ['num', 'denom', 'fakeRate']:
                 drawings[typeToPlot] = self.plotter.Drawing(name+'_'+typeToPlot, 
                                                             self.plotter.style, 
-                                                            800, 1000)
+                                                            1000, 1000)
                 if typeToPlot == 'fakeRate':
                     drawablesMC[typeToPlot].drawstyle = 'hist'
                     drawablesMC[typeToPlot].color = 'red'
