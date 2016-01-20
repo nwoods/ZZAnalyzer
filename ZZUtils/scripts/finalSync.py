@@ -2,13 +2,14 @@
 
 Dump candidate information in the approved HZZ4l sync format.
 
-Is most useful when sorted afterwards with a command like
-
-$ sort -t : -k 1n -k 2n -k 3n
-
 It's often useful to get a list of run:lumi:evt only, with something like
 
 $ cut -d ':' -f -3
+
+The events are sorted by run, then lumi, then event, the same as processing
+the same-but-unsorted output with the Unix command
+
+$ sort -t : -k 1n -k 2n -k 3n
 
 Author: N. Woods, U. Wisconsin
 
@@ -39,7 +40,7 @@ def getCandInfo(z1Var, z2Var, row):
     run = evVar(row, 'run')
     evt = evVar(row, 'evt')
     lumi = evVar(row, 'lumi')
-    mass = evVar(row, 'MassFSR')
+    mass = evVar(row, 'MassDREtFSR')
     mZ1 = evVar(row, z1Var)
     mZ2 = evVar(row, z2Var)
 
@@ -70,31 +71,45 @@ parser.add_argument('output', type=str, nargs='?', default='candSync.txt',
                     help='Name of the text file to output.')
 parser.add_argument('channels', nargs='?', type=str, default='zz',
                     help='Comma separated (no spaces) list of channels, or keyword "zz" for eeee,mmmm,eemm')
-# parser.add_argument('--nThreads', type=int,  # just left to remind myself how if needed
-#                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 4.')
 
 args = parser.parse_args()
-        
-if args.channels == 'zz':
-    channels = ['eeee', 'eemm', 'mmmm']
-else:
-    channels = args.channels.split(',')
+
+channels = parseChannels(args.channels)        
         
 inFile = args.input[0]
+
+outStrings = {}
         
 with root_open(inFile) as fin:
-    with open(args.output, 'w') as fout:
-        for channel in channels:
-            print "\nChannel %s:"%channel
-            ntuple = fin.Get(channel+'/final/Ntuple')
-            objects = getObjects(channel)
-            z1MassVar = "%s_%s_MassFSR"%(objects[0], objects[1])
-            z2MassVar = "%s_%s_MassFSR"%(objects[2], objects[3])
-        
-            for n, row in enumerate(ntuple):
-                if n % 500 == 0:
-                    print "Processing row %d"%n
-                fout.write(getCandInfo(z1MassVar, z2MassVar, row))
+    for channel in channels:
+        print "\nChannel %s:"%channel
+        ntuple = fin.Get(channel+'/final/Ntuple')
+        objects = getObjects(channel)
+        z1MassVar = "%s_%s_MassDREtFSR"%(objects[0], objects[1])
+        z2MassVar = "%s_%s_MassDREtFSR"%(objects[2], objects[3])
+    
+        for n, row in enumerate(ntuple):
+            if n % 500 == 0:
+                print "Processing row %d"%n
+    
+            evStr = getCandInfo(z1MassVar, z2MassVar, row)
+            run = row.run
+            lumi = row.lumi
+            evt = row.evt
+            if run not in outStrings:
+                outStrings[run] = {lumi : {evt : evStr}}
+            elif lumi not in outStrings[run]:
+                outStrings[run][lumi] = {evt : evStr}
+            else:
+                outStrings[run][lumi][evt] = evStr
+
+with open(args.output, 'w') as fout:
+    for r in sorted(outStrings.keys()):
+        runStrings = outStrings[r]
+        for l in sorted(runStrings.keys()):
+            lumiStrings = runStrings[l]
+            for e in sorted(lumiStrings.keys()):
+                fout.write(lumiStrings[e])
                     
 print "Done!"
 
