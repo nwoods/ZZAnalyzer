@@ -25,6 +25,7 @@ class SyncAnalyzer(ZZAnalyzer):
         
         # save last attempted cut of each event of interest (or 999 if it passed), keyed to tuple(run,lumi,evt)
         self.interesting = {}
+        self.interestingChannels = {}
         with open(eventFile, 'r') as f:
             for line in f:
                 if not line:
@@ -32,6 +33,7 @@ class SyncAnalyzer(ZZAnalyzer):
                 words = line.lstrip("< >").split(":")
                 assert len(words) == 3, "Event file improperly formatted!"
                 self.interesting[tuple(int(w) for w in words)] = -999
+                self.interestingChannels[tuple(int(w) for w in words)] = set()
 
         # whether or not we care about this row (saved since lookup is slow)
         self.currentRowInfo = (-1,-1,-1)
@@ -45,6 +47,7 @@ class SyncAnalyzer(ZZAnalyzer):
             self.currentRowInfo = (evVar(row, 'run'), evVar(row, 'lumi'), evVar(row, 'evt'))
             if self.currentRowInfo in self.interesting and self.interesting[self.currentRowInfo] == -999:
                 self.interesting[self.currentRowInfo] = 0
+                self.interestingChannels[self.currentRowInfo].add(channel)
 
         if self.currentRowInfo in self.interesting and self.interesting[self.currentRowInfo] < len(self.cutOrder) - 1:
             # We only care if this is the cut after the furthest cut yet achieved
@@ -82,7 +85,7 @@ class SyncAnalyzer(ZZAnalyzer):
                 resultStr = "PASS"
             else:
                 resultStr = self.cutOrder[result]
-            print "%d:%d:%d :: %s"%(evt[0], evt[1], evt[2], resultStr)
+            print "%d:%d:%d :: %s :: %s"%(evt[0], evt[1], evt[2], ','.join(self.interestingChannels[evt]), resultStr)
 
 
 
