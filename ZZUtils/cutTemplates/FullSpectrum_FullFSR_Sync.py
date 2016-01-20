@@ -244,11 +244,11 @@ class FullSpectrum_FullFSR_Sync(Cutter.Cutter):
 
             # Isolation
             'mIso' : { 
-                'cuts' : { 'RelPFIsoDB'+(self.fsrVar if self.fsrVar else 'Default') : (0.4, "<") },
+                'cuts' : {'HZZIsoPass' : (0.5, ">")}, # {'HZZIsoFSR' : (0.4, "<")}, #{ 'RelPFIsoDB'+(self.fsrVar if self.fsrVar else 'Default') : (0.4, "<") },
                 'objects' : 1,
             },
             'eIso' : { 
-                'cuts' : { 'RelPFIsoRho'+self.fsrVar : (0.5, "<") },
+                'cuts' : {'HZZIsoPass' : (0.5, ">")}, # {'HZZIsoFSR' : (0.4, "<")}, # { 'RelPFIsoRho'+self.fsrVar : (0.5, "<") },
                 'objects' : 1,
             },
             # 'eIso' : {
