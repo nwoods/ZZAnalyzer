@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-if [ $1 == "" ] || [ $1 == "-h" ] || [ $1 == "--help" ] || [ $2 == "" ]; then
+if [ "$1" == "" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$2" == "" ]; then
     echo "$0 usage: ./$0 [-h|--help] destDir srcDir"
     echo "    destDir: location for output files."
     echo "    srcDir: top-level directory made by submit_job.py output."
