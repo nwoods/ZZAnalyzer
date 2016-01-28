@@ -36,10 +36,16 @@ def getObjects(channel):
     return out
 
 
-def getCandInfo(z1Var, z2Var, row):
+def getEventInfo(row):
     run = evVar(row, 'run')
     evt = evVar(row, 'evt')
     lumi = evVar(row, 'lumi')
+
+    return ':'.join(str(n) for n in [run,lumi,evt])
+
+
+def getCandInfo(z1Var, z2Var, row):
+    evt = getEventInfo(row)
     mass = evVar(row, 'MassDREtFSR')
     mZ1 = evVar(row, z1Var)
     mZ2 = evVar(row, z2Var)
@@ -59,10 +65,11 @@ def getCandInfo(z1Var, z2Var, row):
     j1pt = max(-1.,evVar(row, 'jet1Pt'))
     j2pt = max(-1.,evVar(row, 'jet2Pt'))
     cat = int(evVar(row, "HZZCategory"))
-    return ("%d:%d:%d:%.2f:%.2f:%.2f:%.3f:%.3f:%.3f:%.3f:%.3f:%d:%.2f:%.2f:%d\n"%(run, lumi, evt, mass,
-                                                                                  mZ1, mZ2, D_bkg_kin,
-                                                                                  D_bkg, D_gg, D_HJJ_VBF,
-                                                                                  D_g4, nJets, j1pt, j2pt, cat))
+    return ("%s:%.2f:%.2f:%.2f:%.3f:%.3f:%.3f:%.3f:%.3f:%d:%.2f:%.2f:%d"%(evt, mass,
+                                                                          mZ1, mZ2, D_bkg_kin,
+                                                                          D_bkg, D_gg, D_HJJ_VBF,
+                                                                          D_g4, nJets, j1pt, j2pt, cat))
+
 
 
 parser = argparse.ArgumentParser(description='Dump information about the 4l candidates in an ntuple to a text file, for synchronization.')
@@ -71,6 +78,8 @@ parser.add_argument('output', type=str, nargs='?', default='candSync.txt',
                     help='Name of the text file to output.')
 parser.add_argument('channels', nargs='?', type=str, default='zz',
                     help='Comma separated (no spaces) list of channels, or keyword "zz" for eeee,mmmm,eemm')
+parser.add_argument('--listOnly', action='store_true', 
+                    help='Print only run:lumi:event with no further info')
 
 args = parser.parse_args()
 
@@ -79,6 +88,11 @@ channels = parseChannels(args.channels)
 inFile = args.input[0]
 
 outStrings = {}
+
+if args.listOnly:
+    getInfo = lambda row, *args: getEventInfo(row)
+else:
+    getInfo = lambda row, z1MassVar, z2MassVar: getCandInfo(z1MassVar, z2MassVar, row)
         
 with root_open(inFile) as fin:
     for channel in channels:
@@ -92,7 +106,7 @@ with root_open(inFile) as fin:
             if n % 500 == 0:
                 print "Processing row %d"%n
     
-            evStr = getCandInfo(z1MassVar, z2MassVar, row)
+            evStr = getInfo(row, z1MassVar, z2MassVar)
             run = row.run
             lumi = row.lumi
             evt = row.evt
@@ -110,6 +124,7 @@ with open(args.output, 'w') as fout:
             lumiStrings = runStrings[l]
             for e in sorted(lumiStrings.keys()):
                 fout.write(lumiStrings[e])
+                fout.write('\n')
                     
 print "Done!"
 
