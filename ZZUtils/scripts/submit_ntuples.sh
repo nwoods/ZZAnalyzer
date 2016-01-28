@@ -86,25 +86,25 @@ then
     then
         echo Submitting ZZ Data Ntuples as ZZNTUPLES_DATA_2015silver_"$ID"
 
-        submit_job.py ZZNTUPLES_DATA_2015silver_"$ID" make_ntuples_cfg.py channels='zz' paramFile='CMSSW_7_4_14/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py' isMC=0 hzz=1 eCalib=1 use25ns=1 --data --das-replace-tuple=/afs/cern.ch/user/n/nawoods/fsa7414/src/FinalStateAnalysis/MetaData/tuples/MiniAOD-13TeV_Data.json --apply-cmsRun-lumimask --silver --samples "data_MuonEG*25ns" "data_SingleElectron*25ns" "data_Double*25ns" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zzntuples_data_2015silver_"$ID".sh
+        submit_job.py ZZNTUPLES_DATA_2015silver_"$ID" make_ntuples_cfg.py channels='zz' paramFile="$CMSSW_VERSION"/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py isMC=0 hzz=1 eCalib=1 use25ns=1 --data --das-replace-tuple=/afs/cern.ch/user/n/nawoods/fsa7416p2/src/FinalStateAnalysis/MetaData/tuples/MiniAOD-13TeV_Data.json --apply-cmsRun-lumimask --silver --samples "data_MuonEG*25ns" "data_SingleElectron*25ns" "data_Double*25ns" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zzntuples_data_2015silver_"$ID".sh
 
         nohup bash /data/nawoods/zzntuples_data_2015silver_"$ID".sh &
     fi
 
     if [ "$ZL" ]
     then
-        echo Submitting Z+L Data Ntuples as ZPLUSL_DATA_2015silver_"$ID"
+        echo Submitting Z+L Data Ntuples as ZPLUSL_DATA_2015gold_"$ID"
 
-        submit_job.py ZPLUSL_DATA_2015silver_"$ID" make_ntuples_cfg.py channels='eee,eem,emm,mmm' paramFile='CMSSW_7_4_14/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py' isMC=0 hzz=1 eCalib=1 use25ns=1 --data --das-replace-tuple=/afs/cern.ch/user/n/nawoods/fsa7414/src/FinalStateAnalysis/MetaData/tuples/MiniAOD-13TeV_Data.json --apply-cmsRun-lumimask --silver --samples "data_MuonEG*25ns" "data_SingleElectron*25ns" "data_Double*25ns" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zplusl_data_2015silver_"$ID".sh
+        submit_job.py ZPLUSL_DATA_2015gold_"$ID" make_ntuples_cfg.py channels='eee,eem,emm,mmm' paramFile="$CMSSW_VERSION"/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py isMC=0 hzz=1 eCalib=1 use25ns=1 --data --das-replace-tuple=/afs/cern.ch/user/n/nawoods/fsa7416p2/src/FinalStateAnalysis/MetaData/tuples/MiniAOD-13TeV_Data.json --apply-cmsRun-lumimask --samples "data_MuonEG*25ns" "data_SingleElectron*25ns" "data_Double*25ns" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zplusl_data_2015gold_"$ID".sh
 
-        nohup bash /data/nawoods/zplusl_data_2015silver_"$ID".sh &
+        nohup bash /data/nawoods/zplusl_data_2015gold_"$ID".sh &
     fi
 
     if [ "$Z" ]
     then
         echo Submitting Single Z Data Ntuples as SINGLEZ_DATA_2015silver_"$ID"
 
-        submit_job.py SINGLEZ_DATA_2015silver_"$ID" make_ntuples_cfg.py channels='ee,mm' paramFile='CMSSW_7_4_14/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py' isMC=0 hzz=1 eCalib=1 use25ns=1 --data --das-replace-tuple=/afs/cern.ch/user/n/nawoods/fsa7414/src/FinalStateAnalysis/MetaData/tuples/MiniAOD-13TeV_Data.json --apply-cmsRun-lumimask --silver --samples "data_Double*25ns" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/singlez_data_2015silver_"$ID".sh
+        submit_job.py SINGLEZ_DATA_2015silver_"$ID" make_ntuples_cfg.py channels='ee,mm' paramFile="$CMSSW_VERSION"/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py isMC=0 hzz=1 eCalib=1 use25ns=1 --data --das-replace-tuple=/afs/cern.ch/user/n/nawoods/fsa7416p2/src/FinalStateAnalysis/MetaData/tuples/MiniAOD-13TeV_Data.json --apply-cmsRun-lumimask --silver --samples "data_Double*25ns" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/singlez_data_2015silver_"$ID".sh
 
         nohup bash /data/nawoods/singlez_data_2015silver_"$ID".sh &
     fi
@@ -117,7 +117,7 @@ then
     then
         echo Submitting ZZ MC Ntuples as ZZNTUPLES_MC_"$ID"
 
-        submit_job.py ZZNTUPLES_MC_"$ID" make_ntuples_cfg.py channels='zz' paramFile='CMSSW_7_4_14/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py' isMC=1 hzz=1 eCalib=1 use25ns=1 --campaign-tag="RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v*" --samples "ZZTo4L*powheg*" "GluGluToZZTo*" "DYJetsToLL_M-10to*" "DYJetsToLL_M-50_T*amcatnlo*" "WZTo3LNu*" "TTJets_TuneCUET*amcatnlo*" "WWZ*" "WZZ*" "ZZZ*" "GluGluHToZZTo4L_M125*" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zzntuples_mc_"$ID".sh
+        submit_job.py ZZNTUPLES_MC_"$ID" make_ntuples_cfg.py channels='zz' paramFile="$CMSSW_VERSION"/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py isMC=1 hzz=1 eCalib=1 use25ns=1 --campaign-tag="RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v*" --samples "ZZTo4L*powheg*" "GluGluToZZTo*" "DYJetsToLL_M-10to*" "DYJetsToLL_M-50_T*amcatnlo*" "WZTo3LNu*" "TTJets_TuneCUET*amcatnlo*" "WWZ*" "WZZ*" "ZZZ*" "GluGluHToZZTo4L_M125*" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zzntuples_mc_"$ID".sh
 
         nohup bash /data/nawoods/zzntuples_mc_"$ID".sh &
     fi
@@ -126,7 +126,7 @@ then
     then
         echo Submitting Z+L Data Ntuples as ZPLUSL_MC_"$ID"
 
-        submit_job.py ZPLUSL_MC_"$ID" make_ntuples_cfg.py channels='eee,eem,emm,mmm' paramFile='CMSSW_7_4_14/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py' isMC=1 hzz=1 eCalib=1 use25ns=1 --campaign-tag="RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v*" --samples "ZZTo4L*powheg*" "GluGluToZZTo*" "DYJetsToLL_M-10to*" "DYJetsToLL_M-50_T*amcatnlo*" "WZTo3LNu*" "TTJets_TuneCUET*amcatnlo*" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zplusl_mc_"$ID".sh
+        submit_job.py ZPLUSL_MC_"$ID" make_ntuples_cfg.py channels='eee,eem,emm,mmm' paramFile="$CMSSW_VERSION"/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py isMC=1 hzz=1 eCalib=1 use25ns=1 --campaign-tag="RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v*" --samples "ZZTo4L*powheg*" "GluGluToZZTo*" "DYJetsToLL_M-10to*" "DYJetsToLL_M-50_T*amcatnlo*" "WZTo3LNu*" "TTJets_TuneCUET*amcatnlo*" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/zplusl_mc_"$ID".sh
 
         nohup bash /data/nawoods/zplusl_mc_"$ID".sh &
     fi
@@ -135,7 +135,7 @@ then
     then
         echo Submitting Single Z Data Ntuples as SINGLEZ_MC_"$ID"
 
-        submit_job.py SINGLEZ_MC_"$ID" make_ntuples_cfg.py channels='ee,mm' paramFile='CMSSW_7_4_14/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py' isMC=1 hzz=1 eCalib=1 use25ns=1 --campaign-tag="RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v*" --samples "ZZTo4L*powheg*" "GluGluToZZTo4[em]*" "GluGluToZZTo2e2m*" "DYJetsToLL_M-10to*" "DYJetsToLL_M-50_T*amcatnlo*" "WZTo3LNu*" "TTJets_TuneCUET*amcatnlo*" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/singlez_mc_"$ID".sh
+        submit_job.py SINGLEZ_MC_"$ID" make_ntuples_cfg.py channels='ee,mm' paramFile="$CMSSW_VERSION"/src/FinalStateAnalysis/NtupleTools/python/parameters/zz.py isMC=1 hzz=1 eCalib=1 use25ns=1 --campaign-tag="RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v*" --samples "ZZTo4L*powheg*" "GluGluToZZTo4[em]*" "GluGluToZZTo2e2m*" "DYJetsToLL_M-10to*" "DYJetsToLL_M-50_T*amcatnlo*" "WZTo3LNu*" "TTJets_TuneCUET*amcatnlo*" --extra-usercode-files 'src/ZZMatrixElement/MEKD/src/Cards' 'src/ZZMatrixElement/MEKD/src/PDFTables' 'src/FinalStateAnalysis/NtupleTools/python/parameters' --output-dir=. -o /data/nawoods/singlez_mc_"$ID".sh
 
         nohup bash /data/nawoods/singlez_mc_"$ID".sh &
     fi
