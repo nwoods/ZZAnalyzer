@@ -29,13 +29,13 @@ import os
 from math import sqrt
 
 plotter = NtuplePlotter('zz', './plots/counting_09dec2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/GluGluToZZTo*.root',
-                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_3P1F/*.root',
-                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_2P2F/*.root',}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results/data*.root',
-                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_3P1F/data*.root',
-                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_2P2F/data*.root',}, 
-                        intLumi=1341.) # 1280.23)
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz/GluGlu*.root',
+                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz_3P1F/*.root',
+                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz_2P2F/*.root',}, 
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_hzz/data*.root',
+                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_hzz_3P1F/data*.root',
+                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_hzz_2P2F/data*.root',}, 
+                        intLumi=2260.) # 1280.23)
 
 plotter.printPassingEvents('data')
 
@@ -52,7 +52,7 @@ print '    eemm: %d'%plotter.ntuples['2P2F']['2P2F']['eemm'].GetEntries()
 print '    mmmm: %d'%plotter.ntuples['2P2F']['2P2F']['mmmm'].GetEntries()
 print ''
 
-tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
+tpVersionHash = 'v1.1-4-ga295b14-extended' #v1.1-1-g4cbf52a_v2'
 
 fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_04dec2015_0.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
