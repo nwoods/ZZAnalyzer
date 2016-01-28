@@ -96,16 +96,52 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-import imp, collections, os, itertools
+import itertools
+from collections import OrderedDict
 from ZZHelpers import *
 
 
 class Cutter(object):
-    # no FSR by default
-    fsrVar = ""
+    '''
+    Base class for anything setting, modifying, or executing analysis cuts.
+    Cutters may be combined via multiple inheritance as long as everything
+    derives from this base class and calls super() from the first three 
+    methods here, to ensure an appropriate MRO.
+    '''
+    def setupCutFlow(self):
+        '''
+        This OrderedDict should be filled with cuts by daughter classes,
+        in the format flow[cut] = (cutName, objects), where cutName is 
+        the name of the cut in the cut template, and objects is a list
+        of (one-indexed) integers specifying the objects to pass to the cut.
+        '''
+        assert not hasattr(super(Cutter, self), 'setupCutFlow'),\
+            "Cutter class %s does not derive from CutterBase!"%super(CutterBase,self).__class__.__name__
+        flow = OrderedDict()
+        flow['Total'] = ('true', [])
+        return flow
+
+    def setupOtherCuts(self):
+        '''
+        This dict should be filled with functions that perform complicated
+        cuts, in the format otherCuts[cut] = f(row, *objects)
+        '''
+        assert not hasattr(super(Cutter, self), 'setupOtherCuts'),\
+            "Cutter class %s does not derive from CutterBase!"%super(CutterBase,self).__class__.__name__
+        return {}
+
+    def getCutTemplate(self, *args):
+        '''
+        This dict should be filled with cuts in the format specified in the 
+        header comments to this file.
+        '''
+        assert not hasattr(super(Cutter, self), 'getCutTemplate'),\
+            "Cutter class %s does not derive from CutterBase!"%super(CutterBase,self).__class__.__name__
+        return {}
+
+
 
     def __init__(self, cutSet):
-
         self.cutSet = cutSet
 
         self.otherCuts = self.setupOtherCuts()
@@ -121,13 +157,6 @@ class Cutter(object):
         self.cuts['DifferentFlavor'] = lambda row, obj1, obj2: obj1[0]!=obj2[0]
         self.cuts['IsElectron'] = lambda row, obj: obj[0]=='e'
         self.cuts['IsMuon'] = lambda row, obj: obj[0]=='m'
-
-
-    def setupOtherCuts(self):
-        '''
-        Virtual; use to add hand-coded cuts to daughter classes of Cutter
-        '''
-        return {}
 
 
     def getCutList(self):
@@ -184,54 +213,6 @@ class Cutter(object):
             cuts[cut] = self.getCutFunction(params)
                 
         return cuts
-
-
-    def getCutTemplate(self, *args):
-        '''
-        Gets cuts from a template file as a dictionary. May be (likely will 
-        be) overwritten by daughter classes of Cutter to set up the dictionary
-        by hand or in some other way.
-        '''
-        mod = self.getTemplateFile(*args)
-
-        return mod.cuts
-
-
-    def setupCutFlow(self, *args):
-        '''
-        Gets cutFlow  from a template file as a collections.OrderedDict. May 
-        be (likely will be) overwritten by daughter classes of Cutter to set 
-        up the OrderedDict by hand or in some other way.
-        '''
-        mod = self.getTemplateFile(*args)
-        
-        return mod.cutFlow
-
-
-    def getTemplateFile(self,*args):
-        '''
-        Find a python file with the templates in it. Crash if it's missing
-        the cuts dictionary and/or the cutFlow OrderedDict. 
-        Expects *args to be a template name and a path. If no path is 
-        specified, will look in $zza/ZZUtils/templates
-        '''
-        assert len(args), "Need cut set name for template"
-        cutSet = args[0]
-        if len(args) >= 2:
-            path = args[1]
-        else: 
-            path = "%s/ZZUtils/templates"%os.environ["zza"]
-
-        f, fName, desc = imp.find_module(cutSet, [path])
-        
-        assert f, 'Set of cuts %s does not exist in %s'%(cutSet,path)
-        
-        mod = imp.load_module(cutSet, f, fName, desc)
-        
-        assert mod.cuts and type(mod.cuts) == dict, 'No valid set of cuts in %s'%fName        
-        assert mod.cutFlow and type(mod.cutFlow) == collections.OrderedDict, 'No valid cutFlow in %s'%fName
-        
-        return mod
 
 
     def getCutFunction(self, cutDict):

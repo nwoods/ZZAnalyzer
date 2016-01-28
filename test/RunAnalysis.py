@@ -21,13 +21,16 @@ from rootpy import ROOT
 ROOT.gROOT.SetBatch(True)
 
 
-def runAnAnalyzer(channels, cutSet, infile, outdir, resultType, maxEvents, intLumi, cleanRows):
+def runAnAnalyzer(channels, cutSet, infile, outdir, resultType, 
+                  maxEvents, intLumi, cleanRows, mods):
     '''
     Run a ZZAnalyzer.
     Intended for use in threads, such that several processes all do this once.
     '''
     outfile = outdir+'/'+(infile.split('/')[-1])
-    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, resultType, maxEvents, intLumi, cleanRows)
+    analyzer = ZZAnalyzer.ZZAnalyzer(channels, cutSet, infile, outfile, 
+                                     resultType, maxEvents, intLumi, 
+                                     cleanRows, cutModifiers=mods)
     analyzer.analyze()
 
 def init_worker():
@@ -58,6 +61,8 @@ parser.add_argument('--maxEvents', nargs='?', type=int,
                     help='Maximum number of events to run for each sample in each channel.')
 parser.add_argument("--cleanRows", nargs='?', type=str, default='',
                     help="Name of module to clean extra rows from each event. Without this option, no cleaning is performed.")
+parser.add_argument("--modifiers", nargs='*', type=str,
+                    help="Other cut sets that modify the base cuts.")
 
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
 # or else we get segfault-causing race conditions
@@ -104,12 +109,22 @@ if args.maxEvents:
 else:
     maxEvents = float("inf")
 
+if args.modifiers:
+    mods = args.modifiers
+else:
+    mods = []
+
 intLumi = args.intLumi
 
 pool = multiprocessing.Pool(nThreads, init_worker)
 results = []
 for infile in infiles:
-    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet, infile, outdir, args.resultType, maxEvents, intLumi, args.cleanRows)))
+    results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet,
+                                                         infile, outdir, 
+                                                         args.resultType, 
+                                                         maxEvents, intLumi, 
+                                                         args.cleanRows,
+                                                         mods)))
 
 # A little magic to make keyboard interrupts work
 try:

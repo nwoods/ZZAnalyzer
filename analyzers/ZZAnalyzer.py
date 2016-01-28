@@ -24,13 +24,14 @@ from itertools import combinations
 import math
 from ZZMetadata import sampleInfo
 from ZZHelpers import * # evVar, objVar, nObjVar, parseChannels, mapObjects, Z_MASS
-
+from CutGenerator import getCutter
 
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
 class ZZAnalyzer(object):
-    def __init__(self, channels, cutSet, inFile, outfile='./results/output.root', 
-                 resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000, rowCleaner=''):
+    def __init__(self, channels, baseCutSet, inFile, outfile='./results/output.root', 
+                 resultType = "ZZFinalHists", maxEvents=float("inf"), intLumi=10000, rowCleaner='',
+                 cutModifiers=[]):
         '''
         Channels:    list of strings or single string in the format (e.g.) eemm for 
                          a 2e2mu final state. '4l', 'zz' and 'ZZ' turn into ['eeee' 'eemm' 'mmmm']
@@ -42,8 +43,8 @@ class ZZAnalyzer(object):
         rowCleaner:  name of a module to clean out redundant rows. If an empty 
                          string (or other False boolean), no cleaning is performed.
         '''
-        self.cutSet = cutSet
-        cutclass = self.getCutClass(cutSet)
+        self.cutSet = [baseCutSet]+cutModifiers
+        cutclass = getCutter(baseCutSet, *cutModifiers)
 
         self.cuts = cutclass()
 
@@ -320,16 +321,6 @@ class ZZAnalyzer(object):
                 f.write("%16s : %-9d\n"%(cut, totals[cut])) # :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
     
 
-    def getCutClass(self, cutSet):
-        '''
-        Load the set of cuts with this name and return its Cutter class.
-        '''
-        cutpath = os.environ["zza"]+"/ZZUtils/cutTemplates"
-        cutf, cutfName, cutdesc = imp.find_module(cutSet, [cutpath])
-        assert cutf, 'Set of cuts %s does not exist in %s'%(cutSet,cutpath)
-        cutmod = imp.load_module(cutSet, cutf, cutfName, cutdesc)
-        return getattr(cutmod, cutSet)
-
 
 
 ################################################################
@@ -341,7 +332,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Running ZZAnalyzer directly just does a little test.')
     parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
-    parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Cut set to test.')
+    parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Base cut set to test.')
     parser.add_argument("infile", nargs='?', 
                         default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_PHYS14DR_PU20bx25.root'%os.environ["zza"],
                         type=str, help='Single file to test on. No wildcards.')
@@ -350,9 +341,19 @@ if __name__ == "__main__":
     parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
     parser.add_argument("--cleanRows", nargs='?', type=str, default='',
                         help="Name of module to clean extra rows from each event. Without this option, no cleaning is performed.")
+    parser.add_argument("--modifiers", nargs='*', type=str,
+                        help="Other cut sets that modify the base cuts.")
     args = parser.parse_args()
 
-    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents, 1000, args.cleanRows)
+    if args.modifiers:
+        mods = args.modifiers
+    else:
+        mods = []
+
+    a = ZZAnalyzer(args.channel, args.cutset, args.infile, args.outfile, 
+                   args.resultType, args.nEvents, 1000, args.cleanRows,
+                   cutModifiers=mods,)
+
     print "TESTING ZZAnalyzer"
     a.analyze()
     print "TEST COMPLETE"

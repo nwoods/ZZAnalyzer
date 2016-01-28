@@ -99,7 +99,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Running ZZAnalyzer directly just does a little test.')
     parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
-    parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Cut set to test.')
+    parser.add_argument("cutset", nargs='?', default='FullSpectrumFSR', type=str, help='Base cut set to test.')
     parser.add_argument("infile", nargs='?', 
                         default='%s/../ntuples/ZZTo4L_Tune4C_13TeV-powheg-pythia8_PHYS14DR_PU20bx25.root'%os.environ["zza"],
                         type=str, help='Single file to test on. No wildcards.')
@@ -109,9 +109,19 @@ if __name__ == "__main__":
     parser.add_argument("eventList", nargs='?', default='eventList.txt', type=str, help='File listing interesting events to check.')
     parser.add_argument("--cleanRows", nargs='?', type=str, default='',
                         help="Name of module to clean extra rows from each event. Without this option, no cleaning is performed.")
+    parser.add_argument("--modifiers", nargs='*', type=str,
+                        help="Other cut sets that modify the base cuts.")
     args = parser.parse_args()
 
-    a = SyncAnalyzer(args.channel, args.cutset, args.infile, args.outfile, args.resultType, args.nEvents, args.eventList, 1000, args.cleanRows)
+    if args.modifiers:
+        mods = args.modifiers
+    else:
+        mods = []
+
+    a = SyncAnalyzer(args.channel, args.cutset, args.infile, args.outfile, 
+                     args.resultType, args.nEvents, args.eventList, 1000, 
+                     args.cleanRows, cutModifiers=mods,)
+
     print "TESTING ZZAnalyzer"
     a.analyze()
     print "TEST COMPLETE"
