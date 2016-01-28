@@ -12,15 +12,13 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from ControlRegion_Base import ControlRegion_Base
 from collections import OrderedDict
+from ControlRegion_Base import ControlRegion_Base
 from ZZHelpers import Z_MASS, evVar, objVar
 from rootpy.vector import LorentzVector
 
 
 class ControlRegion_Zplusl(ControlRegion_Base):
-    fsrVar = ''
-
     def __init__(self, cutset="ControlRegion_Zplusl"):
         super(ControlRegion_Zplusl, self).__init__(cutset)
 
@@ -96,10 +94,10 @@ class ControlRegion_Zplusl(ControlRegion_Base):
     def setupCutFlow(self):
         '''
         As the full spectum cutter, except as above
+        No call to super(), as this is really the only 3l cutter
         '''
         flow = OrderedDict()
         
-        flow['Total'] = ('true', [])
         flow['Trigger'] = ('Trigger', [])
         flow['METVeto'] = ('METVeto', [])
         flow['ExtraLepVeto'] = ('4lVeto', [])
