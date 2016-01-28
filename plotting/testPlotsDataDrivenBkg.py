@@ -31,23 +31,23 @@ from datetime import date
 from math import sqrt
 
 noBKG = False #True
-outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015D_{0}{1}'.format(date.today().strftime('%d%b%Y').lower(),
+outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015silver_{0}{1}'.format(date.today().strftime('%d%b%Y').lower(),
                                                                                 ('_noBKG' if noBKG else ''))
 link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_latest'
 
 
-plotter = NtuplePlotter('zz', outdir+"NoFSR", 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results/GluGluToZZTo*.root',
-                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_3P1F/*.root',
-                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_2P2F/*.root',}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results/data*.root',
-                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_3P1F/data*.root',
-                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_2P2F/data*.root',}, 
-                        intLumi=1341.) # 1280.23)
+plotter = NtuplePlotter('zz', outdir+"_full", 
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full/GluGlu*.root',
+                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full_3P1F/*.root',
+                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full_2P2F/*.root',}, 
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_full/data*.root',
+                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_full_3P1F/data*.root',
+                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_full_2P2F/data*.root',}, 
+                        intLumi=2560.)
 
-tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
+tpVersionHash = 'v1.1-4-ga295b14-extended' #v1.1-1-g4cbf52a_v2'
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_04dec2015_0.root')
+fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015silver_19jan2016.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
 mFakeRateHist = fFake.Get('m_FakeRate').clone()
 
@@ -133,7 +133,7 @@ stackSystUp = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqUp[c]) for c in stackSys
 stackSystDown = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqDown[c]) for c in stackSystSqNoTheo}
 
 binning4l = {
-    'MassDREtFSR' : [20,0.,800.],
+    'MassDREtFSR' : [35,10.,710.],
     'EtaDREtFSR' : [16, -5., 5.],
     'PtDREtFSR' : [30, 0., 180.],
     'PhiDREtFSR' : [12, -3.15, 3.15],
@@ -262,7 +262,8 @@ for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
 
 
 binning2l = {
-    'MassDREtFSR' : [30, 60., 120.],
+    'MassDREtFSR#1' : [40, 40., 120.],
+    'MassDREtFSR#2' : [60, 0., 120.],
     'EtaDREtFSR' : [20, -5., 5.],
     'PtDREtFSR' : [30, 0., 150.],
     'PhiDREtFSR' : [12, -3.15, 3.15],
@@ -320,7 +321,12 @@ objects2l = {
 
 for z, channels in channels2l.iteritems():
     
-    for var, bins in binning2l.iteritems():
+    for vbl, bins in binning2l.iteritems():
+        var = vbl.split("#")[0]
+        if len(vbl.split("#")) > 1:
+            if z != 'z' and vbl.split("#")[1] not in z:
+                continue
+
         variables = [v%var for v in varTemplates2l[z]]
 
         if noBKG:
