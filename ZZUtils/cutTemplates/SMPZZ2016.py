@@ -17,3 +17,11 @@ class SMPZZ2016(Cutter):
         return temp
     
 
+    def setupCutFlow(self):
+        '''
+        Only difference from full spectrum is that SMP uses smart cut.
+        '''
+        flow = super(SMPZZ2016, self).setupCutFlow()
+        flow['SmartCut'] = ('SmartCut', [1,2,3,4])
+
+        return flow

@@ -371,7 +371,6 @@ class BaseCuts2016(Cutter):
         flow['Lepton2Pt'] = ('Lepton2Pt', [1,2,3,4])
         flow['QCDVeto'] = ('QCDVeto', [1,2,3,4])
         flow['4lMass'] = ('4lMass', [])
-        flow['SmartCut'] = ('SmartCut', [1,2,3,4])
         
         return flow
 
