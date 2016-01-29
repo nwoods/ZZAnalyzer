@@ -1,6 +1,6 @@
 '''
 
-Make full SMP ZZ plots with data driven backgrounds.
+Make all ZZ plots with data driven backgrounds.
 
 This is a goddamn mess; I'll clean it up later.
 
@@ -30,21 +30,35 @@ from datetime import date
 
 from math import sqrt
 
+from argparse import ArgumentParser
+
+parser = ArgumentParser(description="Make lots of plots for ZZ analyses.")
+parser.add_argument('--smp', action='store_true', help='SMP ZZ plots')
+parser.add_argument('--hzz', action='store_true', help='HZZ plots')
+parser.add_argument('--full', action='store_true', help='Full 4l spectrum plots')
+parser.add_argument('--z4l', action='store_true', help='SMP Z->4l plots')
+args = parser.parse_args()
+
+analyses = []
+
+if not (args.smp or args.hzz or args.full or args.z4l):
+    args.smp = True
+    args.hzz = True
+    args.full = True
+    args.z4l = True
+
+if args.smp:
+    analyses.append('smp')
+if args.hzz:
+    analyses.append('hzz')
+if args.full:
+    analyses.append('full')
+if args.z4l:
+    analyses.append('z4l')
+
 noBKG = False #True
-outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015silver_{0}{1}'.format(date.today().strftime('%d%b%Y').lower(),
-                                                                                ('_noBKG' if noBKG else ''))
-link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_latest'
 
-
-plotter = NtuplePlotter('zz', outdir+"_full", 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full/GluGlu*.root',
-                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full_3P1F/*.root',
-                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_full_2P2F/*.root',}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_full/data*.root',
-                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_full_3P1F/data*.root',
-                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_full_2P2F/data*.root',}, 
-                        intLumi=2560.)
-
+# lots of prep things
 tpVersionHash = 'v1.1-4-ga295b14-extended' #v1.1-1-g4cbf52a_v2'
 
 fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015silver_19jan2016.root')
@@ -84,12 +98,6 @@ mcWeight = {
 }
 
 mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
-
-# samples to subtract off of CRs based on MC
-subtractSamples = []
-for s in plotter.ntuples['mc3P1F']:
-    if s[:3] == 'ZZT' or s[:10] == 'GluGluToZZ' and 'tau' not in s:
-        subtractSamples.append(s)
 
 eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs(e{0}SCEta)", bdt="e{0}MVANonTrigID")
 
@@ -131,28 +139,7 @@ stackTheoSqDown = {
 
 stackSystUp = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqUp[c]) for c in stackSystSqNoTheo}
 stackSystDown = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqDown[c]) for c in stackSystSqNoTheo}
-
-binning4l = {
-    'MassDREtFSR' : [35,10.,710.],
-    'EtaDREtFSR' : [16, -5., 5.],
-    'PtDREtFSR' : [30, 0., 180.],
-    'PhiDREtFSR' : [12, -3.15, 3.15],
-    'nJets' : [6, -0.5, 5.5],
-    'nvtx' : [40,0.,40.],
-    }
-
-vars4l = {v:v for v in binning4l}
-
-xTitle4l = {
-    'Mass' : 'm_{__PARTICLES__}',
-    'MassDREtFSR' : 'm_{__PARTICLES__}',
-    'EtaDREtFSR' : '\\eta_{__PARTICLES__}',
-    'PtDREtFSR' : 'p_{T_{__PARTICLES__}}',
-    'PhiDREtFSR' : '\\phi_{__PARTICLES__}',
-    'nJets' : '\\text{# Jets}',
-    'nvtx' : '\\text{# PVs}',
-    }
-
+    
 units = {
     'Mass' : 'GeV',
     'MassDREtFSR' : 'GeV',
@@ -169,348 +156,438 @@ units = {
     'PVDZ' : '',
     'nvtx' : '',
     }
+    
 
-for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
+def joinSelections(*selections):
+    return ' && '.join([s for s in selections if bool(s)])
 
-    chEnding = ''
-    if channel != 'zz':
-        chEnding = '_%s'%channel
-    if channel == 'zz':
-        particles = '4\\ell'
-    elif channel == 'eeee':
-        particles = '4e'
-    elif channel == 'eemm':
-        particles = '2e2\\mu'
-    elif channel == 'mmmm':
-        particles = '4\\mu'
 
+for ana in analyses:
+    print "Initializing plotter for {} analysis".format(ana.upper())
+
+    # cut that is always applied, in case it's needed
+    constSelection = ''
+    if ana == 'z4l':
+        constSelection = 'MassDREtFSR < 110.'
+
+    outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015silver_{0}_{1}{2}'.format(date.today().strftime('%d%b%Y').lower(),
+                                                                                             ana,
+                                                                                             ('_noBKG' if noBKG else ''))
+    link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_{}_latest'.format(ana)
+    
+    sampleID = ana
+    if ana == 'z4l':
+        sampleID = 'full'
+
+    plotter = NtuplePlotter('zz', outdir, 
+                            {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
+                             'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_3P1F/*.root'.format(sampleID),
+                             'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_2P2F/*.root'.format(sampleID),}, 
+                            {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}/data*.root'.format(sampleID),
+                             '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_3P1F/data*.root'.format(sampleID),
+                             '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_2P2F/data*.root'.format(sampleID),}, 
+                            intLumi=2560.)
+    
+    try:
+        os.unlink(link)
+    except:
+        pass    
+    os.symlink(outdir, link)
+
+
+    # samples to subtract off of CRs based on MC
+    subtractSamples = []
+    for s in plotter.ntuples['mc3P1F']:
+        if s[:3] == 'ZZT' or s[:10] == 'GluGluToZZ' and 'tau' not in s:
+            subtractSamples.append(s)
+
+
+    binning4l = {
+        'MassDREtFSR' : [35,10.,710.],
+        'EtaDREtFSR' : [16, -5., 5.],
+        'PtDREtFSR' : [30, 0., 180.],
+        # 'PhiDREtFSR' : [12, -3.15, 3.15],
+        # 'nJets' : [6, -0.5, 5.5],
+        # 'nvtx' : [40,0.,40.],
+        }
+    if ana == 'z4l':
+        binning4l['MassDREtFSR'] = [25, 60., 110.]
+    
+    vars4l = {v:v for v in binning4l}
+    
+    xTitle4l = {
+        'Mass' : 'm_{__PARTICLES__}',
+        'MassDREtFSR' : 'm_{__PARTICLES__}',
+        'EtaDREtFSR' : '\\eta_{__PARTICLES__}',
+        'PtDREtFSR' : 'p_{T_{__PARTICLES__}}',
+        'PhiDREtFSR' : '\\phi_{__PARTICLES__}',
+        'nJets' : '\\text{# Jets}',
+        'nvtx' : '\\text{# PVs}',
+        }
+    
     for varName, bins in binning4l.iteritems():
         var = vars4l[varName]
 
-        if noBKG:
-            extraBkgs = []
-        else:
-            cr3P1F = plotter.makeHist('3P1F', '3P1F', channel, var, '', 
-                                      bins, weights=cr3PScale[channel], 
-                                      perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
-                                      isBackground=True)
-            cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, var, '', 
-                                      bins, weights=cr2PScale[channel], 
-                                      perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
-                                      isBackground=True)
+        print "    Plotting 4l {}".format(var)
     
-            # print '\n', channel, ":" 
-            # print "    Init:"
-            # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+        for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
+            
+            chEnding = ''
+            if channel != 'zz':
+                chEnding = '_%s'%channel
+            if channel == 'zz':
+                particles = '4\\ell'
+            elif channel == 'eeee':
+                particles = '4e'
+            elif channel == 'eemm':
+                particles = '2e2\\mu'
+            elif channel == 'mmmm':
+                particles = '4\\mu'
     
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
-    
-            for ss in subtractSamples:
-                sub3P = plotter.makeHist("mc3P1F", ss, channel,
-                                         var, '', bins,
-                                         weights=cr3PScaleMC[channel],
-                                         perUnitWidth=False)
-                cr3P1F -= sub3P
-                sub2P = plotter.makeHist("mc2P2F", ss, channel,
-                                         var, '', bins,
-                                         weights=cr2PScaleMC[channel],
-                                         perUnitWidth=False)
-                cr2P2F -= sub2P
-    
-                # print "    Subtracted %s:"%ss
+            if noBKG:
+                extraBkgs = []
+            else:
+                cr3P1F = plotter.makeHist('3P1F', '3P1F', channel, var, constSelection, 
+                                          bins, weights=cr3PScale[channel], 
+                                          perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
+                                          isBackground=True)
+                cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, var, constSelection, 
+                                          bins, weights=cr2PScale[channel], 
+                                          perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
+                                          isBackground=True)
+        
+                # print '\n', channel, ":" 
+                # print "    Init:"
                 # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
-    
+        
                 cr3P1F.sumw2()
                 cr2P2F.sumw2()
-    
-            for b3P, b2P in zip(cr3P1F, cr2P2F):
-                if b3P.value <= 0 or b2P.value > b3P.value:
-                    b3P.value = 0.
-                    b3P.error = 0.
-                    b2P.value = 0.
-                    b2P.error = 0.
-                if b2P.value < 0.:
-                    b2P.value = 0.
-            
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
+        
+                for ss in subtractSamples:
+                    sub3P = plotter.makeHist("mc3P1F", ss, channel,
+                                             var, constSelection, bins,
+                                             weights=cr3PScaleMC[channel],
+                                             perUnitWidth=False)
+                    cr3P1F -= sub3P
+                    sub2P = plotter.makeHist("mc2P2F", ss, channel,
+                                             var, constSelection, bins,
+                                             weights=cr2PScaleMC[channel],
+                                             perUnitWidth=False)
+                    cr2P2F -= sub2P
+        
+                    # print "    Subtracted %s:"%ss
+                    # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+        
+                    cr3P1F.sumw2()
+                    cr2P2F.sumw2()
+        
+                for b3P, b2P in zip(cr3P1F, cr2P2F):
+                    if b3P.value <= 0 or b2P.value > b3P.value:
+                        b3P.value = 0.
+                        b3P.error = 0.
+                        b2P.value = 0.
+                        b2P.error = 0.
+                    if b2P.value < 0.:
+                        b2P.value = 0.
                 
-            # print "    Negatives zeroed:"
-            # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+                cr3P1F.sumw2()
+                cr2P2F.sumw2()
+                    
+                # print "    Negatives zeroed:"
+                # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+        
+                cr3P1F -= cr2P2F
+        
+                # print "    3P1F-2P2F:"
+                # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+                # break
+        
+                cr3P1F.sumw2()
     
-            cr3P1F -= cr2P2F
+                extraBkgs = [cr3P1F]
     
-            # print "    3P1F-2P2F:"
-            # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
-            # break
+            plotter.fullPlot('4l%s%s'%(varName,chEnding), channel, var, constSelection, 
+                             bins, 'mc', 'data', canvasX=1000, logy=False, 
+                             xTitle=xTitle4l[varName].replace('__PARTICLES__',particles), 
+                             xUnits=units[varName],
+                             extraBkgs=extraBkgs, outFile='%s%s.png'%(varName,chEnding), 
+                             mcWeights=mcWeight[channel], drawRatio=False,
+                             widthInYTitle=bool(units[var]),
+                             mcSystFracUp=stackSystUp[channel],
+                             mcSystFracDown=stackSystDown[channel])
+    # exit()
     
-            cr3P1F.sumw2()
-
-            extraBkgs = [cr3P1F]
-
-        plotter.fullPlot('4l%s%s'%(varName,chEnding), channel, var, '', 
-                         bins, 'mc', 'data', canvasX=1000, logy=False, 
-                         xTitle=xTitle4l[varName].replace('__PARTICLES__',particles), 
-                         xUnits=units[varName],
-                         extraBkgs=extraBkgs, outFile='%s%s.png'%(varName,chEnding), 
-                         mcWeights=mcWeight[channel], drawRatio=False,
-                         widthInYTitle=bool(units[var]),
-                         mcSystFracUp=stackSystUp[channel],
-                         mcSystFracDown=stackSystDown[channel])
-# exit()
-
-
-binning2l = {
-    'MassDREtFSR#1' : [40, 40., 120.],
-    'MassDREtFSR#2' : [60, 0., 120.],
-    'EtaDREtFSR' : [20, -5., 5.],
-    'PtDREtFSR' : [30, 0., 150.],
-    'PhiDREtFSR' : [12, -3.15, 3.15],
-    }
-
-xTitles2l = {
-    'Mass' : 'm_{%s}',
-    'MassDREtFSR' : 'm_{%s}',
-    'EtaDREtFSR' : '\\eta_{%s}',
-    'PtDREtFSR' : 'p_{T_{%s}}',
-    'PhiDREtFSR' : '\\phi_{%s}',
-    }
-
-channels2l = {
-    'z' : ['eeee', 'eeee', 'eemm', 'eemm', 'mmmm', 'mmmm',],
-    'z1' : ['eeee', 'eemm', 'eemm', 'mmmm'],
-    'z2' : ['eeee', 'eemm', 'eemm', 'mmmm'],
-    'z1e' : ['eeee', 'eemm'],
-    'z2e' : ['eeee', 'eemm'],
-    'z1m' : ['eemm', 'mmmm'],
-    'z2m' : ['eemm', 'mmmm'],
-    }
-
-selections2l = {
-    'z' : '',
-    'z1' : ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
-            'abs(m1_m2_MassDREtFSR-%f) < abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
-    'z2' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
-            'abs(m1_m2_MassDREtFSR-%f) > abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
-    'z1e' : ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS)],
-    'z2e' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS)],
-    'z1m' : ['abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
-    'z2m' : ['abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
-    }
-
-varTemplates2l = {
-    'z' : ['e1_e2_%s', 'e3_e4_%s', 'e1_e2_%s', 'm1_m2_%s', 'm1_m2_%s', 'm3_m4_%s'],
-    'z1' : ['e1_e2_%s', 'e1_e2_%s', 'm1_m2_%s', 'm1_m2_%s'],
-    'z2' : ['e3_e4_%s', 'e1_e2_%s', 'm1_m2_%s', 'm3_m4_%s'],
-    'z1e' : ['e1_e2_%s' for i in range(2)],
-    'z2e' : ['e3_e4_%s', 'e1_e2_%s'],
-    'z1m' : ['m1_m2_%s' for i in range(2)],
-    'z2m' : [ 'm1_m2_%s', 'm3_m4_%s'],
-    }
-
-objects2l = {
-    'z' : 'Z',
-    'z1' : 'Z_{1}',
-    'z2' : 'Z_{2}',
-    'z1e' : 'Z_{1} \\left(ee \\right)',
-    'z2e' : 'Z_{2} \\left(ee \\right)',
-    'z1m' : 'Z_{1} \\left(\\mu\\mu \\right)',
-    'z2m' : 'Z_{2} \\left(\\mu\\mu \\right)',
-    }
-
-for z, channels in channels2l.iteritems():
+    
+    binning2l = {
+        'MassDREtFSR#1' : [40, 40., 120.],
+        'MassDREtFSR#2' : [60, 0., 120.],
+        'EtaDREtFSR' : [20, -5., 5.],
+        'PtDREtFSR' : [30, 0., 150.],
+        # 'PhiDREtFSR' : [12, -3.15, 3.15],
+        }
+    if ana == 'smp':
+        binning2l['MassDREtFSR#1'] = [30, 60., 120.]
+        binning2l['MassDREtFSR#2'] = [30, 60., 120.]
+    elif ana == 'z4l':
+        binning2l['MassDREtFSR#1'] = [30, 60., 120.]
+        binning2l['MassDREtFSR#2'] = [20, 0., 40.]
+    
+    xTitles2l = {
+        'Mass' : 'm_{%s}',
+        'MassDREtFSR' : 'm_{%s}',
+        'EtaDREtFSR' : '\\eta_{%s}',
+        'PtDREtFSR' : 'p_{T_{%s}}',
+        'PhiDREtFSR' : '\\phi_{%s}',
+        }
+    
+    channels2l = {
+        'z' : ['eeee', 'eeee', 'eemm', 'eemm', 'mmmm', 'mmmm',],
+        'z1' : ['eeee', 'eemm', 'eemm', 'mmmm'],
+        'z2' : ['eeee', 'eemm', 'eemm', 'mmmm'],
+        'z1e' : ['eeee', 'eemm'],
+        'z2e' : ['eeee', 'eemm'],
+        'z1m' : ['eemm', 'mmmm'],
+        'z2m' : ['eemm', 'mmmm'],
+        }
+    
+    selections2l = {
+        'z' : '',
+        'z1' : ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
+                'abs(m1_m2_MassDREtFSR-%f) < abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+        'z2' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), 
+                'abs(m1_m2_MassDREtFSR-%f) > abs(e1_e2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+        'z1e' : ['', 'abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS)],
+        'z2e' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS)],
+        'z1m' : ['abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+        'z2m' : ['abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+        }
+    for foo, sels in selections2l.iteritems():
+        if isinstance(sels, str):
+            sels = joinSelections(sels, constSelection)
+        else:
+            sels = [joinSelections(s,constSelection) for s in sels]
+    
+    varTemplates2l = {
+        'z' : ['e1_e2_%s', 'e3_e4_%s', 'e1_e2_%s', 'm1_m2_%s', 'm1_m2_%s', 'm3_m4_%s'],
+        'z1' : ['e1_e2_%s', 'e1_e2_%s', 'm1_m2_%s', 'm1_m2_%s'],
+        'z2' : ['e3_e4_%s', 'e1_e2_%s', 'm1_m2_%s', 'm3_m4_%s'],
+        'z1e' : ['e1_e2_%s' for i in range(2)],
+        'z2e' : ['e3_e4_%s', 'e1_e2_%s'],
+        'z1m' : ['m1_m2_%s' for i in range(2)],
+        'z2m' : [ 'm1_m2_%s', 'm3_m4_%s'],
+        }
+    
+    objects2l = {
+        'z' : 'Z',
+        'z1' : 'Z_{1}',
+        'z2' : 'Z_{2}',
+        'z1e' : 'Z_{1} \\left(ee \\right)',
+        'z2e' : 'Z_{2} \\left(ee \\right)',
+        'z1m' : 'Z_{1} \\left(\\mu\\mu \\right)',
+        'z2m' : 'Z_{2} \\left(\\mu\\mu \\right)',
+        }
     
     for vbl, bins in binning2l.iteritems():
-        var = vbl.split("#")[0]
-        if len(vbl.split("#")) > 1:
-            if z != 'z' and vbl.split("#")[1] not in z:
-                continue
+        
+        print "    Plotting Z {}".format(vbl)
 
-        variables = [v%var for v in varTemplates2l[z]]
-
-        if noBKG:
-            extraBkgs = []
-        else:
-            cr3P1F = plotter.makeHist('3P1F', '3P1F', channels, variables,
-                                      selections2l[z], bins, 
-                                      weights=[cr3PScale[c] for c in channels], 
-                                      perUnitWidth=False, 
-                                      nameForLegend='\\text{Z/WZ+X}',
-                                      isBackground=True)
-            cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables,
-                                      selections2l[z], bins,
-                                      weights=[cr2PScale[c] for c in channels], 
-                                      perUnitWidth=False, 
-                                      nameForLegend='\\text{Z/WZ+X}',
-                                      isBackground=True)
+        for z, channels in channels2l.iteritems():
+        
+            var = vbl.split("#")[0]
+            if len(vbl.split("#")) > 1:
+                if z != 'z' and vbl.split("#")[1] not in z:
+                    continue
     
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
+            variables = [v%var for v in varTemplates2l[z]]
     
-            for ss in subtractSamples:
-                sub3P = plotter.makeHist("mc3P1F", ss, channels,
-                                         variables, selections2l[z], bins,
-                                         weights=[cr3PScaleMC[c] for c in channels],
-                                         perUnitWidth=False)
-                cr3P1F -= sub3P
-                sub2P = plotter.makeHist("mc2P2F", ss, channels,
-                                         variables, selections2l[z], bins,
-                                         weights=[cr2PScaleMC[c] for c in channels],
-                                         perUnitWidth=False)
-                cr2P2F -= sub2P
-    
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
+            if noBKG:
+                extraBkgs = []
+            else:
+                cr3P1F = plotter.makeHist('3P1F', '3P1F', channels, variables,
+                                          selections2l[z], bins, 
+                                          weights=[cr3PScale[c] for c in channels], 
+                                          perUnitWidth=False, 
+                                          nameForLegend='\\text{Z/WZ+X}',
+                                          isBackground=True)
+                cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables,
+                                          selections2l[z], bins,
+                                          weights=[cr2PScale[c] for c in channels], 
+                                          perUnitWidth=False, 
+                                          nameForLegend='\\text{Z/WZ+X}',
+                                          isBackground=True)
+        
+                cr3P1F.sumw2()
+                cr2P2F.sumw2()
+        
+                for ss in subtractSamples:
+                    sub3P = plotter.makeHist("mc3P1F", ss, channels,
+                                             variables, selections2l[z], bins,
+                                             weights=[cr3PScaleMC[c] for c in channels],
+                                             perUnitWidth=False)
+                    cr3P1F -= sub3P
+                    sub2P = plotter.makeHist("mc2P2F", ss, channels,
+                                             variables, selections2l[z], bins,
+                                             weights=[cr2PScaleMC[c] for c in channels],
+                                             perUnitWidth=False)
+                    cr2P2F -= sub2P
+        
+                cr3P1F.sumw2()
+                cr2P2F.sumw2()
+                    
+                for b3P, b2P in zip(cr3P1F, cr2P2F):
+                    if b3P.value <= 0 or b2P.value > b3P.value:
+                        b3P.value = 0.
+                        b3P.error = 0.
+                        b2P.value = 0.
+                        b2P.error = 0.
+                    if b2P.value < 0.:
+                        b2P.value = 0.
                 
-            for b3P, b2P in zip(cr3P1F, cr2P2F):
-                if b3P.value <= 0 or b2P.value > b3P.value:
-                    b3P.value = 0.
-                    b3P.error = 0.
-                    b2P.value = 0.
-                    b2P.error = 0.
-                if b2P.value < 0.:
-                    b2P.value = 0.
-            
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
-                
-            cr3P1F -= cr2P2F
+                cr3P1F.sumw2()
+                cr2P2F.sumw2()
+                    
+                cr3P1F -= cr2P2F
+        
+                cr3P1F.sumw2()
     
-            cr3P1F.sumw2()
+                extraBkgs = [cr3P1F]
+    
+            if ana != 'smp' and 'Mass' in var:
+                legParams = {'leftmargin' : 0.2, 'rightmargin' : 0.35}
+            else:
+                legParams = {}
 
-            extraBkgs = [cr3P1F]
-
-        plotter.fullPlot('%s%s'%(z, var), channels, variables, 
-                         selections2l[z], 
-                         bins, 'mc', 'data', canvasX=1000, logy=False, 
-                         xTitle=xTitles2l[var]%objects2l[z],
-                         xUnits=units[var],
-                         yTitle="Z Bosons" if z=='z' else 'Events',
-                         extraBkgs=extraBkgs, outFile='%s%s.png'%(z,var), 
-                         mcWeights=[mcWeight[c] for c in channels], 
-                         drawRatio=False,
-                         widthInYTitle=bool(units[var]),
-                         mcSystFracUp=stackSystUp[channel],
-                         mcSystFracDown=stackSystDown[channel])
-
-
-binning1l = {
-    'Phi' : [12, -3.15, 3.15],
-    'Eta' : [10, -2.5, 2.5],
-    'Pt' : [30, 0., 150.],
-    'Iso' : [11, 0., 0.55],
-    'PVDXY' : [10, -.5, .5],
-    'PVDZ' : [10, -1., 1.],
-    }
-
-vars1l = {
-    'Pt' : {lep:'Pt' for lep in ['e', 'm']},
-    'Eta' : {lep:'Eta' for lep in ['e', 'm']},
-    'Phi' : {lep:'Phi' for lep in ['e', 'm']},
-    'PVDXY' : {lep:'PVDXY' for lep in ['e', 'm']},
-    'PVDZ' : {lep:'PVDZ' for lep in ['e', 'm']},
-    'Iso' : {'e' : 'RelPFIsoRhoDREtFSR', 'm' : 'RelPFIsoDBDREtFSR'},
-    }
-
-xTitles1l = {
-    'Phi' : '\\phi_{%s}',
-    'Eta' : '\\eta_{%s}',
-    'Pt' : 'p_{T_{%s}}',
-    'PVDXY' : '\\Delta_{xy} \\text{(%s,PV)}',
-    'PVDZ' : '\\Delta_{z} \\text{(%s,PV)}',
-    'Iso' : '\\text{Rel. PF Iso. (PU corrected)} (%s)',
-    }
-
-channels1l = {
-    'e' : ['eeee' for i in range(4)] + ['eemm' for i in range(2)],
-    'm' : ['eemm' for i in range(2)] + ['mmmm' for i in range(4)],
-    }
-
-varTemplates1l = {
-    'e' : ['e%d%%s'%nl for nl in range(1,5)] + ['e%d%%s'%nl for nl in range(1,3)],
-    'm' : ['m%d%%s'%nl for nl in range(1,3)] + ['m%d%%s'%nl for nl in range(1,5)],
-    }
-
-objName1l = {
-    'e' : 'e',
-    'm' : '\\mu',
-    }
-
-for lep, channels in channels1l.iteritems():
+            plotter.fullPlot('%s%s'%(z, var), channels, variables, 
+                             selections2l[z], 
+                             bins, 'mc', 'data', canvasX=1000, logy=False, 
+                             xTitle=xTitles2l[var]%objects2l[z],
+                             xUnits=units[var],
+                             yTitle="Z Bosons" if z=='z' else 'Events',
+                             extraBkgs=extraBkgs, outFile='%s%s.png'%(z,var), 
+                             mcWeights=[mcWeight[c] for c in channels], 
+                             drawRatio=False,
+                             widthInYTitle=bool(units[var]),
+                             mcSystFracUp=stackSystUp[channel],
+                             mcSystFracDown=stackSystDown[channel],
+                             legParams=legParams)
+    
+    
+    binning1l = {
+        # 'Phi' : [12, -3.15, 3.15],
+        'Eta' : [10, -2.5, 2.5],
+        'Pt' : [30, 0., 150.],
+        'Iso' : [16, 0., 0.4],
+        # 'PVDXY' : [10, -.5, .5],
+        # 'PVDZ' : [10, -1., 1.],
+        }
+    
+    vars1l = {
+        'Pt' : {lep:'Pt' for lep in ['e', 'm']},
+        'Eta' : {lep:'Eta' for lep in ['e', 'm']},
+        'Phi' : {lep:'Phi' for lep in ['e', 'm']},
+        'PVDXY' : {lep:'PVDXY' for lep in ['e', 'm']},
+        'PVDZ' : {lep:'PVDZ' for lep in ['e', 'm']},
+        'Iso' : {lep:'HZZIsoFSR' for lep in ['e', 'm']},
+        #'Iso' : {'e' : 'RelPFIsoRhoDREtFSR', 'm' : 'RelPFIsoDBDREtFSR'},
+        }
+    
+    xTitles1l = {
+        'Phi' : '\\phi_{%s}',
+        'Eta' : '\\eta_{%s}',
+        'Pt' : 'p_{T_{%s}}',
+        'PVDXY' : '\\Delta_{xy} \\text{(%s,PV)}',
+        'PVDZ' : '\\Delta_{z} \\text{(%s,PV)}',
+        'Iso' : '\\text{Rel. PF Iso. (PU and FSR corrected)} (%s)',
+        }
+    
+    channels1l = {
+        'e' : ['eeee' for i in range(4)] + ['eemm' for i in range(2)],
+        'm' : ['eemm' for i in range(2)] + ['mmmm' for i in range(4)],
+        }
+    
+    varTemplates1l = {
+        'e' : ['e%d%%s'%nl for nl in range(1,5)] + ['e%d%%s'%nl for nl in range(1,3)],
+        'm' : ['m%d%%s'%nl for nl in range(1,3)] + ['m%d%%s'%nl for nl in range(1,5)],
+        }
+    
+    objName1l = {
+        'e' : 'e',
+        'm' : '\\mu',
+        }
     
     for var, bins in binning1l.iteritems():
-        variables = [v%vars1l[var][lep] for v in varTemplates1l[lep]]
 
-        if noBKG:
-            extraBkgs = []
-        else:
-            cr3P1F = plotter.makeHist('3P1F', '3P1F', channels, variables, '', bins,
-                                      weights=[cr3PScale[c] for c in channels], 
-                                      perUnitWidth=False, 
-                                      nameForLegend='\\text{Z/WZ+X}',
-                                      isBackground=True)
-            cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables, '', bins,
-                                      weights=[cr2PScale[c] for c in channels], 
-                                      perUnitWidth=False, 
-                                      nameForLegend='\\text{Z/WZ+X}',
-                                      isBackground=True)
+        print '    Plotting lepton {}'.format(var)
     
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
+        for lep, channels in channels1l.iteritems():
+        
+            variables = [v%vars1l[var][lep] for v in varTemplates1l[lep]]
     
-            for ss in subtractSamples:
-                sub3P = plotter.makeHist("mc3P1F", ss, channels,
-                                         variables, '', bins,
-                                         weights=[cr3PScaleMC[c] for c in channels],
-                                         perUnitWidth=False)
-                cr3P1F -= sub3P
-                sub2P = plotter.makeHist("mc2P2F", ss, channels,
-                                         variables, '', bins,
-                                         weights=[cr2PScaleMC[c] for c in channels],
-                                         perUnitWidth=False)
-                cr2P2F -= sub2P
-    
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
+            if noBKG:
+                extraBkgs = []
+            else:
+                cr3P1F = plotter.makeHist('3P1F', '3P1F', channels, variables, 
+                                          constSelection, bins, 
+                                          weights=[cr3PScale[c] for c in channels], 
+                                          perUnitWidth=False, 
+                                          nameForLegend='\\text{Z/WZ+X}',
+                                          isBackground=True)
+                cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables, 
+                                          constSelection, bins,
+                                          weights=[cr2PScale[c] for c in channels], 
+                                          perUnitWidth=False, 
+                                          nameForLegend='\\text{Z/WZ+X}',
+                                          isBackground=True)
+        
+                cr3P1F.sumw2()
+                cr2P2F.sumw2()
+        
+                for ss in subtractSamples:
+                    sub3P = plotter.makeHist("mc3P1F", ss, channels,
+                                             variables, constSelection, bins,
+                                             weights=[cr3PScaleMC[c] for c in channels],
+                                             perUnitWidth=False)
+                    cr3P1F -= sub3P
+                    sub2P = plotter.makeHist("mc2P2F", ss, channels,
+                                             variables, constSelection, bins,
+                                             weights=[cr2PScaleMC[c] for c in channels],
+                                             perUnitWidth=False)
+                    cr2P2F -= sub2P
+        
+                cr3P1F.sumw2()
+                cr2P2F.sumw2()
+                    
+                for b3P, b2P in zip(cr3P1F, cr2P2F):
+                    if b3P.value <= 0 or b2P.value > b3P.value:
+                        b3P.value = 0.
+                        b3P.error = 0.
+                        b2P.value = 0.
+                        b2P.error = 0.
+                    if b2P.value < 0.:
+                        b2P.value = 0.
                 
-            for b3P, b2P in zip(cr3P1F, cr2P2F):
-                if b3P.value <= 0 or b2P.value > b3P.value:
-                    b3P.value = 0.
-                    b3P.error = 0.
-                    b2P.value = 0.
-                    b2P.error = 0.
-                if b2P.value < 0.:
-                    b2P.value = 0.
-            
-            cr3P1F.sumw2()
-            cr2P2F.sumw2()
-                
-            cr3P1F -= cr2P2F
+                cr3P1F.sumw2()
+                cr2P2F.sumw2()
+                    
+                cr3P1F -= cr2P2F
+        
+                cr3P1F.sumw2()
     
-            cr3P1F.sumw2()
+                extraBkgs = [cr3P1F]
+    
+            plotter.fullPlot('%s%s'%(lep, var), channels, variables, constSelection,
+                             bins, 'mc', 'data', canvasX=1000, logy=False, 
+                             xTitle=xTitles1l[var]%objName1l[lep],
+                             xUnits=units[var],
+                             yTitle='Electrons' if lep == 'e' else 'Muons',
+                             extraBkgs=extraBkgs, outFile='%s%s.png'%(lep,var), 
+                             mcWeights=[mcWeight[c] for c in channels], 
+                             drawRatio=False,
+                             widthInYTitle=bool(units[var]),
+                             mcSystFracUp=stackSystUp[channel],
+                             mcSystFracDown=stackSystDown[channel])
+    
+    
+    
 
-            extraBkgs = [cr3P1F]
-
-        plotter.fullPlot('%s%s'%(lep, var), channels, variables, '',
-                         bins, 'mc', 'data', canvasX=1000, logy=False, 
-                         xTitle=xTitles1l[var]%objName1l[lep],
-                         xUnits=units[var],
-                         yTitle='Electrons' if lep == 'e' else 'Muons',
-                         extraBkgs=extraBkgs, outFile='%s%s.png'%(lep,var), 
-                         mcWeights=[mcWeight[c] for c in channels], 
-                         drawRatio=False,
-                         widthInYTitle=bool(units[var]),
-                         mcSystFracUp=stackSystUp[channel],
-                         mcSystFracDown=stackSystDown[channel])
-
-
-
-
-# try:
-#     os.unlink(link)
-# except:
-#     pass
-# 
-# os.symlink(outdir, link)
 
