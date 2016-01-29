@@ -13,6 +13,7 @@ from ZZHelpers import *
 
 
 class AllPass(Cutter.Cutter):
+    fsrVar = "DREtFSR"
     def __init__(self):
         super(AllPass, self).__init__("AllPass")
 
