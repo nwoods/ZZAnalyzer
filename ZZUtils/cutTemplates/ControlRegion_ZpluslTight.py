@@ -17,8 +17,6 @@ from ZZHelpers import Z_MASS
 
 
 class ControlRegion_ZpluslTight(ControlRegion_Base):
-    fsrVar = ''
-
     def __init__(self, cutset="ControlRegion_ZpluslTight"):
         super(ControlRegion_ZpluslTight, self).__init__(cutset)
 
