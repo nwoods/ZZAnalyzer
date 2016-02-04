@@ -20,8 +20,10 @@ from ZZHelpers import *
 class SyncAnalyzer(ZZAnalyzer):
     def __init__(self, channels, cutSet, infile, outfile='./results/output_cutflow.root', 
                  resultType="ZZCutFlowHists", maxEvents=float("inf"), eventFile='failedEvents.txt',
-                 intLumi=10000, cleanRows=True):
-        super(SyncAnalyzer, self).__init__(channels, cutSet, infile, outfile, resultType, maxEvents, intLumi, cleanRows)
+                 intLumi=10000, cleanRows=True, cutModifiers=[]):
+        super(SyncAnalyzer, self).__init__(channels, cutSet, infile, outfile, 
+                                           resultType, maxEvents, intLumi, 
+                                           cleanRows, cutModifiers)
         
         # save last attempted cut of each event of interest (or 999 if it passed), keyed to tuple(run,lumi,evt)
         self.interesting = {}
@@ -37,6 +39,8 @@ class SyncAnalyzer(ZZAnalyzer):
 
         # whether or not we care about this row (saved since lookup is slow)
         self.currentRowInfo = (-1,-1,-1)
+
+        print self.cutOrder
 
 
     def preCut(self, row, channel, cut):
@@ -83,6 +87,8 @@ class SyncAnalyzer(ZZAnalyzer):
             result = self.interesting[evt]
             if result == 999:
                 resultStr = "PASS"
+            elif result == -999:
+                resultStr = "NOT FOUND"
             else:
                 resultStr = self.cutOrder[result]
             print "%d:%d:%d :: %s :: %s"%(evt[0], evt[1], evt[2], ','.join(self.interestingChannels[evt]), resultStr)
