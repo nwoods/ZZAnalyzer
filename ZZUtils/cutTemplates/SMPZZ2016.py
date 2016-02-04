@@ -13,15 +13,19 @@ class SMPZZ2016(Cutter):
 
         temp['ZMassTight']['cuts']['Mass%s#lower'%self.fsrVar] = (60., ">=")
         temp['ZMassLoose']['cuts']['Mass%s#lower'%self.fsrVar] = (60., ">=")
+
+        temp['4lMass']['cuts'] = {'Mass%s'%self.fsrVar : (70., ">=")}
         
         return temp
     
 
     def setupCutFlow(self):
         '''
-        Only difference from full spectrum is that SMP uses smart cut.
+        Only differences from full spectrum are that SMP uses smart cut
+        and has 4l mass cut.
         '''
         flow = super(SMPZZ2016, self).setupCutFlow()
+        flow['4lMass'] = ('4lMass', [])
         flow['SmartCut'] = ('SmartCut', [1,2,3,4])
 
         return flow

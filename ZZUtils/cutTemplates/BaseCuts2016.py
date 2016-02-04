@@ -334,7 +334,7 @@ class BaseCuts2016(Cutter):
             # 4l Mass
             '4lMass' : {
                 'cuts' : {
-                    'Mass'+self.fsrVar : (70., ">="),
+                    'Mass'+self.fsrVar : (0., ">="),
                 },
             },
 
@@ -356,21 +356,20 @@ class BaseCuts2016(Cutter):
         Dictionary with order and (one-indexed) numbers of particles to cut on
         '''
         flow = super(BaseCuts2016, self).setupCutFlow()
-        flow['Vertex'] = ('Vertex', [])
-        flow['Trigger'] = ('Trigger', [])
         flow['LeptonID'] = ('GoodLeptons', [1,2,3,4])
+        flow['Isolation'] = ('Isolation', [1,2,3,4])
+        flow['Z1Mass'] = ('ZMassTight', [1,2])
+        flow['Z2MassLoose'] = ('ZMassLoose', [3,4])
         flow['CrossCleaning'] = ('CrossCleaning', [1,2,3,4])
         flow['SIP'] = ('SIP', [1,2,3,4])
         flow['GoodZ1'] = ('GoodZ', [1,2])
         flow['GoodZ2'] = ('GoodZ', [3,4])
-        flow['Isolation'] = ('Isolation', [1,2,3,4])
-        flow['Z1Mass'] = ('ZMassTight', [1,2])
-        flow['Z2MassLoose'] = ('ZMassLoose', [3,4])
         flow['Overlap'] = ('Overlap', [1,2,3,4])
         flow['Lepton1Pt'] = ('Lepton1Pt', [1,3])
         flow['Lepton2Pt'] = ('Lepton2Pt', [1,2,3,4])
         flow['QCDVeto'] = ('QCDVeto', [1,2,3,4])
-        flow['4lMass'] = ('4lMass', [])
+        flow['Vertex'] = ('Vertex', [])
+        flow['Trigger'] = ('Trigger', [])
         
         return flow
 
