@@ -22,7 +22,7 @@ import os
 outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/CR_MCData2015silver_{0}'.format(date.today().strftime('%d%b%Y').lower())
 link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/CR_MCData_latest'
 
-tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
+tpVersionHash = 'v1.1-4-ga295b14-extended'
 
 # fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015gold_26jan2016_0.root')
 # eFakeRateHist = fFake.Get('e_FakeRate').clone()
@@ -51,8 +51,9 @@ mIsoFromLooseTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_pas
 mIDLooseTPStrTemp = makeWeightStringFromHist(mIDLooseTPHist, '{0}Pt', 'abs({0}Eta)')
 mIsoFromLooseTPStrTemp = makeWeightStringFromHist(mIsoFromLooseTPHist, '{0}Pt', 'abs({0}Eta)')
 
-eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs({0}SCEta)", bdt="{0}MVANonTrigID")
-singleETPStrBase = '(%s ? %%s * ({0}HZZIsoPass ? %%s : 1.) : %%s * ({0}HZZIsoPass ? %%s : 1.))'%eTightIDStr
+# eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs({0}SCEta)", bdt="{0}MVANonTrigID")
+# singleETPStrBase = '(%s ? %%s * ({0}HZZIsoPass ? %%s : 1.) : %%s * ({0}HZZIsoPass ? %%s : 1.))'%eTightIDStr
+singleETPStrBase = '({0}HZZTightID > 0.5 ? %s * ({0}HZZIsoPass ? %s : 1.) : %s * ({0}HZZIsoPass ? %s : 1.))'
 singleMTPStrBase = '({0}HZZTightID > 0.5 ? %s * ({0}HZZIsoPass ? %s : 1.) : %s * ({0}HZZIsoPass ? %s : 1.))'
 singleETPStrTemp = singleETPStrBase%(eIDTightTPStrTemp, eIsoFromTightTPStrTemp, eIDLooseTPStrTemp, eIsoFromLooseTPStrTemp)
 singleMuTPStrTemp = singleMTPStrBase%(mIDTightTPStrTemp, mIsoFromTightTPStrTemp, mIDLooseTPStrTemp, mIsoFromLooseTPStrTemp)
@@ -80,11 +81,36 @@ mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
 plotters = {}
 crs = ['3P1F', '2P2F']
 
+z2dRChan = {
+    'eeee': ['eeee','eeee'],
+    'eemm': ['eemm','eemm'],
+    'mmmm': ['mmmm','mmmm'],
+    }
+z2dRChan['zz'] = z2dRChan['eeee'] + z2dRChan['eemm'] + z2dRChan['mmmm'] 
+z2dRVars = {
+    'eeee' : [s%"DR" for s in ['e1_e2_%s', 'e3_e4_%s']],
+    'eemm' : [s%"DR" for s in ['e1_e2_%s', 'm1_m2_%s']], 
+    'mmmm' : [s%"DR" for s in ['m1_m2_%s', 'm3_m4_%s']]
+    }
+z2dRVars['zz'] = z2dRVars['eeee'] + z2dRVars['eemm'] + z2dRVars['mmmm'] 
+z2dRSels = {
+    'eeee' : ['(e1HZZTightID + e2HZZTightID + e1HZZIsoPass + e2HZZIsoPass) < (e3HZZTightID + e4HZZTightID + e3HZZIsoPass + e4HZZIsoPass)', 
+              '(e1HZZTightID + e2HZZTightID + e1HZZIsoPass + e2HZZIsoPass) > (e3HZZTightID + e4HZZTightID + e3HZZIsoPass + e4HZZIsoPass)'],
+    'eemm' : ['(e1HZZTightID + e2HZZTightID + e1HZZIsoPass + e2HZZIsoPass) < (m1HZZTightID + m2HZZTightID + m1HZZIsoPass + m2HZZIsoPass)',
+              '(e1HZZTightID + e2HZZTightID + e1HZZIsoPass + e2HZZIsoPass) > (m1HZZTightID + m2HZZTightID + m1HZZIsoPass + m2HZZIsoPass)'], 
+    'mmmm' : ['(m1HZZTightID + m2HZZTightID + m1HZZIsoPass + m2HZZIsoPass) < (m3HZZTightID + m4HZZTightID + m3HZZIsoPass + m4HZZIsoPass)',
+              '(m1HZZTightID + m2HZZTightID + m1HZZIsoPass + m2HZZIsoPass) > (m3HZZTightID + m4HZZTightID + m3HZZIsoPass + m4HZZIsoPass)'],
+    }
+z2dRSels['zz'] = z2dRSels['eeee'] + z2dRSels['eemm'] + z2dRSels['mmmm'] 
+z2dRMCWeights = {ch : [mcWeight[ch], mcWeight[ch]] for ch in ['eeee','eemm','mmmm']}
+z2dRMCWeights['zz'] = z2dRMCWeights['eeee'] + z2dRMCWeights['eemm'] + z2dRMCWeights['mmmm'] 
+
+
 for cr in crs:
 
     plotters[cr] = NtuplePlotter('zz', os.path.join(outdir, 'CR_%s'%cr),
-                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_smp_%s/*.root'%cr}, 
-                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_smp_%s/data*.root'%cr}, 
+                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_full_%s/*.root'%cr}, 
+                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_full_%s/data*.root'%cr}, 
                                  2560.,)
 
     # print "%s:"%cr
@@ -100,6 +126,14 @@ for cr in crs:
         plotters[cr].fullPlot('4lMassFSR_%s'%channel, channel, 'MassDREtFSR', '', [20, 0., 800], 
                               'mc', 'data', canvasX=1000, logy=False, xTitle="m_{4\\ell}", 
                               outFile='m4l%s.png'%chdir, mcWeights=mcWeight[channel],
+                              drawRatio=False,
+                              widthInYTitle=True,
+                              )
+        plotters[cr].fullPlot('z2dR_%s'%channel, z2dRChan[channel], z2dRVars[channel], 
+                              z2dRSels[channel], [20, 0., 2.], 
+                              'mc', 'data', canvasX=1000, logy=False, 
+                              xTitle="\\Delta R (\\ell^{\\text{loose}}_1, \\ell^{\\text{loose}}_2 )", 
+                              outFile='z2dR%s.png'%chdir, mcWeights=z2dRMCWeights[channel],
                               drawRatio=False,
                               widthInYTitle=True,
                               )
