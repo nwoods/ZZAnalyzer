@@ -27,34 +27,85 @@ from rootpy.ROOT import Double
 
 import os
 from math import sqrt
+from datetime import date
 
-plotter = NtuplePlotter('zz', './plots/counting_09dec2015', 
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz/GluGlu*.root',
-                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz_3P1F/*.root',
-                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_19jan2016_2/results_hzz_2P2F/*.root',}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_hzz/data*.root',
-                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_hzz_3P1F/data*.root',
-                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_19jan2016_2/results_hzz_2P2F/data*.root',}, 
-                        intLumi=2260.) # 1280.23)
+from argparse import ArgumentParser
 
-plotter.printPassingEvents('data')
+parser = ArgumentParser(description="Make lots of numbers for ZZ analyses.")
+parser.add_argument('--smp', action='store_true', help='SMP ZZ numbers')
+parser.add_argument('--hzz', action='store_true', help='HZZ numbers')
+parser.add_argument('--full', action='store_true', help='Full 4l spectrum numbers')
+parser.add_argument('--z4l', action='store_true', help='SMP Z->4l numbers')
+parser.add_argument('--printData', action='store_true', help='Print all signal events from data')
+parser.add_argument('--print2P2F', action='store_true', help='Print all 2P2F events from data')
+parser.add_argument('--print3P1F', action='store_true', help='Print all 3P1F events from data')
+parser.add_argument('--eventsOnly', action='store_true', help='Just print the list(s) of events, don\'t calculate numbers')
+args = parser.parse_args()
+
+if args.smp:
+    ana = 'smp'
+    assert not any([args.hzz, args.full, args.z4l]), "Only do one analysis at a time, please!"
+if args.hzz:
+    ana = 'hzz'
+    assert not any([args.smp, args.full, args.z4l]), "Only do one analysis at a time, please!"
+if args.full:
+    ana = 'full'
+    assert not any([args.hzz, args.smp, args.z4l]), "Only do one analysis at a time, please!"
+if args.z4l:
+    ana = 'z4l'
+    assert not any([args.hzz, args.full, args.smp]), "Only do one analysis at a time, please!"
+
+sampleID = 'full' if ana == 'z4l' else ana
+
+plotter = NtuplePlotter('zz', './plots/counting_{0}_{1}'.format(date.today().strftime('%d%b%Y').lower(), ana),
+                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
+                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_3P1F/*.root'.format(sampleID),
+                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_2P2F/*.root'.format(sampleID),}, 
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}/data*.root'.format(sampleID),
+                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_3P1F/data*.root'.format(sampleID),
+                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_2P2F/data*.root'.format(sampleID),}, 
+                        intLumi=2560.)
+
+basicSelection = ''
+if ana == 'z4l':
+    basicSelection = "MassDREtFSR < 100. && MassDREtFSR > 80."
 
 print ""
-print "3P1F CR (data):"
-print '    eeee: %d'%plotter.ntuples['3P1F']['3P1F']['eeee'].GetEntries()
-print '    eemm: %d'%plotter.ntuples['3P1F']['3P1F']['eemm'].GetEntries()
-print '    mmmm: %d'%plotter.ntuples['3P1F']['3P1F']['mmmm'].GetEntries()
-
+if args.printData:
+    print "Signal (data):"
+    plotter.printPassingEvents('data')
+elif not args.eventsOnly:
+    print "Signal (data):"
+    print '    eeee: %d'%plotter.ntuples['data']['data']['eeee'].GetEntries()
+    print '    eemm: %d'%plotter.ntuples['data']['data']['eemm'].GetEntries()
+    print '    mmmm: %d'%plotter.ntuples['data']['data']['mmmm'].GetEntries()
 print ""
-print "2P2F CR (data):"
-print '    eeee: %d'%plotter.ntuples['2P2F']['2P2F']['eeee'].GetEntries()
-print '    eemm: %d'%plotter.ntuples['2P2F']['2P2F']['eemm'].GetEntries()
-print '    mmmm: %d'%plotter.ntuples['2P2F']['2P2F']['mmmm'].GetEntries()
+if args.print3P1F:
+    print "3P1F CR (data):"
+    plotter.printPassingEvents('3P1F')
+elif not args.eventsOnly:
+    print "3P1F CR (data):"
+    print '    eeee: %d'%plotter.ntuples['3P1F']['3P1F']['eeee'].GetEntries()
+    print '    eemm: %d'%plotter.ntuples['3P1F']['3P1F']['eemm'].GetEntries()
+    print '    mmmm: %d'%plotter.ntuples['3P1F']['3P1F']['mmmm'].GetEntries()
+    
+print ""
+if args.print2P2F:
+    print "2P2F CR (data):"
+    plotter.printPassingEvents('2P2F')
+elif not args.eventsOnly:
+    print "2P2F CR (data):"
+    print '    eeee: %d'%plotter.ntuples['2P2F']['2P2F']['eeee'].GetEntries()
+    print '    eemm: %d'%plotter.ntuples['2P2F']['2P2F']['eemm'].GetEntries()
+    print '    mmmm: %d'%plotter.ntuples['2P2F']['2P2F']['mmmm'].GetEntries()
 print ''
+
+if args.eventsOnly:
+    exit(0)
 
 tpVersionHash = 'v1.1-4-ga295b14-extended' #v1.1-1-g4cbf52a_v2'
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_04dec2015_0.root')
+fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015gold_26jan2016.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
 mFakeRateHist = fFake.Get('m_FakeRate').clone()
 
@@ -92,20 +143,25 @@ puScaleFactorStr = {s:makeWeightStringFromHist(h, 'nTruePU') for s,h in puScaleF
 eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs(e{0}SCEta)", bdt="e{0}MVANonTrigID")
 
 cr3PScale = {
-    'eeee' : '*'.join(('(%s || e{0}HZZIsoPass < 0.9 ? {1} : 1.)'%eTightIDStr).format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)), 
-    # '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)), # e{0}RelPFIsoRhoDREtFSR > .5
-    'eemm' : '*'.join(('(%s || e{0}HZZIsoPass < 0.9 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'%eTightIDStr).format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
-    # '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
+    'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
+    'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
     'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
 }
-# cr3PScale = {
-#     'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
-#     'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
-#     'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
-# }
-cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
 
-cr2PScale = cr3PScale
+cr2PScale = cr3PScale.copy()
+
+smallDRScale = '({0}_{1}_DR < 0.4 ? {2} : 1.)'
+cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
+cr3PScale['eemm'] = '*'.join([cr3PScale['eemm'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('m1','m2', 0.)])
+cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
+
+cr2PScale['eeee'] = '*'.join([cr2PScale['eeee'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('e3','e4', -1.)])
+cr2PScale['eemm'] = '*'.join([cr2PScale['eemm'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('m1','m2', -1.)])
+cr2PScale['mmmm'] = '*'.join([cr2PScale['mmmm'], smallDRScale.format('m1','m2', -1.), smallDRScale.format('m3','m4', -1.)])
+
+cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
+cr2PScale['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
+
 
 # samples to subtract off of CRs based on MC
 subtractSamples = []
@@ -153,11 +209,11 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
     bins=[1,0.,2.]
     for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
 
-        cr3P1F = plotter.makeHist('3P1F', '3P1F', channel, '1.', '', 
+        cr3P1F = plotter.makeHist('3P1F', '3P1F', channel, '1.', basicSelection, 
                                   bins, weights=cr3PScale[channel], 
                                   perUnitWidth=False, nameForLegend='Z+X (From Data)',
                                   isBackground=True)
-        cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, '1.', '', 
+        cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, '1.', basicSelection, 
                                   bins, weights=cr2PScale[channel], 
                                   perUnitWidth=False, nameForLegend='Z+X (From Data)',
                                   isBackground=True)
@@ -170,12 +226,12 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
 
         for ss in subtractSamples:
             sub3P = plotter.makeHist("mc3P1F", ss, channel,
-                                     '1.', '', bins,
+                                     '1.', basicSelection, bins,
                                      weights=cr3PScaleMC[channel],
                                      perUnitWidth=False)
             cr3P1F -= sub3P
             sub2P = plotter.makeHist("mc2P2F", ss, channel,
-                                     '1.', '', bins,
+                                     '1.', basicSelection, bins,
                                      weights=cr2PScaleMC[channel],
                                      perUnitWidth=False)
             cr2P2F -= sub2P
@@ -221,7 +277,7 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         expectedErrorBkgDown = bkgPoisson.GetErrorYlow(0)
 
         plotter.fullPlot('count_%s_ID%s_Iso%s_PU%s'%(channel,scaleSet[0], scaleSet[1], scaleSet[2]), 
-                         channel, '1.', '', 
+                         channel, '1.', basicSelection, 
                          bins, 'mc', 'data', canvasX=1000, logy=False, 
                          xTitle="one", 
                          xUnits="",
