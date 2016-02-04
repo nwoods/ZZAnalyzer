@@ -37,6 +37,7 @@ parser.add_argument('--smp', action='store_true', help='SMP ZZ plots')
 parser.add_argument('--hzz', action='store_true', help='HZZ plots')
 parser.add_argument('--full', action='store_true', help='Full 4l spectrum plots')
 parser.add_argument('--z4l', action='store_true', help='SMP Z->4l plots')
+parser.add_argument('--test', action='store_true', help='Make just one plot as a test.')
 args = parser.parse_args()
 
 analyses = []
@@ -102,19 +103,30 @@ mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
 eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs(e{0}SCEta)", bdt="e{0}MVANonTrigID")
 
 cr3PScale = {
-    'eeee' : '*'.join(('(%s || e{0}HZZIsoPass < 0.9 ? {1} : 1.)'%eTightIDStr).format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)), 
-    # 'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)), # e{0}RelPFIsoRhoDREtFSR > .5
-    'eemm' : '*'.join(('(%s || e{0}HZZIsoPass < 0.9 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'%eTightIDStr).format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
-    # 'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
+    'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
+    'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
     'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
 }
+
+cr2PScale = cr3PScale.copy()
+
+smallDRScale = '({0}_{1}_DR < 0.4 ? {2} : 1.)'
+cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
+cr3PScale['eemm'] = '*'.join([cr3PScale['eemm'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('m1','m2', 0.)])
+cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
+
+cr2PScale['eeee'] = '*'.join([cr2PScale['eeee'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('e3','e4', -1.)])
+cr2PScale['eemm'] = '*'.join([cr2PScale['eemm'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('m1','m2', -1.)])
+cr2PScale['mmmm'] = '*'.join([cr2PScale['mmmm'], smallDRScale.format('m1','m2', -1.), smallDRScale.format('m3','m4', -1.)])
+
 cr3PScaleMC = {c:'*'.join([cr3PScale[c], mcWeight[c]]) for c in cr3PScale}
+cr2PScaleMC = {c:'*'.join([cr2PScale[c], mcWeight[c]]) for c in cr2PScale}
 
 cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
-cr3PScaleMC['zz'] = [cr3PScaleMC[c] for c in ['eeee','eemm','mmmm']]
+cr2PScale['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
+cr3PScaleMC['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
+cr2PScaleMC['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
 
-cr2PScale = cr3PScale
-cr2PScaleMC = cr3PScaleMC
 
 stackSystSqNoTheo = {
     'eeee' : 0.0297 ** 2 + 0.046 ** 2, # syst + lumi
@@ -228,6 +240,11 @@ for ana in analyses:
     for varName, bins in binning4l.iteritems():
         var = vars4l[varName]
 
+        if args.test:
+            varName = 'MassDREtFSR'
+            var = vars4l[varName]
+            bins = binning4l[varName]
+
         print "    Plotting 4l {}".format(var)
     
         for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
@@ -306,6 +323,11 @@ for ana in analyses:
     
                 extraBkgs = [cr3P1F]
     
+            if ana != 'smp' and 'Mass' in var:
+                blinding = [[110.,150.]]
+            else:
+                blinding = []
+
             plotter.fullPlot('4l%s%s'%(varName,chEnding), channel, var, constSelection, 
                              bins, 'mc', 'data', canvasX=1000, logy=False, 
                              xTitle=xTitle4l[varName].replace('__PARTICLES__',particles), 
@@ -314,8 +336,11 @@ for ana in analyses:
                              mcWeights=mcWeight[channel], drawRatio=False,
                              widthInYTitle=bool(units[var]),
                              mcSystFracUp=stackSystUp[channel],
-                             mcSystFracDown=stackSystDown[channel])
-    # exit()
+                             mcSystFracDown=stackSystDown[channel],
+                             blinding=blinding)
+
+            if args.test:
+                exit()
     
     
     binning2l = {
