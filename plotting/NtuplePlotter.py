@@ -33,7 +33,7 @@ from rootpy.plotting.hist import _Hist, _Hist2D, _Hist3D
 from rootpy.plotting.graph import _Graph1DBase
 from rootpy.plotting.utils import draw, get_band
 from rootpy.ROOT import kTRUE, kFALSE, TLine
-import rootpy.ROOT as ROOT
+from rootpy.ROOT import gROOT, TBox
 from rootpy.tree import Tree, TreeChain, Cut
 from rootpy.plotting.base import Plottable
 from rootpy import asrootpy, QROOT
@@ -43,7 +43,7 @@ from ZZMetadata import sampleInfo, sampleGroups
 from ZZHelpers import makeNumberPretty, parseChannels
 from WeightStringMaker import makeWeightStringFromHist
 
-ROOT.gROOT.SetBatch(kTRUE)
+gROOT.SetBatch(kTRUE)
 
 _tempFileEnding = "_DSNPODKWMDNWCMD"
 
@@ -625,11 +625,22 @@ class NtuplePlotter(object):
             
             return xTitle, yTitle
 
+        def getBlindBox(self, (lo, hi), (xMin, xMax, yMin, yMax)):
+            '''
+            Return a box to blind a plot with these axis ranges from lo to hi.
+            '''
+            b = TBox(max(lo, xMin), yMin, min(hi, xMax), yMax)
+            b.SetFillColor(1)
+            b.SetFillStyle(3002)
+            # SetFillColorAlpha seems to only work for pdf, not png images
+            #b.SetFillColorAlpha(2, 0.35)
+            return b
+
         def paintPad(self, pad, objects, objectsAux, drawOpts={}, xTitle="", 
                      xUnits="GeV", yTitle="Events", yUnits="", logy=False,
                      legObjects=[], legParamsOverride={}, stackErr=True, 
                      perUnitWidth=True, legSolid=False, widthInYTitle=False,
-                     mcSystFracUp=0., mcSystFracDown=0.):
+                     mcSystFracUp=0., mcSystFracDown=0., blinding=[]):
             '''
             Draws objects (Hists, HistStacks, and Graphs) and objectsAux
             (anything else) on pad.
@@ -642,6 +653,8 @@ class NtuplePlotter(object):
                              instead of transparent
             mcSystFrac* (float): systematic errors on MC yield given as a 
                                  fraction (i.e. 0.1 for 10%)
+            blinding (list of length-2 iterables): Blind on this list of 
+                                                   (xMin, xMax)
             '''
             if legObjects:
                 legParams = {
@@ -697,11 +710,15 @@ class NtuplePlotter(object):
                     toDraw.append(obj)
 
             auxDrawOpt = '' # draw option for all auxiliary plotted objects
+            axisRanges = (-1000.,1000.,-1000.,1000.)
             if(toDraw):
                 (xaxis, yaxis), axisRanges = draw(toDraw, pad, logy=logy, **opts)
                 auxDrawOpt = "SAME"
                 pad.xaxis = xaxis
                 pad.yaxis = yaxis
+
+            for blind in blinding:
+                objectsAux.append(self.getBlindBox(blind, axisRanges))
 
             pad.cd()
             for obj in objectsAux:
@@ -725,7 +742,8 @@ class NtuplePlotter(object):
                  drawLeg=True, legParamsOverride={}, stackErr=True,
                  intLumi=40.03, simOnly=False, perUnitWidth=True,
                  legSolid=False, widthInYTitle=False,
-                 mcSystFracUp=0., mcSystFracDown=0.):
+                 mcSystFracUp=0., mcSystFracDown=0.,
+                 blinding=[]):
             '''
             opts (dict): passed directly to rootpy.plotting.utils.draw
             outFile (str): location to save plot (not saved if empty str)
@@ -741,18 +759,21 @@ class NtuplePlotter(object):
             widthInYTitle (bool): Append " / [binsize] [units]" to y axis title
             mcSystFrac* (float): systematic errors on MC yield given as a 
                                  fraction (i.e. 0.1 for 10%)
+            blinding (list of length-2 iterables): Blind on this list of 
+                                                   (xMin, xMax)
             '''
-            if drawNow and ROOT.gROOT.IsBatch():
-                ROOT.gROOT.SetBatch(kFALSE)
-            if not drawNow and not ROOT.gROOT.IsBatch():
-                ROOT.gROOT.SetBatch(kTRUE)
+            if drawNow and gROOT.IsBatch():
+                gROOT.SetBatch(kFALSE)
+            if not drawNow and not gROOT.IsBatch():
+                gROOT.SetBatch(kTRUE)
 
             legObjs = self.legObjects if drawLeg else []
             
             self.paintPad(self.mainPad(), self.objects, self.objectsAux, drawOpts, 
                           xTitle, xUnits, yTitle, yUnits, self.logy, legObjs, 
                           legParamsOverride, stackErr, perUnitWidth, legSolid,
-                          widthInYTitle, mcSystFracUp, mcSystFracDown)
+                          widthInYTitle, mcSystFracUp, mcSystFracDown,
+                          blinding=blinding)
 
             if len(self.pads) > 1:
                 self.c.cd()
@@ -1361,7 +1382,8 @@ class NtuplePlotter(object):
                  yUnits="", drawNow=False, outFile='', legParams={}, 
                  mcWeights='GenWeight', drawOpts={}, drawRatio=True,
                  legSolid=False, widthInYTitle=False,
-                 mcSystFracUp=0., mcSystFracDown=0.):
+                 mcSystFracUp=0., mcSystFracDown=0.,
+                 blinding=[]):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
         extraBkgs may be a list of other background histograms (e.g. a data-
@@ -1392,7 +1414,8 @@ class NtuplePlotter(object):
                                      h.GetEntries()==0, legSolid=legSolid,
                                      widthInYTitle=widthInYTitle,
                                      mcSystFracUp=mcSystFracUp, 
-                                     mcSystFracDown=mcSystFracDown)
+                                     mcSystFracDown=mcSystFracDown,
+                                     blinding=blinding)
 
 
     def makeEfficiency(self, category, sample, channels, variables, 
