@@ -16,20 +16,13 @@ from rootpy.plotting.utils import draw
 
 plotter = NtuplePlotter('zz', '',
                         {}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results/data*.root'}, 
-                        intLumi=1341.) # 1263.89)
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_full/data*.root'}, 
+                        intLumi=2560.,)
 
 
 colors = {'eeee':'b','eemm':'r','mmmm':'forestgreen'}
 markers = {'eeee':20,'eemm':21,'mmmm':22}
 titles = {'eeee':'4\\text{e}','eemm':'2\\text{e}2\\mu','mmmm':'4\\mu'}
-g = {}
-for ch in plotter.channels:
-    g[ch] = Graph(plotter.ntuples['data']['data'][ch].GetEntries(), title=titles[ch])
-    g[ch].color = colors[ch]
-    g[ch].markerstyle = markers[ch]
-    g[ch].drawstyle = 'P'
-    g[ch].SetMarkerSize(g[ch].GetMarkerSize()*1.5)
 
 massVar = 'MassDREtFSR'
 
@@ -53,29 +46,48 @@ getMZ2 = {
     'mmmm' : lambda row: getattr(row, 'm3_m4_%s'%massVar),
 }
 
-for ch in plotter.channels:
-    nWithFSR = 0
-    for i, row in enumerate(plotter.ntuples['data']['data'][ch]):
-        g[ch].SetPoint(i, getMZ1[ch](row), getMZ2[ch](row))
-        if row.Mass != row.MassDREtFSR:
-            nWithFSR += 1
-    print "%s: %d / %d"%(ch, nWithFSR, int(plotter.ntuples['data']['data'][ch].GetEntries()))
+def selectLowMass(row):
+    return row.MassDREtFSR < 110.
 
-#for gr in g.values():
-#    gr.yaxis.SetTitleOffset(gr.yaxis.GetTitleOffset()*0.8)
-#    gr.yaxis.SetTitleSize(gr.yaxis.GetTitleSize()*0.9)
-#c.Update()
-c = Canvas(1000,1000)
-(xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} [\\text{GeV}]', 
-                             ytitle='m_{Z_2} [\\text{GeV}]',
-                             xlimits=(60.,120.), ylimits=(60.,120.))
-yaxis.SetTitleSize(yaxis.GetTitleSize()*0.9)
-c.Update()
-leg = Legend(g.values(), c, leftmargin=0.6, textsize=0.04, 
-             header='\\text{     Data}', entrysep=0.01,
-             entryheight=0.04)
-leg.Draw("same")
-plotter.style.setCMSStyle(c, "", True, "Preliminary", 13, 1341.) #1263.89)
+for ana in ['full', 'z4l']:
+    
+    if ana == 'z4l':
+        selector = selectLowMass
+    else:
+        selector = lambda *args: True
 
-c.Print('~/www/ZZPlots/mZ2VsmZ1.png')
+    g = {}
+    for ch in plotter.channels:
+        g[ch] = Graph(plotter.ntuples['data']['data'][ch].GetEntries(), title=titles[ch])
+        g[ch].color = colors[ch]
+        g[ch].markerstyle = markers[ch]
+        g[ch].drawstyle = 'P'
+        g[ch].SetMarkerSize(g[ch].GetMarkerSize()*1.5)
+    
+    for ch in plotter.channels:
+        #nWithFSR = 0
+        for i, row in enumerate(plotter.ntuples['data']['data'][ch]):
+            if selector(row):
+                g[ch].SetPoint(i, getMZ1[ch](row), getMZ2[ch](row))
+            #if row.Mass != row.MassDREtFSR:
+            #    nWithFSR += 1
+        #print "%s: %d / %d"%(ch, nWithFSR, int(plotter.ntuples['data']['data'][ch].GetEntries()))
+    
+    #for gr in g.values():
+    #    gr.yaxis.SetTitleOffset(gr.yaxis.GetTitleOffset()*0.8)
+    #    gr.yaxis.SetTitleSize(gr.yaxis.GetTitleSize()*0.9)
+    #c.Update()
+    c = Canvas(1000,1000)
+    (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} [\\text{GeV}]', 
+                                 ytitle='m_{Z_2} [\\text{GeV}]',
+                                 xlimits=(40.,120.), ylimits=(0.,120.))
+    yaxis.SetTitleSize(yaxis.GetTitleSize()*0.9)
+    c.Update()
+    leg = Legend(g.values(), c, leftmargin=0.6, textsize=0.04, 
+                 header='\\text{     Data}', entrysep=0.01,
+                 entryheight=0.04)
+    leg.Draw("same")
+    plotter.style.setCMSStyle(c, "", True, "Preliminary", 13, plotter.intLumi)
+    
+    c.Print('~/www/ZZPlots/mZ2VsmZ1_{}.png'.format(ana))
     
