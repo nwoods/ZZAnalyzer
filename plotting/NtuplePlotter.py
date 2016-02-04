@@ -341,10 +341,15 @@ class NtuplePlotter(object):
         '''
         if not sample:
             sample = category
+
         for channel, ntuple in self.ntuples[category][sample].iteritems():
-            print "%s (%d):"%(channel, ntuple.GetEntries())
+            passing = set()
             for row in ntuple:
-                print "    %d:%d:%d"%(row.run, row.lumi, row.evt)
+                passing.add((row.run, row.lumi, row.evt))
+
+            print "%s (%d):"%(channel, ntuple.GetEntries())
+            for ev in sorted(sorted(sorted(passing, key=lambda t: t[2]), key=lambda u: u[1]), key=lambda v: v[0]):
+                print "    {}:{}:{}".format(*ev)
             print ''
 
 
