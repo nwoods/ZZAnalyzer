@@ -19,17 +19,17 @@ from rootpy.ROOT import Double
 from datetime import date
 import os
 
-outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/CR_MCData2015CD1280_{0}'.format(date.today().strftime('%d%b%Y').lower())
+outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/CR_MCData2015silver_{0}'.format(date.today().strftime('%d%b%Y').lower())
 link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/CR_MCData_latest'
 
 tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_04dec2015_0.root')
-eFakeRateHist = fFake.Get('e_FakeRate').clone()
-mFakeRateHist = fFake.Get('m_FakeRate').clone()
-
-eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', '{0}Eta')
-mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', '{0}Eta')
+# fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015gold_26jan2016_0.root')
+# eFakeRateHist = fFake.Get('e_FakeRate').clone()
+# mFakeRateHist = fFake.Get('m_FakeRate').clone()
+# 
+# eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', '{0}Eta')
+# mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', '{0}Eta')
 
 eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
 eIDTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta')
@@ -83,9 +83,9 @@ crs = ['3P1F', '2P2F']
 for cr in crs:
 
     plotters[cr] = NtuplePlotter('zz', os.path.join(outdir, 'CR_%s'%cr),
-                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_03dec2015_0/results_%s/*.root'%cr}, 
-                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015cd1280_03dec2015_0/results_%s/data*.root'%cr}, 
-                                 1341.) #1280.23) #63.89)
+                                 {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_smp_%s/*.root'%cr}, 
+                                 {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_smp_%s/data*.root'%cr}, 
+                                 2560.,)
 
     # print "%s:"%cr
     # plotters[cr].printPassingEvents('data')
@@ -103,13 +103,13 @@ for cr in crs:
                               drawRatio=False,
                               widthInYTitle=True,
                               )
-        plotters[cr].fullPlot('nJets_%s'%channel, channel, 'nJets', '', [8, -0.5, 7.5], 'mc', 'data',
-                              canvasX=1000, logy=False, xTitle="\\text{#Jets}", xUnits="",
-                              outFile='nJets%s.png'%chdir, mcWeights=mcWeight[channel],
-                              drawRatio=False,
-                              # legParams={'leftmargin':0.6,'rightmargin':0.03,'textsize':0.023,
-                              #            'entryheight':0.023,'entrysep':0.006} 
-                              )
+        # plotters[cr].fullPlot('nJets_%s'%channel, channel, 'nJets', '', [8, -0.5, 7.5], 'mc', 'data',
+        #                       canvasX=1000, logy=False, xTitle="\\text{#Jets}", xUnits="",
+        #                       outFile='nJets%s.png'%chdir, mcWeights=mcWeight[channel],
+        #                       drawRatio=False,
+        #                       # legParams={'leftmargin':0.6,'rightmargin':0.03,'textsize':0.023,
+        #                       #            'entryheight':0.023,'entrysep':0.006} 
+        #                       )
 
 try:
     os.unlink(link)
