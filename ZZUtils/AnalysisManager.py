@@ -66,7 +66,7 @@ def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType,
 
 
 class AnalysisManager(object):
-    def __init__(self, allAnalyses, inputDir, pool):
+    def __init__(self, allAnalyses, inputDir, pool, assumeInputExists=False):
         self.all = allAnalyses
         self.inputDir = inputDir
         self.files = parseInputs(os.path.join(inputDir, '*.root'))
@@ -74,7 +74,10 @@ class AnalysisManager(object):
                                  
         self.analyses = {s:{} for s in self.samples}
         self.pool = pool
-                                 
+
+        self.assumeInputExists = assumeInputExists
+        self.endResults = set()
+        
     class FakeResult(object):
         '''
         A class that is always ready.
@@ -90,7 +93,8 @@ class AnalysisManager(object):
         for s in self.samples:
             for ana in analyses:
                 self.addAnalysisForSample(ana, s)
-            self.analyses[s]['result'] = AnalysisManager.FakeResult()
+                self.endResults.add(ana)
+            self.analyses[s]['result'] = self.FakeResult()
 
     def addAnalysisForSample(self, ana, sample):
         '''
@@ -120,16 +124,18 @@ class AnalysisManager(object):
         '''
         samplesDone = []
         for s in self.samples:
-            done = self.tryToRunAnalyses(self.analyses[s])
+            done = self.tryToRunAnalyses(self.analyses[s], True)
             samplesDone.append(done)
         return not all(samplesDone)
         #return not all(self.tryToRunAnalyses(self.analyses[s]) for s in self.samples)
 
-    def tryToRunAnalyses(self, info):
+    def tryToRunAnalyses(self, info, inPrereqChain):
         '''
         Takes a dict with a result and some info for the previous analysis,
         and similar dicts about the next analyses, and runs the next analyses
         if we're ready to do that.
+        inPrereqChain should be True if no previous steps were desired final
+        results, so they can be skipped if we're assuming inputs exist
         '''
         if 'result' not in info:
             info['result'] = self.submitAnalysis(info.pop('params'))
@@ -139,9 +145,18 @@ class AnalysisManager(object):
 
         subresults = [True]
         for ana in info:
-            if ana == 'result':
+            if ana == 'result' or ana == 'params':
                 continue
-            subresults.append(self.tryToRunAnalyses(info[ana])) 
+            if self.assumeInputExists and inPrereqChain:
+                if ana not in self.endResults:
+                    #print ana
+                    #print info[ana]
+                    #exit(1)
+                    info[ana]['result'] = self.FakeResult()
+                else:
+                    inPrereqChain = False
+                
+            subresults.append(self.tryToRunAnalyses(info[ana], inPrereqChain)) 
 
         return all(subresults)
 
