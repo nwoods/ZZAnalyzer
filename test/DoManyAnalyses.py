@@ -51,6 +51,8 @@ parser.add_argument('--z4l', action='store_true', help='Do the Z to 4l analysis'
 parser.add_argument('--SR', action='store_true', help='Do signal region cuts')
 parser.add_argument('--CR2P2F', action='store_true', help='Do 2P2F control region cuts')
 parser.add_argument('--CR3P1F', action='store_true', help='Do 3P1F control region cuts')
+parser.add_argument('--factorizeFakeRate', action='store_true',
+                    help='Run the ID and isolation fake rate steps separately')
 parser.add_argument('--nThreads', type=int, default=12,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 12.')
 parser.add_argument('--assumeInputExists', action='store_true', 
@@ -119,7 +121,12 @@ if args.z4l:
         desiredZZResultsData.append('z4l_3P1F')
         desiredZZResultsMC.append('z4l_3P1F')
     
-desiredZLResults = ['zPluslLoose', 'zPluslTight']
+desiredZLResults = ['zPluslLoose',] 
+if args.factorizeFakeRate:
+    desiredZLResults.append('zPluslTightID')
+    desiredZLResults.append('zPluslIso')
+else:
+    desiredZLResults.append('zPluslTight')
 desiredZResults = []
 
 if args.zzData:
