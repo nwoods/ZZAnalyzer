@@ -46,13 +46,15 @@ parser.add_argument('--zMC', type=str, nargs='?',
                     help='Identifier for Z MC files (located in /data/nawoods/ntuples/singlez_mc_<this variable>).')
 parser.add_argument('--smp', action='store_true', help='Do the on-shell analysis')
 parser.add_argument('--hzz', action='store_true', help='Do the Higgs analysis')
-parser.add_argument('--full', action='store_true', help='Do the Z to 4l analysis')
+parser.add_argument('--full', action='store_true', help='Do the full spectrum analysis')
+parser.add_argument('--z4l', action='store_true', help='Do the Z to 4l analysis')
 parser.add_argument('--SR', action='store_true', help='Do signal region cuts')
 parser.add_argument('--CR2P2F', action='store_true', help='Do 2P2F control region cuts')
 parser.add_argument('--CR3P1F', action='store_true', help='Do 3P1F control region cuts')
 parser.add_argument('--nThreads', type=int, default=12,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 12.')
-
+parser.add_argument('--assumeInputExists', action='store_true', 
+                    help='Only run the requested analyses, assuming the prerequisite analyses have already been done.')
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
 # or else we get segfault-causing race conditions
 bar = Hist(10,0.,1.,name="foo",title="foo")
@@ -106,43 +108,53 @@ if args.hzz:
     if args.CR3P1F:
         desiredZZResultsData.append('hzz_3P1F')
         desiredZZResultsMC.append('hzz_3P1F')
+if args.z4l:
+    if args.SR:
+        desiredZZResultsData.append('z4l')
+        desiredZZResultsMC.append('z4l')
+    if args.CR2P2F:
+        desiredZZResultsData.append('z4l_2P2F')
+        desiredZZResultsMC.append('z4l_2P2F')
+    if args.CR3P1F:
+        desiredZZResultsData.append('z4l_3P1F')
+        desiredZZResultsMC.append('z4l_3P1F')
     
 desiredZLResults = ['zPluslLoose', 'zPluslTight']
 desiredZResults = []
 
 if args.zzData:
     inputs = os.path.join(pathStart, "zzNtuples_data_2015silver_"+args.zzData)
-    man = AnalysisManager(zzAnalyses, inputs, pool)
+    man = AnalysisManager(zzAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsData)
     managers.append(man)
 
 if args.zlData:
     inputs = os.path.join(pathStart, "zPlusl_data_2015gold_"+args.zlData)
-    man = AnalysisManager(zlAnalyses, inputs, pool)
+    man = AnalysisManager(zlAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
 if args.zData:
     inputs = os.path.join(pathStart, "singlez_data_2015silver_"+args.zData)
-    man = AnalysisManager(zAnalyses, inputs, pool)
+    man = AnalysisManager(zAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
 
 if args.zzMC:
     inputs = os.path.join(pathStart, "zzNtuples_mc_"+args.zzMC)
-    man = AnalysisManager(zzAnalyses, inputs, pool)
+    man = AnalysisManager(zzAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsMC)
     managers.append(man)
 
 if args.zlMC:
     inputs = os.path.join(pathStart, "zPlusl_mc_"+args.zlMC)
-    man = AnalysisManager(zlAnalyses, inputs, pool)
+    man = AnalysisManager(zlAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
 if args.zMC:
     inputs = os.path.join(pathStart, "singlez_mc_"+args.zMC)
-    man = AnalysisManager(zAnalyses, inputs, pool)
+    man = AnalysisManager(zAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
 
