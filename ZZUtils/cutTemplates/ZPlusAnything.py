@@ -8,35 +8,35 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from SMPZZ_FullFSR_Sync import SMPZZ_FullFSR_Sync
+from Cutter import Cutter
 from collections import OrderedDict
-from ZZHelpers import Z_MASS, evVar, objVar, nObjVar
-from rootpy.vector import LorentzVector
+from ZZHelpers import objVar
 
 
-class ZPlusAnything(SMPZZ_FullFSR_Sync):
+class ZPlusAnything(Cutter):
     def __init__(self, cutset="ZPlusAnything"):
         super(ZPlusAnything, self).__init__(cutset)
 
 
     def setupCutFlow(self):
         '''
-        As the full spectum cutter, except as above
+        Just require 1 good Z
         '''
-        flow = OrderedDict()
+        superFlow = super(ZPlusAnything, self).setupCutFlow()
         
-        flow['Total'] = ('true', [])
-        flow['Trigger'] = ('Trigger', [])
-        flow['ZLeptonID'] = ('GoodLeptons', [1,2])
-        flow['ZLeptonIso'] = ('Isolation', [1,2])
+        flow = OrderedDict()
+
+        flow['Total'] = superFlow['Total']
+        flow['LeptonID'] = ('GoodLeptons', [1,2])
+        flow['Isolation'] = ('Isolation', [1,2])
+        flow['ZMass'] = ('ZMassTight', [1,2])
         flow['CrossCleaning'] = ('CrossCleaning', [1,2])
         flow['SIP'] = ('SIP', [1,2])
-        flow['GoodZ'] = ('GoodZ', [1,2])
-        flow['ZMass'] = ('ZMassTight', [1,2])
         flow['Overlap'] = ('Overlap', [1,2])
         flow['Lepton1Pt'] = ('Lepton1Pt', [1])
         flow['Lepton2Pt'] = ('Lepton2Pt', [1,2])
         flow['Vertex'] = ('Vertex', [])
+        flow['Trigger'] = ('Trigger', [])
         
         return flow
 

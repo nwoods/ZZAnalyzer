@@ -28,15 +28,22 @@ from rootpy.ROOT import Double
 from datetime import date
 import os
 
-outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/singleZ_2015CD1280_{0}'.format(date.today().strftime('%d%b%Y').lower())
+outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/singleZ_2015silver_{0}'.format(date.today().strftime('%d%b%Y').lower())
 link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/singleZ_latest'
 
 plotter = NtuplePlotter('z', outdir, 
-                        {'mc':'/data/nawoods/ntuples/singlez_mc_03dec2015_0/results/*.root'},
-                        {'data':'/data/nawoods/ntuples/singlez_data_2015cd1280_03dec2015_0/results/*.root'},
-                        intLumi=1341.) # 1280.23)
+                        {'mc':'/data/nawoods/ntuples/singlez_mc_14feb2016_0/results/*.root'},
+                        {'data':'/data/nawoods/ntuples/singlez_data_2015silver_14feb2016_0/results/*.root'},
+                        intLumi=2560.)
 
-tpVersionHash = 'v1.1-4-ga295b14' #v1.1-1-g4cbf52a_v2'
+try:
+    os.unlink(link)
+except:
+    pass
+
+os.symlink(outdir, link)
+
+tpVersionHash = 'v1.1-4-ga295b14-extended'
 
 eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
 eIDTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta')
@@ -134,7 +141,7 @@ varsL = {
     'Phi' : {lep:'Phi' for lep in ['e', 'm']},
     'PVDXY' : {lep:'PVDXY' for lep in ['e', 'm']},
     'PVDZ' : {lep:'PVDZ' for lep in ['e', 'm']},
-    'Iso' : {'e' : 'RelPFIsoRhoDREtFSR', 'm' : 'RelPFIsoDBDREtFSR'},
+    'Iso' : {'e' : 'HZZIsoFSR', 'm' : 'HZZIsoFSR'},
     'SIP' : {lep:'SIP3D' for lep in ['e', 'm']},
     }
 
@@ -239,10 +246,4 @@ plotter.fullPlot('nvtx_noReweight', ['ee','mm'], 'nvtx',
                  mcWeights=[mcWeight_noPU['e']+'*%f'%mcScale_noPU,mcWeight_noPU['m']+'*%f'%mcScale_noPU])
 
 
-try:
-    os.unlink(link)
-except:
-    pass
-
-os.symlink(outdir, link)
 
