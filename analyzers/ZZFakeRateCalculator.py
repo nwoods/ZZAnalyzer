@@ -34,7 +34,7 @@ from itertools import chain as iChain
 class ZZFakeRateCalculator(object):
     def __init__(self, looseFilesData, tightFilesData, 
                  looseFilesMC, tightFilesMC, channels, outFile, 
-                 intLumi=-1.):
+                 intLumi=-1., fakeFactor=False):
         if looseFilesData:
             assert tightFilesData, "I can only make a fake rate from data with both a tight and loose ntuple"
             self.dataFiles = {'num' : tightFilesData, 'denom' : looseFilesData}
@@ -102,6 +102,8 @@ class ZZFakeRateCalculator(object):
                                            
         self.outputs = []
 
+        self.fakeFactor = fakeFactor
+
 
     def calculateFakeRate(self, name, channels, *varsAndBinnings, 
                           **kwargs):
@@ -167,13 +169,16 @@ class ZZFakeRateCalculator(object):
             fMC.Divide(denomMC)
             drawablesMC['fakeRate'] = fMC
 
-            # actual scale factor, f/(1-f)
-            outMC = self.WrappedHists[nDims-1](asrootpy(numMC.empty_clone()),
-                                               name=name+"MC")
-            for fb, b in zip(fMC, outMC):
-                if b.overflow:
-                    continue
-                b.value = fb.value / (1. - fb.value)
+            if self.fakeFactor:
+                # actual scale factor, f/(1-f)
+                outMC = self.WrappedHists[nDims-1](asrootpy(numMC.empty_clone()),
+                                                   name=name+"MC")
+                for fb, b in zip(fMC, outMC):
+                    if b.overflow:
+                        continue
+                    b.value = fb.value / (1. - fb.value)
+            else:
+                outMC = fMC
 
             outputs.append(outMC)
 
@@ -214,12 +219,15 @@ class ZZFakeRateCalculator(object):
             drawablesData['denom'] = denom
             drawablesData['fakeRate'] = f
 
-            out = self.WrappedHists[nDims-1](asrootpy(num.empty_clone()),
-                                             name=name)
-            for fb, b in zip(f, out):
-                if b.overflow:
-                    continue
-                b.value = fb.value / (1. - fb.value)
+            if self.fakeFactor:
+                out = self.WrappedHists[nDims-1](asrootpy(num.empty_clone()),
+                                                 name=name)
+                for fb, b in zip(f, out):
+                    if b.overflow:
+                        continue
+                    b.value = fb.value / (1. - fb.value)
+            else:
+                out = f
 
             outputs.append(out)
 
@@ -272,8 +280,9 @@ class ZZFakeRateCalculator(object):
                                                legendName='data',
                                                legendStyle='LPE')
 
-                drawings[typeToPlot].draw({}, '%s/%s_%s.png'%(self.outDir, 
-                                                              name, typeToPlot), 
+                drawings[typeToPlot].draw({'yerror_in_padding' : False}, 
+                                          '%s/%s_%s.png'%(self.outDir, name, 
+                                                          typeToPlot), 
                                           xTitle=kwargs.get('xTitle', ''), 
                                           xUnits=kwargs.get('xUnits', ''),
                                           yTitle='Fake Rate',
@@ -307,8 +316,9 @@ class ZZFakeRateCalculator(object):
                                             legendName=("MC" if maybeMC else "data"),
                                             legendStyle=("F" if maybeMC else "LPE"))
                     
-                    drawings[ttp].draw({}, '%s/%s_%s.png'%(self.outDir, 
-                                                           name, ttp), 
+                    drawings[ttp].draw({'yerror_in_padding' : False},
+                                       '%s/%s_%s.png'%(self.outDir, 
+                                                       name, ttp), 
                                        xTitle=kwargs.get('xTitle', ''), 
                                        xUnits=kwargs.get('xUnits', ''),
                                        intLumi=self.intLumi,
@@ -378,6 +388,9 @@ if __name__ == '__main__':
                         help='Integrated Luminosity (for MC).')
     parser.add_argument('--paint', action='store_true',
                         help='Plot fake rates as .pngs along with output.')
+    parser.add_argument('--fakeFactor', action='store_true',
+                        help='Store f/(1-f) instead of f. Plots from --paint'
+                        'option are of f either way.')
     
     args = parser.parse_args()
     
@@ -388,10 +401,10 @@ if __name__ == '__main__':
     
     calc = ZZFakeRateCalculator(filesDataLoose, filesDataTight,
                                 filesMCLoose, filesMCTight, args.channels,
-                                args.outFile, args.intLumi)
+                                args.outFile, args.intLumi, args.fakeFactor)
     
-    ptBinning=[5.,10.,30.,60.,200.]#20.,40.,60.,100.,200.]
-    etaBinning=[0.,0.8,1.47,2.5]#0.5,0.8,1.04,1.2,1.6,2.1,2.5]
+    ptBinning=[5.,10.,30.,200.]#10.,30.,60.,200.]
+    etaBinning=[0.,1.47,2.5]#0.8,1.47,2.5]#0.5,0.8,1.04,1.2,1.6,2.1,2.5]
 
     samplesToSubtract = []
     if 'numMC' in calc.plotter.ntuples:
