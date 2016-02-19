@@ -38,6 +38,7 @@ parser.add_argument('--hzz', action='store_true', help='HZZ plots')
 parser.add_argument('--full', action='store_true', help='Full 4l spectrum plots')
 parser.add_argument('--z4l', action='store_true', help='SMP Z->4l plots')
 parser.add_argument('--test', action='store_true', help='Make just one plot as a test.')
+parser.add_argument('--goldv2', action='store_true', help='Use JSON from December 2015.')
 args = parser.parse_args()
 
 analyses = []
@@ -182,23 +183,33 @@ for ana in analyses:
     if ana == 'z4l':
         constSelection = 'MassDREtFSR < 110.'
 
-    outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015silver_{0}_{1}{2}'.format(date.today().strftime('%d%b%Y').lower(),
-                                                                                             ana,
+    outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015_{0}_{1}{2}'.format(date.today().strftime('%d%b%Y').lower(),
+                                                                                             ('goldv2' if args.goldv2 else ana),
                                                                                              ('_noBKG' if noBKG else ''))
-    link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_{}_latest'.format(ana)
+    link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_{}_latest'.format('goldv2' if args.goldv2 else ana)
     
     sampleID = ana
     if ana == 'z4l':
         sampleID = 'full'
 
+    js = 'goldv2' if args.goldv2 else 'silver'
+    latest = '14feb2016_0' if args.goldv2 else '26jan2016_0'
+
     plotter = NtuplePlotter('zz', outdir, 
                             {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
                              'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_3P1F/*.root'.format(sampleID),
                              'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_2P2F/*.root'.format(sampleID),}, 
-                            {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}/data*.root'.format(sampleID),
-                             '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_3P1F/data*.root'.format(sampleID),
-                             '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_2P2F/data*.root'.format(sampleID),}, 
-                            intLumi=2560.)
+                            {'data':'/data/nawoods/ntuples/zzNtuples_data_2015{1}_{2}/results_{0}/data*.root'.format(sampleID,
+                                                                                                                     js,
+                                                                                                                     latest),
+                             '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015{1}_{2}/results_{0}_3P1F/data*.root'.format(sampleID,
+                                                                                                                          js,
+                                                                                                                          latest),
+                             '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015{1}_{2}/results_{0}_2P2F/data*.root'.format(sampleID,
+                                                                                                                          js,
+                                                                                                                          latest),
+                             }, 
+                            intLumi=(1340. if args.goldv2 else 2560.))
     
     try:
         os.unlink(link)
@@ -224,6 +235,9 @@ for ana in analyses:
         }
     if ana == 'z4l':
         binning4l['MassDREtFSR'] = [25, 60., 110.]
+
+    if args.goldv2:
+        binning4l['MassDREtFSR'] = [20, 0., 800.]
     
     vars4l = {v:v for v in binning4l}
     
@@ -373,6 +387,8 @@ for ana in analyses:
         'z2e' : ['eeee', 'eemm'],
         'z1m' : ['eemm', 'mmmm'],
         'z2m' : ['eemm', 'mmmm'],
+        'ze' : ['eeee', 'eeee', 'eemm'],
+        'zm' : ['eemm', 'mmmm', 'mmmm'],
         }
     
     selections2l = {
@@ -385,6 +401,8 @@ for ana in analyses:
         'z2e' : ['', 'abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS)],
         'z1m' : ['abs(e1_e2_MassDREtFSR-%f) > abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
         'z2m' : ['abs(e1_e2_MassDREtFSR-%f) < abs(m1_m2_MassDREtFSR-%f)'%(Z_MASS, Z_MASS), ''],
+        'ze' : '',
+        'zm' : '',
         }
     for foo, sels in selections2l.iteritems():
         if isinstance(sels, str):
@@ -399,7 +417,9 @@ for ana in analyses:
         'z1e' : ['e1_e2_%s' for i in range(2)],
         'z2e' : ['e3_e4_%s', 'e1_e2_%s'],
         'z1m' : ['m1_m2_%s' for i in range(2)],
-        'z2m' : [ 'm1_m2_%s', 'm3_m4_%s'],
+        'z2m' : ['m1_m2_%s', 'm3_m4_%s'],
+        'ze' : ['e1_e2_%s', 'e3_e4_%s', 'e1_e2_%s'],
+        'zm' : ['m1_m2_%s', 'm3_m4_%s', 'm1_m2_%s'],
         }
     
     objects2l = {
@@ -410,6 +430,8 @@ for ana in analyses:
         'z2e' : 'Z_{2} \\left(ee \\right)',
         'z1m' : 'Z_{1} \\left(\\mu\\mu \\right)',
         'z2m' : 'Z_{2} \\left(\\mu\\mu \\right)',
+        'ze' : 'Z \\left(ee \\right)',
+        'zm' : 'Z \\left(\\mu\\mu \\right)',
         }
     
     for vbl, bins in binning2l.iteritems():
@@ -420,7 +442,10 @@ for ana in analyses:
         
             var = vbl.split("#")[0]
             if len(vbl.split("#")) > 1:
-                if z != 'z' and vbl.split("#")[1] not in z:
+                if z == 'z' or z == 'ze' or z == 'zm':
+                    if vbl.split("#")[1] != '2':
+                        continue
+                elif vbl.split("#")[1] not in z:
                     continue
     
             variables = [v%var for v in varTemplates2l[z]]

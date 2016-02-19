@@ -630,6 +630,17 @@ class NtuplePlotter(object):
             
             return xTitle, yTitle
 
+        def blindData(self, h, (lo, hi)):
+            '''
+            Zero any bins that have any overlap with the range (lo, hi).
+            '''
+            for ib, (elo, ehi) in enumerate(zip(h.xedgesl(), h.xedgesh())):
+                if (elo >= lo and elo < hi) or (ehi > lo and ehi <= hi):
+                    h[ib+1].value = 0
+                    h[ib+1].error = 0
+
+            h.Sumw2()
+
         def getBlindBox(self, (lo, hi), (xMin, xMax, yMin, yMax)):
             '''
             Return a box to blind a plot with these axis ranges from lo to hi.
@@ -696,21 +707,27 @@ class NtuplePlotter(object):
             if titleY and 'ytitle' not in opts:
                 opts['ytitle'] = titleY
 
-            # An unweighted histogram should be drawn with Poisson errors. 
-            # Since that doesn't seem to work in rootpy (:-(), we'll replace 
-            # it with a TGraphAsymmErrors that has the correct error bars
             toDraw = []
             for iObj, obj in enumerate(objects):
-                if isinstance(obj, _Hist) and obj.GetEffectiveEntries() == obj.GetEntries() and\
-                        obj.getIsData():
-                    # if this is the first item, make sure the axes don't get messed up
-                    if iObj == 0:
-                        toDraw.append(obj.empty_clone())
-                    pois = obj.poisson_errors()
-                    pois.drawstyle = "PE"
-                    pois.linecolor = obj.linecolor
-                    pois.markercolor = obj.markercolor
-                    toDraw.append(pois)
+                if isinstance(obj, _Hist) and obj.getIsData():
+                    # Apply blinding if any
+                    for b in blinding:
+                        self.blindData(obj, b)
+
+                    # An unweighted histogram should be drawn with Poisson errors. 
+                    # Since that doesn't seem to work in rootpy (:-(), we'll replace 
+                    # it with a TGraphAsymmErrors that has the correct error bars
+                    if obj.GetEffectiveEntries() == obj.GetEntries():
+                        # if this is the first item, make sure the axes don't get messed up
+                        if iObj == 0:
+                            toDraw.append(obj.empty_clone())
+                        pois = obj.poisson_errors()
+                        pois.drawstyle = "PE"
+                        pois.linecolor = obj.linecolor
+                        pois.markercolor = obj.markercolor
+                        toDraw.append(pois)
+                    else:
+                        toDraw.append(obj)
                 else:
                     toDraw.append(obj)
 
