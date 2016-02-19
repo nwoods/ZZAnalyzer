@@ -57,6 +57,8 @@ parser.add_argument('--nThreads', type=int, default=12,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 12.')
 parser.add_argument('--assumeInputExists', action='store_true', 
                     help='Only run the requested analyses, assuming the prerequisite analyses have already been done.')
+parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding to data')
+parser.add_argument('--goldv2', action='store_true', help='Use 2015goldv2 in ntuple path instead of 2015silver')
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
 # or else we get segfault-causing race conditions
 bar = Hist(10,0.,1.,name="foo",title="foo")
@@ -92,7 +94,10 @@ if args.smp:
         desiredZZResultsMC.append('smp_3P1F')
 if args.full:
     if args.SR:
-        desiredZZResultsData.append('fullSpectrum_blind')
+        if args.blind:
+            desiredZZResultsData.append('fullSpectrum_blind')
+        else:
+            desiredZZResultsData.append('fullSpectrum')
         desiredZZResultsMC.append('fullSpectrum')
     if args.CR2P2F:
         desiredZZResultsData.append('fullSpectrum_2P2F')
@@ -102,7 +107,10 @@ if args.full:
         desiredZZResultsMC.append('fullSpectrum_3P1F')
 if args.hzz:
     if args.SR:
-        desiredZZResultsData.append('hzz_blind')
+        if args.blind:
+            desiredZZResultsData.append('hzz_blind')
+        else:
+            desiredZZResultsData.append('hzz')
         desiredZZResultsMC.append('hzz')
     if args.CR2P2F:
         desiredZZResultsData.append('hzz_2P2F')
@@ -127,10 +135,14 @@ if args.factorizeFakeRate:
     desiredZLResults.append('zPluslIso')
 else:
     desiredZLResults.append('zPluslTight')
-desiredZResults = []
+
+desiredZResults = ['singleZ']
 
 if args.zzData:
-    inputs = os.path.join(pathStart, "zzNtuples_data_2015silver_"+args.zzData)
+    if args.goldv2:
+        inputs = os.path.join(pathStart, "zzNtuples_data_2015goldv2_"+args.zzData)
+    else:
+        inputs = os.path.join(pathStart, "zzNtuples_data_2015silver_"+args.zzData)
     man = AnalysisManager(zzAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsData)
     managers.append(man)
