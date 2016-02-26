@@ -178,7 +178,11 @@ class ZZFakeRateCalculator(object):
                         continue
                     b.value = fb.value / (1. - fb.value)
             else:
-                outMC = fMC
+                outMC = self.WrappedHists[nDims-1](fMC.clone(), name=name+"MC")
+                for b in outMC:
+                    if b.overflow:
+                        b.value = 0.
+                        b.error = 0.
 
             outputs.append(outMC)
 
@@ -227,7 +231,11 @@ class ZZFakeRateCalculator(object):
                         continue
                     b.value = fb.value / (1. - fb.value)
             else:
-                out = f
+                out = self.WrappedHists[nDims-1](f.clone(), name=name)
+                for b in out:
+                    if b.overflow:
+                        b.value = 0.
+                        b.error = 0.
 
             outputs.append(out)
 
