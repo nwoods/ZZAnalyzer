@@ -2,17 +2,23 @@
 
 WeightStringMaker.py
 
-Some functions to make strings to do binned event weighting.
+Some functions to make strings to do event weighting
+from histograms, JSONs, or C++/ROOT macros.
 
 Author: Nate Woods, U. Wisconsin
 
 '''
 
 
+from ZZHelpers import objVar
+
 from rootpy.plotting import Hist, Hist2D, Hist3D
 import rootpy.compiled as ROOTComp
 from rootpy.ROOT import gROOT
+from rootpy.tree.treebuffer import TreeBuffer
 
+import os
+assert os.environ["zza"], "Run setup.sh before running analysis"
 
 _WeightStringMaker_counter_ = 0
 _WeightStringMaker_histCopies_ = []
@@ -105,6 +111,90 @@ def makeWeightHistFromJSONDict(jd, weightVar, *binVars, **kwargs):
                 h.SetBinContent(binInd, w-errs[center])
 
     return h
+
+class TPFunctionManager(object):
+    def __init__(self, version):
+        self.version = version
+        self.functions = {'e' : {}, 'm' : {}}
+        self.fStrings = {'e' : {}, 'm' : {}}
+        self.path = os.path.join(os.environ['zza'], 'data', 
+                                 'tagAndProbe', self.version)
+        self.effNames = {
+            'looseid' : 'ZZLoose',
+            'tightid' : 'ZZTight',
+            'isoloose' : 'ZZIso_wrtLoose',
+            'isotight' : 'ZZIso_wrtTight'
+            }
+        self.fStrTemp = '{}({{0}}Pt, abs({{0}}Eta), {{1}})'
+        
+        self.scales = {
+            '' : 0,
+            'up' : 1,
+            'down' : 2,
+            }
+
+    def createTPString(self, lep, efficiency):
+        lepType = lep[0]
+
+        effName = self.effNames[efficiency.lower()]
+        fName = '_'.join([effName, lepType])        
+        codeFile = os.path.join(self.path, fName+'.C')
+        
+        ROOTComp.register_file(codeFile, [fName])
+        
+        # force to compile, save as Python function
+        self.functions[lepType][effName] = getattr(ROOTComp, fName)
+        
+        # String to call the function from a draw string
+        self.fStrings[lepType][effName] = self.fStrTemp.format(fName)
+        
+    def getTPString(self, lep, efficiency, scale=''):
+        '''
+        Get a string to compute the T&P scale factor for a single lepton 
+        for the cut of type efficiency ('ZZTightID' or similar). Scale
+        indicates central value ('', default) or 'up' or 'down' for
+        systematics.
+        '''
+        lepType = lep[0]
+        try:
+            temp = self.fStrings[lepType][self.effNames[efficiency.lower()]]
+            return temp.format(lep, self.scales[scale])
+        except KeyError:
+            self.createTPString(lep, efficiency)
+            return self.getTPString(lep, efficiency)
+
+    def getTPScaleFactor(self, lep, efficiency, info,
+                         scale=''):
+        '''
+        Get a scale factor for a specific lepton.
+        lep (str): which lepton
+        efficiency (str): type of scale factor ('TightID' etc.)
+        info (TreeBuffer or iterable): If a TreeBuffer (ntuple row), lepton
+        pt and eta are taken from it. If an iterable, info[0] is pt,
+        info[1] is eta.
+        scale (str; 'up', 'down', or '' [default]): scale up or down for 
+        systematics, or '' for central value.
+        '''
+        lepType = lep[0]
+        effName = self.effNames[efficiency.lower()]
+        f = self.functions[lepType][effName]
+
+        if isinstance(info, TreeBuffer):
+            pt = objVar(row, 'Pt', lep)
+            absEta = abs(objVar(row, 'Eta', lep))
+        else:
+            try:
+                pt = info[0]
+                absEta = abs(info[1])
+            except IndexError:
+                print ("getTPScaleFactor info must be an ntuple row or an "
+                       "iterable [pt, eta].")
+                raise
+
+        return f(pt, absEta, self.scales[scale])
+
+        
+
 
 
 

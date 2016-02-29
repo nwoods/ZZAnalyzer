@@ -18,7 +18,7 @@ rlog["/rootpy.compiled"].setLevel(rlog.WARNING)
 
 from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS, dictFromJSONFile
-from WeightStringMaker import makeWeightStringFromHist, makeWeightHistFromJSONDict
+from WeightStringMaker import makeWeightStringFromHist, makeWeightHistFromJSONDict, TPFunctionManager
 
 from rootpy.io import root_open
 import rootpy.compiled as C
@@ -64,7 +64,7 @@ plotter = NtuplePlotter('zz', './plots/counting_{0}_{1}'.format(date.today().str
                         {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}/data*.root'.format(sampleID),
                          '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_3P1F/data*.root'.format(sampleID),
                          '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_2P2F/data*.root'.format(sampleID),}, 
-                        intLumi=2560.)
+                        intLumi=2619.)
 
 basicSelection = ''
 if ana == 'z4l':
@@ -103,7 +103,16 @@ print ''
 if args.eventsOnly:
     exit(0)
 
-tpVersionHash = 'v1.1-4-ga295b14-extended' #v1.1-1-g4cbf52a_v2'
+tpVersionHash = 'v2.0-13-g36fc26c' #'v1.1-4-ga295b14-extended' #v1.1-1-g4cbf52a_v2'
+
+TP = TPFunctionManager(tpVersionHash)
+
+fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015silver_19jan2016.root')
+eFakeRateHist = fFake.Get('e_FakeRate').clone()
+mFakeRateHist = fFake.Get('m_FakeRate').clone()
+
+eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', 'abs({0}Eta)')
+mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', 'abs({0}Eta)')
 
 fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015gold_26jan2016.root')
 eFakeRateHist = fFake.Get('e_FakeRate').clone()
@@ -114,23 +123,24 @@ mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', '{0}Eta')
 
 scales=['', 'down', 'up']
 
-eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
-eIDTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
-eIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
+# eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
+# eIDTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
+# eIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
+# 
+# eIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIDTightTPHist.iteritems()}
+# eIDTightTPStrTemp['down'] = '1.'
+# eIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIsoFromTightTPHist.iteritems()}
+# eIsoFromTightTPStrTemp['down'] = '1.'
+# 
+# mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_%s.json'%tpVersionHash)
+# mIDTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
+# mIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
+# 
+# mIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIDTightTPHist.iteritems()}
+# mIDTightTPStrTemp['down'] = '1'
+# mIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIsoFromTightTPHist.iteritems()}
+# mIsoFromTightTPStrTemp['down'] = '1.'
 
-eIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIDTightTPHist.iteritems()}
-eIDTightTPStrTemp['down'] = '1.'
-eIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIsoFromTightTPHist.iteritems()}
-eIsoFromTightTPStrTemp['down'] = '1.'
-
-mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_%s.json'%tpVersionHash)
-mIDTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
-mIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
-
-mIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIDTightTPHist.iteritems()}
-mIDTightTPStrTemp['down'] = '1'
-mIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIsoFromTightTPHist.iteritems()}
-mIsoFromTightTPStrTemp['down'] = '1.'
 
 fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_13Nov2015.root')
 puScaleFactorHist = {
@@ -169,16 +179,22 @@ for s in plotter.ntuples['mc3P1F']:
     if s[:3] == 'ZZT' or s[:10] == 'GluGluToZZ' and 'tau' not in s:
     #if s[:7] == 'GluGluT' or s[:3] == 'ZZT':
         subtractSamples.append(s)
-
+        
 for scaleSet in [['', '', ''], # [id, iso, PU]
-                 ['up', '', ''], ['down', '', ''],
-                 ['', 'up', ''], ['', 'down', ''],
-                 ['', '', 'up'], ['', '', 'down']]:
+                 ['down', '', ''], ['up', '', ''],
+                 ['', 'down', ''], ['', 'up', ''],
+                 ['', '', 'down'], ['', '', 'up']]:
 
-    z1eMCWeight = '*'.join(eIDTightTPStrTemp[scaleSet[0]].format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp[scaleSet[1]].format('e%d'%ne) for ne in range(1,3))
-    z2eMCWeight = '*'.join(eIDTightTPStrTemp[scaleSet[0]].format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp[scaleSet[1]].format('e%d'%ne) for ne in range(3,5))
-    z1mMCWeight = '*'.join(mIDTightTPStrTemp[scaleSet[0]].format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp[scaleSet[1]].format('m%d'%nm) for nm in range(1,3))
-    z2mMCWeight = '*'.join(mIDTightTPStrTemp[scaleSet[0]].format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp[scaleSet[1]].format('m%d'%nm) for nm in range(3,5))
+    z1eMCWeight = '*'.join(TP.getTPString('e%d'%ne, 'TightID', scaleSet[0])+'*'+TP.getTPString('e%d'%ne, 'IsoTight', scaleSet[1]) for ne in range(1,3))
+    z2eMCWeight = '*'.join(TP.getTPString('e%d'%ne, 'TightID', scaleSet[0])+'*'+TP.getTPString('e%d'%ne, 'IsoTight', scaleSet[1]) for ne in range(3,5))
+    z1mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID', scaleSet[0])+'*'+TP.getTPString('m%d'%nm, 'IsoTight', scaleSet[1]) for nm in range(1,3))
+    z2mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID', scaleSet[0])+'*'+TP.getTPString('m%d'%nm, 'IsoTight', scaleSet[1]) for nm in range(3,5))
+    
+    
+    #z1eMCWeight = '*'.join(eIDTightTPStrTemp[scaleSet[0]].format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp[scaleSet[1]].format('e%d'%ne) for ne in range(1,3))
+    #z2eMCWeight = '*'.join(eIDTightTPStrTemp[scaleSet[0]].format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp[scaleSet[1]].format('e%d'%ne) for ne in range(3,5))
+    #z1mMCWeight = '*'.join(mIDTightTPStrTemp[scaleSet[0]].format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp[scaleSet[1]].format('m%d'%nm) for nm in range(1,3))
+    #z2mMCWeight = '*'.join(mIDTightTPStrTemp[scaleSet[0]].format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp[scaleSet[1]].format('m%d'%nm) for nm in range(3,5))
     #z1emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1eMCWeight, z1mMCWeight)
     #z2emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1mMCWeight, z1eMCWeight)
     
