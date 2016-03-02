@@ -41,7 +41,6 @@ from rootpy import asrootpy, QROOT
 from ZZPlotStyle import ZZPlotStyle
 from ZZMetadata import sampleInfo, sampleGroups
 from ZZHelpers import makeNumberPretty, parseChannels
-from WeightStringMaker import makeWeightStringFromHist
 
 gROOT.SetBatch(kTRUE)
 
