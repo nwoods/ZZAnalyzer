@@ -17,7 +17,7 @@ from rootpy.plotting.utils import draw
 plotter = NtuplePlotter('zz', '',
                         {}, 
                         {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_full/data*.root'}, 
-                        intLumi=2560.,)
+                        intLumi=2619.,)
 
 
 colors = {'eeee':'b','eemm':'r','mmmm':'forestgreen'}
@@ -77,10 +77,19 @@ for ana in ['full', 'z4l']:
     #    gr.yaxis.SetTitleOffset(gr.yaxis.GetTitleOffset()*0.8)
     #    gr.yaxis.SetTitleSize(gr.yaxis.GetTitleSize()*0.9)
     #c.Update()
+
+    if ana == 'z4l':
+        xlimits=(40.,90.)
+        ylimits=(0.,60.)
+    else:
+        xlimits=(40.,120.)
+        ylimits=(0.,120.)
+
+
     c = Canvas(1000,1000)
     (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} [\\text{GeV}]', 
                                  ytitle='m_{Z_2} [\\text{GeV}]',
-                                 xlimits=(40.,120.), ylimits=(0.,120.))
+                                 xlimits=xlimits, ylimits=ylimits)
     yaxis.SetTitleSize(yaxis.GetTitleSize()*0.9)
     c.Update()
     leg = Legend(g.values(), c, leftmargin=0.6, textsize=0.04, 
