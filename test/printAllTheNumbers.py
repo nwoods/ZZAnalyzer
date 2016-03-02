@@ -18,7 +18,8 @@ rlog["/rootpy.compiled"].setLevel(rlog.WARNING)
 
 from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS, dictFromJSONFile
-from WeightStringMaker import makeWeightStringFromHist, makeWeightHistFromJSONDict, TPFunctionManager
+from WeightStringMaker import WeightStringMaker, TPFunctionManager
+from ReducibleBackgroundCalculator import BkgManager
 
 from rootpy.io import root_open
 import rootpy.compiled as C
@@ -55,7 +56,7 @@ if args.z4l:
     ana = 'z4l'
     assert not any([args.hzz, args.full, args.smp]), "Only do one analysis at a time, please!"
 
-sampleID = 'full' if ana == 'z4l' else ana
+sampleID = ana
 
 plotter = NtuplePlotter('zz', './plots/counting_{0}_{1}'.format(date.today().strftime('%d%b%Y').lower(), ana),
                         {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
@@ -67,8 +68,6 @@ plotter = NtuplePlotter('zz', './plots/counting_{0}_{1}'.format(date.today().str
                         intLumi=2619.)
 
 basicSelection = ''
-if ana == 'z4l':
-    basicSelection = "MassDREtFSR < 100. && MassDREtFSR > 80."
 
 print ""
 if args.printData:
@@ -107,69 +106,31 @@ tpVersionHash = 'v2.0-13-g36fc26c' #'v1.1-4-ga295b14-extended' #v1.1-1-g4cbf52a_
 
 TP = TPFunctionManager(tpVersionHash)
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015silver_19jan2016.root')
-eFakeRateHist = fFake.Get('e_FakeRate').clone()
-mFakeRateHist = fFake.Get('m_FakeRate').clone()
-
-eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', 'abs({0}Eta)')
-mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', 'abs({0}Eta)')
-
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015gold_26jan2016.root')
-eFakeRateHist = fFake.Get('e_FakeRate').clone()
-mFakeRateHist = fFake.Get('m_FakeRate').clone()
-
-eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', '{0}Eta')
-mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', '{0}Eta')
-
 scales=['', 'down', 'up']
 
-# eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
-# eIDTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
-# eIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
-# 
-# eIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIDTightTPHist.iteritems()}
-# eIDTightTPStrTemp['down'] = '1.'
-# eIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in eIsoFromTightTPHist.iteritems()}
-# eIsoFromTightTPStrTemp['down'] = '1.'
-# 
-# mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_%s.json'%tpVersionHash)
-# mIDTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
-# mIsoFromTightTPHist = {s:makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta', scale=s) for s in scales}
-# 
-# mIDTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIDTightTPHist.iteritems()}
-# mIDTightTPStrTemp['down'] = '1'
-# mIsoFromTightTPStrTemp = {s:makeWeightStringFromHist(h, '{0}Pt', 'abs({0}Eta)') for s,h in mIsoFromTightTPHist.iteritems()}
-# mIsoFromTightTPStrTemp['down'] = '1.'
-
-
-fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_13Nov2015.root')
+fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_29Feb2016.root')
 puScaleFactorHist = {
     '' : fPUScale.Get("puScaleFactor"),
     'up' : fPUScale.Get("puScaleFactor_ScaleUp"),
     'down' : fPUScale.Get("puScaleFactor_ScaleDown"),
 }
-puScaleFactorStr = {s:makeWeightStringFromHist(h, 'nTruePU') for s,h in puScaleFactorHist.iteritems()}
 
-eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs(e{0}SCEta)", bdt="e{0}MVANonTrigID")
+wts = WeightStringMaker('puWeight')
+
+puScaleFactorStr = {s:wts.makeWeightStringFromHist(h, 'nTruePU') for s,h in puScaleFactorHist.iteritems()}
+
+bkg = BkgManager('01mar2016')
 
 cr3PScale = {
-    'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
-    'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
-    'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
+    ch : bkg.fullString3P1F(ch) for ch in ['eeee','eemm','mmmm']
 }
 
-cr2PScale = cr3PScale.copy()
-
-smallDRScale = '({0}_{1}_DR < 0.4 ? {2} : 1.)'
-cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
-cr3PScale['eemm'] = '*'.join([cr3PScale['eemm'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('m1','m2', 0.)])
-cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
-
-cr2PScale['eeee'] = '*'.join([cr2PScale['eeee'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('e3','e4', -1.)])
-cr2PScale['eemm'] = '*'.join([cr2PScale['eemm'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('m1','m2', -1.)])
-cr2PScale['mmmm'] = '*'.join([cr2PScale['mmmm'], smallDRScale.format('m1','m2', -1.), smallDRScale.format('m3','m4', -1.)])
-
 cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
+
+cr2PScale = {
+    ch : bkg.fullString2P2F(ch) for ch in ['eeee','eemm','mmmm']
+}
+
 cr2PScale['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
 
 
@@ -179,7 +140,8 @@ for s in plotter.ntuples['mc3P1F']:
     if s[:3] == 'ZZT' or s[:10] == 'GluGluToZZ' and 'tau' not in s:
     #if s[:7] == 'GluGluT' or s[:3] == 'ZZT':
         subtractSamples.append(s)
-        
+
+central = {}        
 for scaleSet in [['', '', ''], # [id, iso, PU]
                  ['down', '', ''], ['up', '', ''],
                  ['', 'down', ''], ['', 'up', ''],
@@ -191,13 +153,6 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
     z2mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID', scaleSet[0])+'*'+TP.getTPString('m%d'%nm, 'IsoTight', scaleSet[1]) for nm in range(3,5))
     
     
-    #z1eMCWeight = '*'.join(eIDTightTPStrTemp[scaleSet[0]].format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp[scaleSet[1]].format('e%d'%ne) for ne in range(1,3))
-    #z2eMCWeight = '*'.join(eIDTightTPStrTemp[scaleSet[0]].format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp[scaleSet[1]].format('e%d'%ne) for ne in range(3,5))
-    #z1mMCWeight = '*'.join(mIDTightTPStrTemp[scaleSet[0]].format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp[scaleSet[1]].format('m%d'%nm) for nm in range(1,3))
-    #z2mMCWeight = '*'.join(mIDTightTPStrTemp[scaleSet[0]].format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp[scaleSet[1]].format('m%d'%nm) for nm in range(3,5))
-    #z1emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1eMCWeight, z1mMCWeight)
-    #z2emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1mMCWeight, z1eMCWeight)
-    
     mcWeight = {
         'eeee' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr[scaleSet[2]], z1eMCWeight, z2eMCWeight),
         'eemm' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr[scaleSet[2]], z1eMCWeight, z1mMCWeight),
@@ -205,11 +160,11 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
     }
 
     cr3PScaleMC = {c:'*'.join([mcWeight[c], cr3PScale[c]]) for c in mcWeight}
+    cr2PScaleMC = {c:'*'.join([mcWeight[c], cr2PScale[c]]) for c in mcWeight}
                  
     mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
     cr3PScaleMC['zz'] = [cr3PScaleMC[c] for c in ['eeee','eemm','mmmm']]
-
-    cr2PScaleMC = cr3PScaleMC
+    cr2PScaleMC['zz'] = [cr2PScaleMC[c] for c in ['eeee','eemm','mmmm']]
 
     print ''
     if scaleSet[0]:
@@ -307,13 +262,22 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         expectedTotal = sum(mcStack.hists)
         expectedTotal.sumw2()
         expectedError = Double(0)
-        integralSig = expectedTotal.IntegralAndError(0,expectedTotal.GetNbinsX(), expectedError)
+        integralTot = expectedTotal.IntegralAndError(0,expectedTotal.GetNbinsX(), expectedError)
+        integralSig = integralTot - integralBkg
         print "    %4s:"%channel
-        print "        Tot  : %f +/- %f"%(integralSig, expectedError)
-        print "        SR   : %f +/- %f"%(integralSig-integralBkg, sqrt(expectedError**2 - expectedErrorBkg**2))
+        print "        Tot  : %f +/- %f"%(integralTot, expectedError)
+        print "        SR   : %f +/- %f"%(integralSig, sqrt(expectedError**2 - expectedErrorBkg**2))
+
+        if not any(scaleSet):
+            central[channel] = integralSig
+        else:
+            fracChange = (integralSig - central[channel]) / central[channel]
+            print "            SR scale effect: {0:.3f}".format(fracChange)
+
         print "        Bkg  : %f +/- %f (+%f / -%f)"%(integralBkg, expectedErrorBkg, expectedErrorBkgUp, expectedErrorBkgDown)
         print "        3P1F : %f +/- %f"%(integral3P1F, expectedError3P1F)
         print "        2P2F : %f +/- %f"%(integral2P2F, expectedError2P2F)
+
         for h in mcStack:
             try:
                 sample = h.getSample()

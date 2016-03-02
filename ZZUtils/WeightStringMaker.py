@@ -20,41 +20,74 @@ from rootpy.tree.treebuffer import TreeBuffer
 import os
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
-_WeightStringMaker_counter_ = 0
-_WeightStringMaker_histCopies_ = []
-def makeWeightStringFromHist(h, *variables, **kwargs):
+
+class _WeightStringSingleton(type):
     '''
-    Return a string that weights an event by the value of histogram h in 
-    the bin that would be filled by variables.
+    Have to do some kind of singleton thing to avoid duplicate functions.
+    Will need to change if ever used multithreaded.
     '''
-    global _WeightStringMaker_counter_
-    global _WeightStringMaker_histCopies_
+    _instances = {}
+    def __call__(cls, fName, *args, **kwargs):
+        try:
+            return cls._instances[fName]
+        except KeyError:
+            cls._instances[fName] = super(_WeightStringSingleton, cls).__call__(fName, *args, **kwargs)
+            return cls._instances[fName]
 
-    # make a copy so we can change directory, save it in global scope
-    hCopy = h.clone()
-    hCopy.SetDirectory(gROOT)
-    _WeightStringMaker_histCopies_.append(hCopy)
+class WeightStringMaker(object):
+    __metaclass__ = _WeightStringSingleton
 
-    ROOTComp.register_code('''
-    #include "TH1.h"
-    #include "TROOT.h"
-    double weightFun{0}({1})
-    {{
-      TH1* h = (TH1*)gROOT->Get("{2}");
-      return h->GetBinContent(h->FindBin({3}));
-    }}'''.format(_WeightStringMaker_counter_,
-                ', '.join('double x%d'%i for i in range(len(variables))),
-                hCopy.GetName(),
-                ', '.join("x%d"%i for i in range(len(variables)))),
-                  ["weightFun%d"%_WeightStringMaker_counter_,])
-    out = 'weightFun%d(%s)'%(_WeightStringMaker_counter_, ', '.join(variables))
+    _counter = 0
+    _hists = []
 
-    # force system to compile code now
-    arglebargle = getattr(ROOTComp, "weightFun%d"%_WeightStringMaker_counter_)
+    def __init__(self, fName='weightFun'):
+        self.fName = fName
 
-    _WeightStringMaker_counter_ += 1
+        self.codeBase = '''
+            #include "TH1.h"
+            #include "TROOT.h"
+            #include <iostream>
+            
+            double {}{{0}}({{1}})
+            {{{{
+              TH1* h = (TH1*)gROOT->Get("{{2}}");
+              if(h == 0)
+                {{{{
+                  std::cout << "Can't find {{2}}!" << std::endl;
+                  return 0.;
+                }}}}
+              return h->GetBinContent(h->FindBin({{3}}));
+            }}}}'''.format(self.fName)
 
-    return out
+    def makeWeightStringFromHist(self, h, *variables, **kwargs):
+        '''
+        Return a string that weights an event by the value of histogram h in 
+        the bin that would be filled by variables.
+        '''
+        # make a copy so we can change directory, save it in global scope
+        hCopy = h.clone()
+        hCopy.SetDirectory(gROOT)
+        #gROOT.GetListOfSpecials().Add(hCopy)
+        self._hists.append(hCopy)
+        
+        iName = "{0}{1}".format(self.fName, self._counter)
+
+        ROOTComp.register_code(
+            self.codeBase.format(self._counter,
+                                 ', '.join('double x%d'%i for i in range(len(variables))),
+                                 hCopy.GetName(),
+                                 ', '.join("x%d"%i for i in range(len(variables)))),
+            [iName,])
+        out = '{0}({1})'.format(iName, ', '.join(variables))
+        
+        # force system to compile code now
+        arglebargle = getattr(ROOTComp, iName)
+
+        self._counter += 1
+        
+        return out
+
+
 
 
 _WeightStringMaker_histTypes_ = {

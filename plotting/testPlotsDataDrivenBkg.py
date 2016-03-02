@@ -18,7 +18,8 @@ rlog["/rootpy.compiled"].setLevel(rlog.WARNING)
 
 from NtuplePlotter import NtuplePlotter
 from ZZHelpers import Z_MASS, dictFromJSONFile
-from WeightStringMaker import makeWeightStringFromHist, makeWeightHistFromJSONDict, TPFunctionManager
+from WeightStringMaker import WeightStringMaker, TPFunctionManager
+from ReducibleBackgroundCalculator import BkgManager
 
 from rootpy.io import root_open
 import rootpy.compiled as C
@@ -39,6 +40,7 @@ parser.add_argument('--full', action='store_true', help='Full 4l spectrum plots'
 parser.add_argument('--z4l', action='store_true', help='SMP Z->4l plots')
 parser.add_argument('--test', action='store_true', help='Make just one plot as a test.')
 parser.add_argument('--goldv2', action='store_true', help='Use JSON from December 2015.')
+parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding')
 args = parser.parse_args()
 
 analyses = []
@@ -65,41 +67,16 @@ tpVersionHash = 'v2.0-13-g36fc26c' #'v2.0-11-gafcf7cc' #'v1.1-4-ga295b14-extende
 
 TP = TPFunctionManager(tpVersionHash)
 
-fFake = root_open(os.environ['zza']+'/data/leptonFakeRate/fakeRate_2015silver_19jan2016.root')
-eFakeRateHist = fFake.Get('e_FakeRate').clone()
-mFakeRateHist = fFake.Get('m_FakeRate').clone()
-
-eFakeRateStrTemp = makeWeightStringFromHist(eFakeRateHist, '{0}Pt', 'abs({0}Eta)')
-mFakeRateStrTemp = makeWeightStringFromHist(mFakeRateHist, '{0}Pt', 'abs({0}Eta)')
-
-# eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
-# eIDTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta')
-# eIsoFromTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta')
-# eIDTightTPStrTemp = makeWeightStringFromHist(eIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
-# eIsoFromTightTPStrTemp = makeWeightStringFromHist(eIsoFromTightTPHist, '{0}Pt', 'abs({0}Eta)')
-# 
-# mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_%s.json'%tpVersionHash)
-# mIDTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta')
-# mIsoFromTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta')
-# mIDTightTPStrTemp = makeWeightStringFromHist(mIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
-# mIsoFromTightTPStrTemp = makeWeightStringFromHist(mIsoFromTightTPHist, '{0}Pt', 'abs({0}Eta)')
-
-# z1eMCWeight = '*'.join(eIDTightTPStrTemp.format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp.format('e%d'%ne) for ne in range(1,3))
-# z2eMCWeight = '*'.join(eIDTightTPStrTemp.format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp.format('e%d'%ne) for ne in range(3,5))
-# z1mMCWeight = '*'.join(mIDTightTPStrTemp.format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp.format('m%d'%nm) for nm in range(1,3))
-# z2mMCWeight = '*'.join(mIDTightTPStrTemp.format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp.format('m%d'%nm) for nm in range(3,5))
-#z1emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1eMCWeight, z1mMCWeight)
-#z2emMCWeight = '(abs(e1_e2_MassFSR-{0}) < abs(m1_m2_MassFSR-{0}) ? {1} : {2})'.format(Z_MASS, z1mMCWeight, z1eMCWeight)
-
 z1eMCWeight = '*'.join(TP.getTPString('e%d'%ne, 'TightID')+'*'+TP.getTPString('e%d'%ne, 'IsoTight') for ne in range(1,3))
 z2eMCWeight = '*'.join(TP.getTPString('e%d'%ne, 'TightID')+'*'+TP.getTPString('e%d'%ne, 'IsoTight') for ne in range(3,5))
 z1mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID')+'*'+TP.getTPString('m%d'%nm, 'IsoTight') for nm in range(1,3))
 z2mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID')+'*'+TP.getTPString('m%d'%nm, 'IsoTight') for nm in range(3,5))
 
+wts = WeightStringMaker('puWeight')
 
 fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_13Nov2015.root')
 puScaleFactorHist = fPUScale.Get("puScaleFactor")
-puScaleFactorStr = makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
+puScaleFactorStr = wts.makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
 
 mcWeight = {
     'eeee' : '(GenWeight*{0}*{1}*{2})'.format(puScaleFactorStr, z1eMCWeight, z2eMCWeight),
@@ -109,58 +86,26 @@ mcWeight = {
 
 mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
 
-eTightIDStr = "({eta} < 0.8 && {bdt} < -0.072) || ({eta} > 0.8 && {eta} < 1.479 && {bdt} < -0.286) || ({eta} > 1.479 && {bdt} < -0.267)".format(eta="abs(e{0}SCEta)", bdt="e{0}MVANonTrigID")
+bkg = BkgManager('01mar2016')
 
 cr3PScale = {
-    'eeee' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne)) for ne in range(1,5)),
-    'eemm' : '*'.join('(e{0}HZZTightID+e{0}HZZIsoPass < 1.5 ? {1} : 1.)*(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {2} : 1.)'.format(ne, eFakeRateStrTemp.format('e%d'%ne), mFakeRateStrTemp.format('m%d'%ne)) for ne in range(1,3)),
-    'mmmm' : '*'.join('(m{0}HZZTightID+m{0}HZZIsoPass < 1.5 ? {1} : 1.)'.format(nm, mFakeRateStrTemp.format('m%d'%nm)) for nm in range(1,5)),
+    ch : bkg.fullString3P1F(ch) for ch in ['eeee','eemm','mmmm']
 }
 
-cr2PScale = cr3PScale.copy()
-
-smallDRScale = '({0}_{1}_DR < 0.4 ? {2} : 1.)'
-cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
-cr3PScale['eemm'] = '*'.join([cr3PScale['eemm'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('m1','m2', 0.)])
-cr3PScale['eeee'] = '*'.join([cr3PScale['eeee'], smallDRScale.format('e1','e2', 0.), smallDRScale.format('e3','e4', 0.)])
-
-cr2PScale['eeee'] = '*'.join([cr2PScale['eeee'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('e3','e4', -1.)])
-cr2PScale['eemm'] = '*'.join([cr2PScale['eemm'], smallDRScale.format('e1','e2', -1.), smallDRScale.format('m1','m2', -1.)])
-cr2PScale['mmmm'] = '*'.join([cr2PScale['mmmm'], smallDRScale.format('m1','m2', -1.), smallDRScale.format('m3','m4', -1.)])
-
 cr3PScaleMC = {c:'*'.join([cr3PScale[c], mcWeight[c]]) for c in cr3PScale}
-cr2PScaleMC = {c:'*'.join([cr2PScale[c], mcWeight[c]]) for c in cr2PScale}
 
 cr3PScale['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
+cr3PScaleMC['zz'] = [cr3PScaleMC[c] for c in ['eeee','eemm','mmmm']]
+
+cr2PScale = {
+    ch : bkg.fullString2P2F(ch) for ch in ['eeee','eemm','mmmm']
+}
+
+cr2PScaleMC = {c:'*'.join([cr2PScale[c], mcWeight[c]]) for c in cr2PScale}
+
 cr2PScale['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
-cr3PScaleMC['zz'] = [cr3PScale[c] for c in ['eeee','eemm','mmmm']]
-cr2PScaleMC['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
+cr2PScaleMC['zz'] = [cr2PScaleMC[c] for c in ['eeee','eemm','mmmm']]
 
-
-stackSystSqNoTheo = {
-    'eeee' : 0.0297 ** 2 + 0.046 ** 2, # syst + lumi
-    'eemm' : 0.0307 ** 2 + 0.045 ** 2,
-    'mmmm' : 0.0325 ** 2 + 0.045 ** 2,
-    'zz' : 0.0187 ** 2 + 0.045 ** 2,
-    }
-
-stackTheoSqUp = {
-    'eemm' : .0355 ** 2,
-    'mmmm' : .0359 ** 2,
-    'eeee' : .0359 ** 2,
-    'zz' : .0219 **2
-    }
-
-stackTheoSqDown = {
-    'eemm' : .0319 ** 2,
-    'mmmm' : .0328 ** 2,
-    'eeee' : .0332 ** 2,
-    'zz' : .0198 **2
-    }
-
-stackSystUp = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqUp[c]) for c in stackSystSqNoTheo}
-stackSystDown = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqDown[c]) for c in stackSystSqNoTheo}
-    
 units = {
     'Mass' : 'GeV',
     'MassDREtFSR' : 'GeV',
@@ -226,7 +171,39 @@ for ana in analyses:
         pass    
     os.symlink(outdir, link)
 
-
+    # systematics
+    if ana == 'smp':
+        stackSystSqNoTheo = {
+            'eeee' : 0.0305 ** 2 + 0.027 ** 2, # syst + lumi
+            'eemm' : 0.0229 ** 2 + 0.027 ** 2,
+            'mmmm' : 0.0215 ** 2 + 0.027 ** 2,
+            'zz' : 0.0145 ** 2 + 0.027 ** 2,
+            }
+    else:
+        stackSystSqNoTheo = {
+            'eeee' : 0.0909 ** 2 + 0.027 ** 2, # syst + lumi
+            'eemm' : 0.0540 ** 2 + 0.027 ** 2,
+            'mmmm' : 0.0367 ** 2 + 0.027 ** 2,
+            'zz' : 0.0308 ** 2 + 0.027 ** 2,
+            }
+    
+    stackTheoSqUp = {
+        'eemm' : .0355 ** 2,
+        'mmmm' : .0359 ** 2,
+        'eeee' : .0359 ** 2,
+        'zz' : .0219 **2
+        }
+    
+    stackTheoSqDown = {
+        'eemm' : .0319 ** 2,
+        'mmmm' : .0328 ** 2,
+        'eeee' : .0332 ** 2,
+        'zz' : .0198 **2
+        }
+    
+    stackSystUp = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqUp[c]) for c in stackSystSqNoTheo}
+    stackSystDown = {c:sqrt(stackSystSqNoTheo[c] + stackTheoSqDown[c]) for c in stackSystSqNoTheo}
+    
     # samples to subtract off of CRs based on MC
     subtractSamples = []
     for s in plotter.ntuples['mc3P1F']:
@@ -291,11 +268,14 @@ for ana in analyses:
                                           bins, weights=cr3PScale[channel], 
                                           perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
                                           isBackground=True)
+
+
                 cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, var, constSelection, 
                                           bins, weights=cr2PScale[channel], 
                                           perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
                                           isBackground=True)
         
+
                 # print '\n', channel, ":" 
                 # print "    Init:"
                 # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
@@ -346,10 +326,15 @@ for ana in analyses:
     
                 extraBkgs = [cr3P1F]
     
-            if ana != 'smp' and 'Mass' in var:
+            if args.blind and ana != 'smp' and 'Mass' in var:
                 blinding = [[110.,150.]]
             else:
                 blinding = []
+
+            if ana == 'z4l' and varName == 'MassDREtFSR':
+                legParams = {'leftmargin' : 0.1, 'rightmargin' : 0.45}
+            else:
+                legParams = {}
 
             plotter.fullPlot('4l%s%s'%(varName,chEnding), channel, var, constSelection, 
                              bins, 'mc', 'data', canvasX=1000, logy=False, 
@@ -360,7 +345,8 @@ for ana in analyses:
                              widthInYTitle=bool(units[var]),
                              mcSystFracUp=stackSystUp[channel],
                              mcSystFracDown=stackSystDown[channel],
-                             blinding=blinding)
+                             blinding=blinding,
+                             legParams=legParams)
 
             if args.test:
                 exit()
