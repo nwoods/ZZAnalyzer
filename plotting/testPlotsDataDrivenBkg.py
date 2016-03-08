@@ -22,9 +22,6 @@ from WeightStringMaker import WeightStringMaker, TPFunctionManager
 from ReducibleBackgroundCalculator import BkgManager
 
 from rootpy.io import root_open
-import rootpy.compiled as C
-from rootpy.plotting import HistStack, Canvas
-from rootpy.ROOT import Double
 
 import os
 from datetime import date
@@ -74,7 +71,7 @@ z2mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID')+'*'+TP.getTPString('m
 
 wts = WeightStringMaker('puWeight')
 
-fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_13Nov2015.root')
+fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_29Feb2016.root')
 puScaleFactorHist = fPUScale.Get("puScaleFactor")
 puScaleFactorStr = wts.makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
 
@@ -364,7 +361,7 @@ for ana in analyses:
         binning2l['MassDREtFSR#2'] = [30, 60., 120.]
     elif ana == 'z4l':
         binning2l['MassDREtFSR#1'] = [30, 60., 120.]
-        binning2l['MassDREtFSR#2'] = [20, 0., 40.]
+        binning2l['MassDREtFSR#2'] = [40, 0., 40.]
     
     xTitles2l = {
         'Mass' : 'm_{%s}',

@@ -17,13 +17,10 @@ rlog["/rootpy.compiled"].setLevel(rlog.WARNING)
 
 
 from NtuplePlotter import NtuplePlotter
-from ZZHelpers import Z_MASS, dictFromJSONFile
-from WeightStringMaker import makeWeightStringFromHist, makeWeightHistFromJSONDict
+from ZZHelpers import Z_MASS
+from WeightStringMaker import WeightStringMaker, TPFunctionManager
 
 from rootpy.io import root_open
-import rootpy.compiled as C
-from rootpy.plotting import HistStack, Canvas
-from rootpy.ROOT import Double
 
 from datetime import date
 import os
@@ -34,7 +31,7 @@ link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/singleZ_latest'
 plotter = NtuplePlotter('z', outdir, 
                         {'mc':'/data/nawoods/ntuples/singlez_mc_14feb2016_0/results/*.root'},
                         {'data':'/data/nawoods/ntuples/singlez_data_2015silver_14feb2016_0/results/*.root'},
-                        intLumi=2560.)
+                        intLumi=2619.)
 
 try:
     os.unlink(link)
@@ -43,26 +40,20 @@ except:
 
 os.symlink(outdir, link)
 
-tpVersionHash = 'v1.1-4-ga295b14-extended'
+tpVersionHash = 'v2.0-13-g36fc26c' #'v2.0-11-gafcf7cc' #'v1.1-4-ga295b14-extended'
 
-eTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/electronTagProbe_%s.json'%tpVersionHash)
-eIDTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZTight'], 'ratio', 'pt', 'abseta')
-eIsoFromTightTPHist = makeWeightHistFromJSONDict(eTagProbeJSON['passingZZIso_passingZZTight'], 'ratio', 'pt', 'abseta')
-eIDTightTPStrTemp = makeWeightStringFromHist(eIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
-eIsoFromTightTPStrTemp = makeWeightStringFromHist(eIsoFromTightTPHist, '{0}Pt', 'abs({0}Eta)')
+TP = TPFunctionManager(tpVersionHash)
 
-mTagProbeJSON = dictFromJSONFile(os.environ['zza']+'/data/tagAndProbe/muonTagProbe_%s.json'%tpVersionHash)
-mIDTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIDZZTight'], 'ratio', 'pt', 'abseta')
-mIsoFromTightTPHist = makeWeightHistFromJSONDict(mTagProbeJSON['passingIsoZZ_passingIDZZTight'], 'ratio', 'pt', 'abseta')
-mIDTightTPStrTemp = makeWeightStringFromHist(mIDTightTPHist, '{0}Pt', 'abs({0}Eta)')
-mIsoFromTightTPStrTemp = makeWeightStringFromHist(mIsoFromTightTPHist, '{0}Pt', 'abs({0}Eta)')
+z1eMCWeight = '*'.join(TP.getTPString('e%d'%ne, 'TightID')+'*'+TP.getTPString('e%d'%ne, 'IsoTight') for ne in range(1,3))
+z2eMCWeight = '*'.join(TP.getTPString('e%d'%ne, 'TightID')+'*'+TP.getTPString('e%d'%ne, 'IsoTight') for ne in range(3,5))
+z1mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID')+'*'+TP.getTPString('m%d'%nm, 'IsoTight') for nm in range(1,3))
+z2mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID')+'*'+TP.getTPString('m%d'%nm, 'IsoTight') for nm in range(3,5))
 
-z1eMCWeight = '*'.join(eIDTightTPStrTemp.format('e%d'%ne)+'*'+eIsoFromTightTPStrTemp.format('e%d'%ne) for ne in range(1,3))
-z1mMCWeight = '*'.join(mIDTightTPStrTemp.format('m%d'%nm)+'*'+mIsoFromTightTPStrTemp.format('m%d'%nm) for nm in range(1,3))
+wts = WeightStringMaker('puWeight')
 
-fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_13Nov2015.root')
+fPUScale = root_open(os.environ['zza']+'/data/pileupReweighting/PUScaleFactors_29Feb2016.root')
 puScaleFactorHist = fPUScale.Get("puScaleFactor")
-puScaleFactorStr = makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
+puScaleFactorStr = wts.makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
 
 mcWeight = {
     'e' : '(GenWeight*{0}*{1})'.format(puScaleFactorStr, z1eMCWeight),
