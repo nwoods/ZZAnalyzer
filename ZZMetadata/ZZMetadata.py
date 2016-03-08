@@ -226,7 +226,7 @@ sampleGroups['VVV'] = {
 
 sampleGroups['DYJets'] = {
     'isSignal' : False,
-    'prettyName' : '\\text{Z}/\\gamma^\\ast \\text{ + jets}',
+    'prettyName' : '\\text{Z}/\\gamma^{*} \\text{ + jets}',
     'color' : '#669966',
 }
 
