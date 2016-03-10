@@ -11,11 +11,17 @@ class SMPZZ2016(Cutter):
         '''
         temp = super(SMPZZ2016, self).getCutTemplate()
 
-        temp['ZMassTight']['cuts']['Mass%s#lower'%self.fsrVar] = (60., ">=")
-        temp['ZMassLoose']['cuts']['Mass%s#lower'%self.fsrVar] = (60., ">=")
+        if 'ZMassTight' in temp:
+            temp['ZMassTight']['cuts']['Mass%s#lower'%self.fsrVar] = (60., ">=")
+        else:
+            temp['ZMassTight'] = {
+                'cuts' : { 
+                    'Mass%s#lower'%self.fsrVar : (60., ">="),
+                    'Mass%s#upper'%self.fsrVar : (120., "<"),
+                    },
+                'objects' : 2,
+                }
 
-        temp['4lMass']['cuts'] = {'Mass%s'%self.fsrVar : (70., ">=")}
-        
         return temp
     
 
@@ -25,7 +31,9 @@ class SMPZZ2016(Cutter):
         and has 4l mass cut.
         '''
         flow = super(SMPZZ2016, self).setupCutFlow()
-        flow['4lMass'] = ('4lMass', [])
-        flow['SmartCut'] = ('SmartCut', [1,2,3,4])
+        
+        flow['Z1Mass'] = ('ZMassTight', [1,2])
+        flow['Z2Mass'] = ('ZMassTight', [3,4])
+
 
         return flow

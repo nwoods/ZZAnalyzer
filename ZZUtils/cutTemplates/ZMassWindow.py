@@ -9,9 +9,11 @@ class ZMassWindow(Cutter):
     def getCutTemplate(self, *args):
         temp = super(ZMassWindow, self).getCutTemplate()
 
-        temp['4lMass']['cuts'] = {
-            'Mass%s#lower'%self.fsrVar : (80., ">="),
-            'Mass%s#upper'%self.fsrVar : (100., "<"),
+        temp['4lMass'] = {
+            'cuts' : {
+                'Mass%s#lower'%self.fsrVar : (80., ">="),
+                'Mass%s#upper'%self.fsrVar : (100., "<"),
+                },
             }
         
         return temp
@@ -19,6 +21,7 @@ class ZMassWindow(Cutter):
 
     def setupCutFlow(self):
         flow = super(ZMassWindow, self).setupCutFlow()
+
         flow['4lMass'] = ('4lMass', [])
 
         return flow
