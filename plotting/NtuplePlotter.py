@@ -1277,10 +1277,7 @@ class NtuplePlotter(object):
                                             scale, weight, 
                                             perUnitWidth=perUnitWidth))
 
-        if extraHists:
-            hists += extraHists
-
-        hists = self.orderForStack(hists, sortByMax)
+        hists = extraHists + self.orderForStack(hists, sortByMax)
 
         # workaround for bizarre ROOT bug
         emptyHist = hists[0].empty_clone(title="___DONOTADDTOLEGEND") #Hist([e for e in hists[0]._edges(0)], title='___DONOTADDTOLEGEND') #
