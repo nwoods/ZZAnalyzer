@@ -38,6 +38,13 @@ sampleInfo["DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
     'group' : 'DYJets',
 }
 
+sampleInfo["DYSkim"] = sampleInfo["DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"].copy()
+sampleInfo["DYSkim"]['shortName'] = 'DYSkim'
+sampleInfo["DYSkim"]['prettyName'] = '\\text{qq} \\!\\!\\rightarrow\\!\\! \\text{Z}\\gamma^{*} \\text{(low } m_{Z_2} \\text{)}'
+sampleInfo["DYSkim"]['color'] = '#99ccff'
+del sampleInfo["DYSkim"]['group']
+#sampleInfo["DYSkim"]['group'] = 'qqZZ'
+
 sampleInfo["DYJetsToLL_M-10to50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8"] = {
     'xsec' : 18610., 
     'n' : 30535559,
@@ -160,6 +167,7 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'isSignal' : True,
     'color' : '#99ccff', #'skyblue',
     'kFactor' : 1.1, #1.074,
+#    'group' : 'qqZZ',
 }
 
 sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
@@ -230,4 +238,8 @@ sampleGroups['DYJets'] = {
     'color' : '#669966',
 }
 
-
+sampleGroups['qqZZ'] = {
+    'isSignal' : True,
+    'prettyName' : '\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
+    'color' : '#99ccff',
+}

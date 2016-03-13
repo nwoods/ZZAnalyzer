@@ -41,6 +41,7 @@ parser.add_argument('--printData', action='store_true', help='Print all signal e
 parser.add_argument('--print2P2F', action='store_true', help='Print all 2P2F events from data')
 parser.add_argument('--print3P1F', action='store_true', help='Print all 3P1F events from data')
 parser.add_argument('--eventsOnly', action='store_true', help='Just print the list(s) of events, don\'t calculate numbers')
+parser.add_argument('--dySkim', action='store_true', help='Include the low-mZ2 DY skim.')
 args = parser.parse_args()
 
 if args.smp:
@@ -58,13 +59,22 @@ if args.z4l:
 
 sampleID = ana
 
+mcSamples = {
+    'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
+    'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_3P1F/*.root'.format(sampleID),
+    'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_2P2F/*.root'.format(sampleID),
+    } 
+if args.dySkim:
+    mcSamples['mc'] += ',/data/nawoods/ntuples/zzNtuples_mc_dySkim_10feb2016_0/results_{0}/DYSkim_*.root'.format(sampleID)
+
+dataSamples = {
+    'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}/data*.root'.format(sampleID),
+    '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_3P1F/data*.root'.format(sampleID),
+    '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_2P2F/data*.root'.format(sampleID),
+    }
+
 plotter = NtuplePlotter('zz', './plots/counting_{0}_{1}'.format(date.today().strftime('%d%b%Y').lower(), ana),
-                        {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
-                         'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_3P1F/*.root'.format(sampleID),
-                         'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_2P2F/*.root'.format(sampleID),}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}/data*.root'.format(sampleID),
-                         '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_3P1F/data*.root'.format(sampleID),
-                         '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_2P2F/data*.root'.format(sampleID),}, 
+                        mcSamples, dataSamples,
                         intLumi=2619.)
 
 basicSelection = ''
