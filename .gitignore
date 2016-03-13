@@ -64,6 +64,7 @@ plots/*
 recipe/vpython
 data
 data/*
+plotting/ipynb
 
 # EMACS temporary files
 *#*
