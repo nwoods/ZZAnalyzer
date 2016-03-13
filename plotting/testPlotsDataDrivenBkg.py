@@ -425,6 +425,9 @@ for ana in analyses:
         'ze' : 'Z \\left(ee \\right)',
         'zm' : 'Z \\left(\\mu\\mu \\right)',
         }
+
+    if ana == 'z4l' or ana == 'full':
+        objects2l['z'] = '\\ell\\ell'
     
     for vbl, bins in binning2l.iteritems():
         
