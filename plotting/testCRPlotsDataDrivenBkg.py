@@ -94,6 +94,26 @@ for cr in crs:
                               drawRatio=False,
                               widthInYTitle=True,
                               )
+        
+        if channel == 'eemm':
+            plotters[cr].fullPlot('4lMassFSR_%s_eFake'%channel, channel, 
+                                  'MassDREtFSR', z2dRSels['eemm'][0], 
+                                  [20, 0., 800], 'mc', 'data', canvasX=1000, 
+                                  logy=False, xTitle="m_{2\\mu 2\\text{e}}", 
+                                  outFile='m4l%s_eFake.png'%chdir, 
+                                  mcWeights=mcWeight[channel],
+                                  drawRatio=False, widthInYTitle=True,
+                                  )
+            plotters[cr].fullPlot('4lMassFSR_%s_mFake'%channel, channel, 
+                                  'MassDREtFSR', z2dRSels['eemm'][1], 
+                                  [20, 0., 800], 'mc', 'data', canvasX=1000, 
+                                  logy=False, xTitle="m_{2\\text{e} 2\\mu}", 
+                                  outFile='m4l%s_mFake.png'%chdir, 
+                                  mcWeights=mcWeight[channel],
+                                  drawRatio=False, widthInYTitle=True,
+                                  )
+
+
         plotters[cr].fullPlot('z2dR_%s'%channel, z2dRChan[channel], z2dRVars[channel], 
                               z2dRSels[channel], [20, 0., 2.], 
                               'mc', 'data', canvasX=1000, logy=False, 
