@@ -47,11 +47,11 @@ parser.add_argument('input', type=str, nargs=1,
                     help='Comma separated (no spaces) list of sample locations. May contain wildcards. For a directory, all .root files will be processed.')
 parser.add_argument('channels', nargs='?', type=str, default='zz',
                     help='Comma separated (no spaces) list of channels, or keyword "zz" for eeee,mmmm,eemm')
-parser.add_argument('cutSet', nargs='?', type=str, default='HZZ4l2012',
+parser.add_argument('cutSet', nargs='?', type=str, default='BaseCuts2016',
                     help='Name of cut template.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
                     help='Directory to place output (defaults to $zza/results/<cutSet>).')
-parser.add_argument('resultType', type=str, nargs='?', default='ZZFinalHists',
+parser.add_argument('resultType', type=str, nargs='?', default='CopyNtuple',
                     help='Template for saving results')
 parser.add_argument('intLumi', type=float, nargs='?', default=10000,
                     help='Integrated luminosity for report in ouput text files. In pb^-1.')
