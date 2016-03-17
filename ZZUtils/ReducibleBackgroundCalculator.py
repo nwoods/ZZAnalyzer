@@ -57,7 +57,9 @@ class BkgManager(object):
 
 
     def compile(self):
-        ROOTComp.register_code(___FRCodeToCompile___, ['lepFakeFactor'])
+        ROOTComp.register_code(___FRCodeToCompile___, 
+                               ['lepFakeFactor',
+                                'lepFakeFactorAdditive'])
         
         # force system to compile code now
         arglebargle = getattr(ROOTComp, 'lepFakeFactor')
@@ -81,6 +83,23 @@ class BkgManager(object):
             )
         self.corStrTemp3P1F = self.corCondition.format(0.)
         self.corStrTemp2P2F = self.corCondition.format(-1.)
+
+        # To find 2P2F contribution to 3P1F region, we need F1+F2 instead of 
+        # F1*F2, so the 'identity' (for tight leptons) needs to be 0
+        self.singleLepWeightTempAdditive = ('(lepFakeFactorAdditive({f}, '
+                                            '{{0}}HZZTightID, '
+                                            '{{0}}HZZIsoPass))')
+
+        self.zTempsAdditive = {
+            lep : '(' + ('+'.join([
+                        self.singleLepWeightTempAdditive.format(
+                            f=self.fakeRateStrs[lep]
+                            ),
+                        self.singleLepWeightTempAdditive.format(
+                            f=self.fakeRateStrs[lep]
+                            ).format('{1}'),
+                        ])) + ')' for lep in ['e','m']
+            }
 
 
     def z1String3P1F(self, lep, correct=True):
@@ -148,6 +167,77 @@ class BkgManager(object):
             
         return '*'.join([self.z1String2P2F('m', correct),
                          self.z2String2P2F('m', correct)])
+
+    def z1String2P2FMigration(self, lep, correct=True):
+        '''
+        To find 2P2F contribution to 3P1F instead of SR.
+        '''
+        out = self.zTempsAdditive[lep]
+        # collinear correction as 3P1F
+        if correct:
+            out = '*'.join([out, self.corStrTemp3P1F])
+        return out.format(lep+'1', lep+'2')
+
+    def z2String2P2FMigration(self, lep, correct=True):
+        '''
+        To find 2P2F contribution to 3P1F instead of SR.
+        '''
+        out = self.zTempsAdditive[lep]
+        # collinear correction as 3P1F
+        if correct:
+            out = '*'.join([out, self.corStrTemp3P1F])
+        return out.format(lep+'3', lep+'4')
+
+    def fullString2P2FMigration(self, channel, correct=True):
+        '''
+        To find 2P2F contribution to 3P1F instead of SR.
+        '''
+        if channel == 'zz':
+            return [self.fullString2P2FMigration(c, correct) for c in ['eeee',
+                                                                       'eemm',
+                                                                       'mmmm']
+                    ]
+            
+        if isinstance(channel, list):
+            return [self.fullString2P2FMigration(c, correct) for c in channel]
+
+        if channel == 'eeee':
+            return '(' + ('+'.join([self.z1String2P2FMigration('e', correct),
+                                    self.z2String2P2FMigration('e', correct)])
+                          ) + ')'
+            
+        if channel == 'eemm':
+            return '(' + ('+'.join([self.z1String2P2FMigration('e', correct),
+                                    self.z1String2P2FMigration('m', correct)])
+                          ) + ')'
+            
+        return '(' + ('*'.join([self.z1String2P2FMigration('m', correct),
+                                self.z2String2P2FMigration('m', correct)])
+                      ) + ')'
+
+
+
+___FRCodeToCompile___ = '''
+double lepFakeFactor(double f, double passID, double passIso)
+{
+  if((passID + passIso) > 1.5) 
+    return 1.;
+
+  double out = f / (1. - f);
+  return out;
+}
+
+// To find the 2P2F contribution to the 3P1F region, we want (F1+F2)
+// instead of (F1*F2), so the "identity" (for passing leptons) becomes 0
+double lepFakeFactorAdditive(double f, double passID, double passIso)
+{
+  if((passID + passIso) > 1.5) 
+    return 0.;
+
+  double out = f / (1. - f);
+  return out;
+}
+'''
 
 
 class BkgManagerFactorized(object):
@@ -289,20 +379,6 @@ class BkgManagerFactorized(object):
         return '*'.join([self.z1String2P2F('m', correct),
                          self.z2String2P2F('m', correct)])
 
-
-
-___FRCodeToCompile___ = '''
-#include <iostream>
-
-double lepFakeFactor(double f, double passID, double passIso)
-{
-  if((passID + passIso) > 1.5) 
-    return 1.;
-
-  double out = f / (1. - f);
-  return out;
-}
-'''
 
 
 ___FRCodeToCompileFactorized___ = '''

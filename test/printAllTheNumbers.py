@@ -143,6 +143,19 @@ cr2PScale = {
 
 cr2PScale['zz'] = [cr2PScale[c] for c in ['eeee','eemm','mmmm']]
 
+cr2PMigrationScale = {
+    ch : bkg.fullString2P2FMigration(ch) for ch in ['eeee','eemm','mmmm']
+}
+
+# print cr2PScale['eeee']
+# print ''
+# print cr2PMigrationScale['eeee']
+# exit()
+
+cr2PMigrationScale['zz'] = [cr2PMigrationScale[c] for c in ['eeee',
+                                                            'eemm',
+                                                            'mmmm']]
+
 
 # samples to subtract off of CRs based on MC
 subtractSamples = []
@@ -171,10 +184,16 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
 
     cr3PScaleMC = {c:'*'.join([mcWeight[c], cr3PScale[c]]) for c in mcWeight}
     cr2PScaleMC = {c:'*'.join([mcWeight[c], cr2PScale[c]]) for c in mcWeight}
+    cr2PMigrationScaleMC = {c:'*'.join([mcWeight[c], 
+                                        cr2PMigrationScale[c]])
+                            for c in mcWeight}
                  
     mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
     cr3PScaleMC['zz'] = [cr3PScaleMC[c] for c in ['eeee','eemm','mmmm']]
     cr2PScaleMC['zz'] = [cr2PScaleMC[c] for c in ['eeee','eemm','mmmm']]
+    cr2PMigrationScaleMC['zz'] = [cr2PMigrationScaleMC[c] for c in ['eeee',
+                                                                    'eemm',
+                                                                    'mmmm']]
 
     print ''
     if scaleSet[0]:
@@ -186,6 +205,7 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
     else:
         print "MEAN VALUE:"
                  
+    checkMigration = not any(scaleSet)
 
     bins=[1,0.,2.]
     for channel in ['zz', 'eeee', 'eemm', 'mmmm']:
@@ -198,12 +218,22 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
                                   bins, weights=cr2PScale[channel], 
                                   perUnitWidth=False, nameForLegend='Z+X (From Data)',
                                   isBackground=True)
+        
         cr3P1F.sumw2()
         cr2P2F.sumw2()
 
         # print '\n', channel, ":" 
         # print "    Init:"
         # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
+
+        if checkMigration:
+            cr2P2FMigration = plotter.makeHist('2P2F', '2P2F', channel, '1.', 
+                                               basicSelection, bins, 
+                                               weights=cr2PMigrationScale[channel],
+                                               perUnitWidth=False, 
+                                               nameForLegend='Z+X (From Data)',
+                                               isBackground=True)
+            cr2P2FMigration.sumw2()
 
         for ss in subtractSamples:
             sub3P = plotter.makeHist("mc3P1F", ss, channel,
@@ -216,6 +246,14 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
                                      weights=cr2PScaleMC[channel],
                                      perUnitWidth=False)
             cr2P2F -= sub2P
+
+            if checkMigration:
+                sub2PMigration = plotter.makeHist("mc2P2F", ss, channel,
+                                                  '1.', basicSelection, bins,
+                                                  weights=cr2PMigrationScaleMC[channel],
+                                                  perUnitWidth=False)
+                cr2P2FMigration -= sub2PMigration
+                cr2P2FMigration.sumw2()
 
             cr3P1F.sumw2()
             cr2P2F.sumw2()
@@ -235,6 +273,13 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         cr3P1F.sumw2()
         cr2P2F.sumw2()
             
+        if checkMigration:
+            for b2P, bMig in zip(cr2P2F, cr2P2FMigration):
+                if b2P.value > bMig.value:
+                    bMig.value = b2P.value
+            
+            cr2P2FMigration.sumw2()
+
         # print "    Negatives zeroed:"
         # print "        3P1F: %f  2P2F: %f"%(cr3P1F.Integral(), cr2P2F.Integral())
 
@@ -257,7 +302,14 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         expectedErrorBkgUp = bkgPoisson.GetErrorYhigh(0)
         expectedErrorBkgDown = bkgPoisson.GetErrorYlow(0)
 
-        plotter.fullPlot('count_%s_ID%s_Iso%s_PU%s'%(channel,scaleSet[0], scaleSet[1], scaleSet[2]), 
+        if checkMigration:
+            expectedError2P2FMigration = Double(0)
+            integral2P2FMigration = cr2P2FMigration.IntegralAndError(0, cr2P2FMigration.GetNbinsX(), expectedError2P2FMigration)
+            expectedMigration = integral2P2FMigration - integral2P2F
+            expectedErrorMigration = sqrt(expectedError2P2FMigration**2. + expectedError2P2F**2)
+
+        plotter.fullPlot('count_%s_ID%s_Iso%s_PU%s'%(channel,scaleSet[0], 
+                                                     scaleSet[1], scaleSet[2]),
                          channel, '1.', basicSelection, 
                          bins, 'mc', 'data', canvasX=1000, logy=False, 
                          xTitle="one", 
@@ -275,6 +327,12 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
         integralTot = expectedTotal.IntegralAndError(0,expectedTotal.GetNbinsX(), expectedError)
         integralSig = integralTot - integralBkg
         print "    %4s:"%channel
+
+        if checkMigration:
+            print "        2P2F migration to 3P1F: %f +/- %f"%(expectedMigration,
+                                                               expectedErrorMigration)
+            print ''
+
         print "        Tot  : %f +/- %f"%(integralTot, expectedError)
         print "        SR   : %f +/- %f"%(integralSig, sqrt(expectedError**2 - expectedErrorBkg**2))
 
@@ -284,9 +342,13 @@ for scaleSet in [['', '', ''], # [id, iso, PU]
             fracChange = (integralSig - central[channel]) / central[channel]
             print "            SR scale effect: {0:.3f}".format(fracChange)
 
-        print "        Bkg  : %f +/- %f (+%f / -%f)"%(integralBkg, expectedErrorBkg, expectedErrorBkgUp, expectedErrorBkgDown)
+        print "        Bkg  : %f +/- %f (+%f / -%f)"%(integralBkg, 
+                                                      expectedErrorBkg, 
+                                                      expectedErrorBkgUp, 
+                                                      expectedErrorBkgDown)
         print "        3P1F : %f +/- %f"%(integral3P1F, expectedError3P1F)
         print "        2P2F : %f +/- %f"%(integral2P2F, expectedError2P2F)
+                                                           
 
         for h in mcStack:
             try:
