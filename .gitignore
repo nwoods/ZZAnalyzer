@@ -56,7 +56,6 @@ docs/_build/
 *.root
 
 *.txt
-__init__.py
 
 plots
 plots/*
@@ -64,7 +63,7 @@ plots/*
 recipe/vpython
 data
 data/*
-plotting/ipynb
+ipynb
 
 # EMACS temporary files
 *#*
