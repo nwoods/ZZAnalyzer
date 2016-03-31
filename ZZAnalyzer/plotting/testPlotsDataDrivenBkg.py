@@ -14,6 +14,7 @@ from rootpy import log as rlog; rlog = rlog["/testPlotsDataDrivenBkg"]
 logging.basicConfig(level=logging.WARNING)
 rlog["/ROOT.TH1F.Add"].setLevel(rlog.ERROR)
 rlog["/rootpy.compiled"].setLevel(rlog.WARNING)
+rlog["/ROOT.TClassTable.Add"].setLevel(rlog.ERROR)
 
 
 from NtuplePlotter import NtuplePlotter
@@ -21,6 +22,7 @@ from ZZAnalyzer.utils.helpers import Z_MASS
 from ZZAnalyzer.utils import WeightStringMaker, TPFunctionManager, BkgManager
 
 from rootpy.io import root_open
+from rootpy.ROOT import R
 
 import os
 from datetime import date
@@ -34,6 +36,8 @@ parser.add_argument('--smp', action='store_true', help='SMP ZZ plots')
 parser.add_argument('--hzz', action='store_true', help='HZZ plots')
 parser.add_argument('--full', action='store_true', help='Full 4l spectrum plots')
 parser.add_argument('--z4l', action='store_true', help='SMP Z->4l plots')
+parser.add_argument('--massFit', type=str, nargs='?',
+                    help='Root file with workspace containting data and pdf for Z4l mass fit')
 parser.add_argument('--test', action='store_true', help='Make just one plot as a test.')
 parser.add_argument('--goldv2', action='store_true', help='Use JSON from December 2015.')
 parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding')
@@ -329,8 +333,26 @@ for ana in analyses:
 
             if ana == 'z4l' and varName == 'MassDREtFSR':
                 legParams = {'leftmargin' : 0.1, 'rightmargin' : 0.45}
+
+                if args.massFit:
+                    from rootpy.stats import mute_roostats
+                    mute_roostats()
+
+                    fFit = root_open(args.massFit)
+                    w = fFit.Get("w") # RooFit workspace
+                    nbins = int(20 / ((bins[2] - bins[1])/bins[0]))
+                    fitFrame = w.var("MassDREtFSR").frame(80., 100., nbins)
+                    w.data("data").plotOn(fitFrame)
+                    w.pdf('pdf').plotOn(fitFrame, R.RooFit.Range(80.,100.))
+                    fit = fitFrame.getObject(1)
+                    fit.SetTitle("\\text{Mass Fit}")
+                    fit.legendstyle = "L"
+                    extraObjects = [fit]
+                else:
+                    extraObjects = []
             else:
                 legParams = {}
+                extraObjects = []
 
             plotter.fullPlot('4l%s%s'%(varName,chEnding), channel, var, constSelection, 
                              bins, 'mc', 'data', canvasX=1000, logy=False, 
@@ -342,7 +364,8 @@ for ana in analyses:
                              mcSystFracUp=stackSystUp[channel],
                              mcSystFracDown=stackSystDown[channel],
                              blinding=blinding,
-                             legParams=legParams)
+                             legParams=legParams,
+                             extraObjects=extraObjects)
 
             if args.test:
                 exit()
