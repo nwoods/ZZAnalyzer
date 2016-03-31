@@ -585,8 +585,8 @@ class NtuplePlotter(object):
             #                          "legend."%obj.__name__)
 
             if legendStyle:
-                obj.legendStyle = legendStyle
-            else:
+                obj.legendstyle = legendStyle
+            elif not hasattr(obj, 'legendstyle'):
                 if obj.getIsData() and obj.getIsSignal():
                     obj.legendstyle = "LPE"
                 else:
@@ -750,6 +750,7 @@ class NtuplePlotter(object):
                 #     if titleY:
                 #         obj.yaxis.title = titleY
                 #     yaxis = obj.yaxis
+
                 obj.Draw(auxDrawOpt)
                 auxDrawOpt = "SAME"
 
@@ -926,6 +927,10 @@ class NtuplePlotter(object):
             }
         if len(binning) == 3 or (len(binning) == 1 and isinstance(binning[0], Sequence)):
             h = self.WrappedHist(*binning, **histKWArgs)
+            if self.isData(category) and isSignal:
+                h.legendstyle = 'LPE'
+            else:
+                h.legendstyle = "F"
         else:
             h = self.WrappedHist(binning, **histKWArgs)
 
@@ -997,6 +1002,7 @@ class NtuplePlotter(object):
         h.fillstyle = 'solid'
         h.fillcolor = sampleGroups[group]['color']
         h.linecolor = 'black'
+        h.legendstyle = "F"
 
         return h
 
@@ -1401,7 +1407,7 @@ class NtuplePlotter(object):
                  mcWeights='GenWeight', drawOpts={}, drawRatio=True,
                  legSolid=False, widthInYTitle=False,
                  mcSystFracUp=0., mcSystFracDown=0.,
-                 blinding=[]):
+                 blinding=[], extraObjects=[]):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
         extraBkgs may be a list of other background histograms (e.g. a data-
@@ -1424,6 +1430,11 @@ class NtuplePlotter(object):
             # add data/MC ratio plot
             if drawRatio:
                 self.drawings[name].addRatio(h, s, yTitle="Data / MC")
+
+        if not hasattr(extraObjects, '__iter__'): # non-string iterable
+            extraObjects = [extraObjects]
+        for ob in extraObjects:
+            self.drawings[name].addObject(ob, hasattr(ob, "legendstyle"))
 
         if outFile:
             self.drawings[name].draw(drawOpts, self.outdir+outFile, drawNow, 
