@@ -41,6 +41,9 @@ parser.add_argument('--massFit', type=str, nargs='?',
 parser.add_argument('--test', action='store_true', help='Make just one plot as a test.')
 parser.add_argument('--goldv2', action='store_true', help='Use JSON from December 2015.')
 parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding')
+parser.add_argument('--smooth', action='store_true', help='Smooth reducible background histogram')
+parser.add_argument('--pas', action='store_true', help='Only make plots used in the PAS')
+parser.add_argument('--an', action='store_true', help='Only make plots used in the analysis note')
 args = parser.parse_args()
 
 analyses = []
@@ -59,6 +62,9 @@ if args.full:
     analyses.append('full')
 if args.z4l:
     analyses.append('z4l')
+
+if args.an and args.pas:
+    args.pas = False
 
 noBKG = False #True
 
@@ -225,6 +231,10 @@ for ana in analyses:
     if args.goldv2:
         binning4l['MassDREtFSR'] = [20, 0., 800.]
     
+    if args.pas or args.an:
+        del binning4l['EtaDREtFSR']
+        del binning4l['PtDREtFSR']
+
     vars4l = {v:v for v in binning4l}
     
     xTitle4l = {
@@ -301,6 +311,10 @@ for ana in analyses:
                     cr3P1F.sumw2()
                     cr2P2F.sumw2()
         
+                if args.smooth:
+                    cr2P2F.Smooth(2)
+                    cr3P1F.Smooth(2)
+    
                 for b3P, b2P in zip(cr3P1F, cr2P2F):
                     if b3P.value <= 0 or b2P.value > b3P.value:
                         b3P.value = 0.
@@ -323,7 +337,7 @@ for ana in analyses:
                 # break
         
                 cr3P1F.sumw2()
-    
+
                 extraBkgs = [cr3P1F]
     
             if args.blind and ana != 'smp' and 'Mass' in var:
@@ -384,6 +398,11 @@ for ana in analyses:
     elif ana == 'z4l':
         binning2l['MassDREtFSR#1'] = [30, 60., 120.]
         binning2l['MassDREtFSR#2'] = [40, 0., 40.]
+
+    if args.an or args.pas:
+        for v in binning2l.keys():
+            if 'Mass' not in v:
+                del binning2l[v]
     
     xTitles2l = {
         'Mass' : 'm_{%s}',
@@ -404,6 +423,11 @@ for ana in analyses:
         'ze' : ['eeee', 'eeee', 'eemm'],
         'zm' : ['eemm', 'mmmm', 'mmmm'],
         }
+
+    if args.pas:
+        for zee in channels2l.keys():
+            if 'e' in zee or 'm' in zee:
+                del channels2l[zee]
     
     selections2l = {
         'z' : '',
@@ -437,7 +461,7 @@ for ana in analyses:
         }
     
     objects2l = {
-        'z' : 'Z',
+        'z' : '\\ell\\ell',
         'z1' : 'Z_{1}',
         'z2' : 'Z_{2}',
         'z1e' : 'Z_{1} \\left(ee \\right)',
@@ -448,9 +472,6 @@ for ana in analyses:
         'zm' : 'Z \\left(\\mu\\mu \\right)',
         }
 
-    if ana == 'z4l' or ana == 'full':
-        objects2l['z'] = '\\ell\\ell'
-    
     for vbl, bins in binning2l.iteritems():
         
         print "    Plotting Z {}".format(vbl)
@@ -497,7 +518,30 @@ for ana in analyses:
                                              weights=[cr2PScaleMC[c] for c in channels],
                                              perUnitWidth=False)
                     cr2P2F -= sub2P
-        
+                
+                if args.smooth:
+                    cr3P1F.Smooth(1)
+                    cr2P2F.Smooth(1)
+                    
+                    if 'Mass' in var:
+                        mMax = 120.
+                        if ana == 'smp':
+                            mMin = 60.
+                        elif '1' in z:
+                            mMin = 40.
+                        else:
+                            mMin = 4.
+
+                        for i in range(1,cr3P1F.nbins()+1):
+                            if cr3P1F.GetBinLowEdge(i) >= mMax:
+                                cr3P1F[i].value = 0
+                            if cr3P1F.GetBinLowEdge(i) + cr3P1F.GetBinWidth(i) <= mMin:
+                                cr3P1F[i].value = 0
+                            if cr2P2F.GetBinLowEdge(i) >= mMax:
+                                cr2P2F[i].value = 0
+                            if cr2P2F.GetBinLowEdge(i) + cr2P2F.GetBinWidth(i) <= mMin:
+                                cr2P2F[i].value = 0
+                    
                 cr3P1F.sumw2()
                 cr2P2F.sumw2()
                     
@@ -524,12 +568,19 @@ for ana in analyses:
             else:
                 legParams = {}
 
+            if '1' in z or '2' in z:
+                yAxisTitle = 'Events'
+            elif ana == 'smp':
+                yAxisTitle = 'Z candidates'
+            else:
+                yAxisTitle = "Dilepton candidates" 
+
             plotter.fullPlot('%s%s'%(z, var), channels, variables, 
                              selections2l[z], 
                              bins, 'mc', 'data', canvasX=1000, logy=False, 
                              xTitle=xTitles2l[var]%objects2l[z],
                              xUnits=units[var],
-                             yTitle="Z Bosons" if z=='z' else 'Events',
+                             yTitle=yAxisTitle,
                              extraBkgs=extraBkgs, outFile='%s%s.png'%(z,var), 
                              mcWeights=[mcWeight[c] for c in channels], 
                              drawRatio=False,
@@ -547,6 +598,9 @@ for ana in analyses:
         # 'PVDXY' : [10, -.5, .5],
         # 'PVDZ' : [10, -1., 1.],
         }
+
+    if args.pas:
+        binning1l = {}
     
     vars1l = {
         'Pt' : {lep:'Pt' for lep in ['e', 'm']},
