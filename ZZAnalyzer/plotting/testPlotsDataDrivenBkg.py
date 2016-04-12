@@ -44,6 +44,17 @@ parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding')
 parser.add_argument('--smooth', action='store_true', help='Smooth reducible background histogram')
 parser.add_argument('--pas', action='store_true', help='Only make plots used in the PAS')
 parser.add_argument('--an', action='store_true', help='Only make plots used in the analysis note')
+parser.add_argument('--link', action='store_true', 
+                    help='Make the latest plots directory link to these plots')
+parser.add_argument('--tpVersion', type=str, nargs='?', default='v2.0-13-g36fc26c',
+                    help='Version hash for desired scale factors')
+parser.add_argument('--bkgVersion', type=str, nargs='?', default='01mar2016',
+                    help='Version for desired fake rates')
+parser.add_argument('--puVersion', type=str, nargs='?', default='29Feb2016',
+                    help='Version for desired pileup scale factors')
+parser.add_argument('--ntupleVersion', type=str, nargs='?', default='26jan2016_0',
+                    help='Version for desired ntuples')
+
 args = parser.parse_args()
 
 analyses = []
@@ -69,7 +80,7 @@ if args.an and args.pas:
 noBKG = False #True
 
 # lots of prep things
-tpVersionHash = 'v2.0-13-g36fc26c' #'v2.0-11-gafcf7cc' #'v1.1-4-ga295b14-extended'
+tpVersionHash = args.tpVersion #'v2.0-11-gafcf7cc' #'v1.1-4-ga295b14-extended'
 
 TP = TPFunctionManager(tpVersionHash)
 
@@ -80,7 +91,8 @@ z2mMCWeight = '*'.join(TP.getTPString('m%d'%nm, 'TightID')+'*'+TP.getTPString('m
 
 wts = WeightStringMaker('puWeight')
 
-fPUScale = root_open(os.path.join(os.environ['zza'],'ZZAnalyzer','data/pileupReweighting/PUScaleFactors_29Feb2016.root'))
+fPUScale = root_open(os.path.join(os.environ['zza'],'ZZAnalyzer',
+                                  'data/pileupReweighting/PUScaleFactors_{}.root'.format(args.puVersion)))
 puScaleFactorHist = fPUScale.Get("puScaleFactor")
 puScaleFactorStr = wts.makeWeightStringFromHist(puScaleFactorHist, 'nTruePU')
 
@@ -92,7 +104,7 @@ mcWeight = {
 
 mcWeight['zz'] = [mcWeight['eeee'], mcWeight['eemm'], mcWeight['mmmm']]
 
-bkg = BkgManager('01mar2016')
+bkg = BkgManager(args.bkgVersion)
 
 cr3PScale = {
     ch : bkg.fullString3P1F(ch) for ch in ['eeee','eemm','mmmm']
@@ -145,37 +157,41 @@ for ana in analyses:
     outdir = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC2015_{0}_{1}{2}'.format(date.today().strftime('%d%b%Y').lower(),
                                                                                              ('goldv2' if args.goldv2 else ana),
                                                                                              ('_noBKG' if noBKG else ''))
-    link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_{}_latest'.format('goldv2' if args.goldv2 else ana)
-    print "Putting plots in {}".format(link)
-    
+
+    if args.link:
+        link = '/afs/cern.ch/user/n/nawoods/www/ZZPlots/dataBkgMC_{}_latest'.format('goldv2' if args.goldv2 else ana)
+        print "Putting plots in {}".format(link)
+    else:
+        print "Putting plots in {}".format(outdir)
     sampleID = ana
     if ana == 'z4l':
         sampleID = 'full'
 
     js = 'goldv2' if args.goldv2 else 'silver'
-    latest = '14feb2016_0' if args.goldv2 else '26jan2016_0'
+    ntupleVersion = args.ntupleVersion
 
     plotter = NtuplePlotter('zz', outdir, 
                             {'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
-                             'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_3P1F/*.root'.format(sampleID),
-                             'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_2P2F/*.root'.format(sampleID),}, 
+                             'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_{1}/results_{0}_3P1F/*.root'.format(sampleID, ntupleVersion),
+                             'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_{1}/results_{0}_2P2F/*.root'.format(sampleID, ntupleVersion),}, 
                             {'data':'/data/nawoods/ntuples/zzNtuples_data_2015{1}_{2}/results_{0}/data*.root'.format(sampleID,
                                                                                                                      js,
-                                                                                                                     latest),
+                                                                                                                     ntupleVersion),
                              '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015{1}_{2}/results_{0}_3P1F/data*.root'.format(sampleID,
                                                                                                                           js,
-                                                                                                                          latest),
+                                                                                                                          ntupleVersion),
                              '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015{1}_{2}/results_{0}_2P2F/data*.root'.format(sampleID,
                                                                                                                           js,
-                                                                                                                          latest),
+                                                                                                                          ntupleVersion),
                              }, 
                             intLumi=(1340. if args.goldv2 else 2619.))
     
-    try:
-        os.unlink(link)
-    except:
-        pass    
-    os.symlink(outdir, link)
+    if args.link:
+        try:
+            os.unlink(link)
+        except:
+            pass    
+        os.symlink(outdir, link)
 
     # systematics
     if ana == 'smp':
