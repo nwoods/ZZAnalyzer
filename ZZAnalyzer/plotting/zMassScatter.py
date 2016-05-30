@@ -96,7 +96,7 @@ for ana in ['full', 'z4l']:
                  header='\\text{     Data}', entrysep=0.01,
                  entryheight=0.04)
     leg.Draw("same")
-    plotter.style.setCMSStyle(c, "", True, "Preliminary", 13, plotter.intLumi)
+    plotter.style.setCMSStyle(c, "", True, "", 13, plotter.intLumi)
     
     c.Print('~/www/ZZPlots/mZ2VsmZ1_{}.png'.format(ana))
     
