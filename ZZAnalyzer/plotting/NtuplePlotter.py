@@ -765,7 +765,7 @@ class NtuplePlotter(object):
                  intLumi=40.03, simOnly=False, perUnitWidth=True,
                  legSolid=False, widthInYTitle=False,
                  mcSystFracUp=0., mcSystFracDown=0.,
-                 blinding=[]):
+                 blinding=[], plotType="Preliminary"):
             '''
             opts (dict): passed directly to rootpy.plotting.utils.draw
             outFile (str): location to save plot (not saved if empty str)
@@ -783,6 +783,8 @@ class NtuplePlotter(object):
                                  fraction (i.e. 0.1 for 10%)
             blinding (list of length-2 iterables): Blind on this list of 
                                                    (xMin, xMax)
+            plotType (str): Plots will have "CMS <this argument>" on them
+                            (defaults to "Preliminary")
             '''
             if drawNow and gROOT.IsBatch():
                 gROOT.SetBatch(kFALSE)
@@ -802,10 +804,6 @@ class NtuplePlotter(object):
                 for pad in self.pads:
                     pad.Draw()
                 self.fixPadAxes()
-
-            plotType = "Preliminary"
-            if simOnly:
-                plotType = "%s Simulation"%plotType
 
             self.style.setCMSStyle(self.c, "", True, plotType, 13, intLumi)
             if drawNow:
@@ -1407,7 +1405,7 @@ class NtuplePlotter(object):
                  mcWeights='GenWeight', drawOpts={}, drawRatio=True,
                  legSolid=False, widthInYTitle=False,
                  mcSystFracUp=0., mcSystFracDown=0.,
-                 blinding=[], extraObjects=[]):
+                 blinding=[], extraObjects=[], plotType="Preliminary"):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
         extraBkgs may be a list of other background histograms (e.g. a data-
@@ -1444,7 +1442,7 @@ class NtuplePlotter(object):
                                      widthInYTitle=widthInYTitle,
                                      mcSystFracUp=mcSystFracUp, 
                                      mcSystFracDown=mcSystFracDown,
-                                     blinding=blinding)
+                                     blinding=blinding, plotType=plotType)
 
 
     def makeEfficiency(self, category, sample, channels, variables, 

@@ -44,6 +44,8 @@ parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding')
 parser.add_argument('--smooth', action='store_true', help='Smooth reducible background histogram')
 parser.add_argument('--pas', action='store_true', help='Only make plots used in the PAS')
 parser.add_argument('--an', action='store_true', help='Only make plots used in the analysis note')
+parser.add_argument('--paper', action='store_true', 
+                    help='Only make plots used in the paper, and don\'t label them "preliminary"')
 parser.add_argument('--link', action='store_true', 
                     help='Make the latest plots directory link to these plots')
 parser.add_argument('--tpVersion', type=str, nargs='?', default='v2.0-13-g36fc26c',
@@ -74,8 +76,17 @@ if args.full:
 if args.z4l:
     analyses.append('z4l')
 
-if args.an and args.pas:
-    args.pas = False
+if args.paper:
+    args.pas = True
+    plotType = ""
+else:
+    plotType = "Preliminary"
+
+if args.an:
+    if args.paper:
+        print "WARNING: argument --paper ignored. Remove --an to make paper-formatted plots."
+    if args.pas:
+        args.pas = False
 
 noBKG = False #True
 
@@ -395,7 +406,8 @@ for ana in analyses:
                              mcSystFracDown=stackSystDown[channel],
                              blinding=blinding,
                              legParams=legParams,
-                             extraObjects=extraObjects)
+                             extraObjects=extraObjects,
+                             plotType=plotType)
 
             if args.test:
                 exit()
@@ -603,7 +615,8 @@ for ana in analyses:
                              widthInYTitle=bool(units[var]),
                              mcSystFracUp=stackSystUp[channel],
                              mcSystFracDown=stackSystDown[channel],
-                             legParams=legParams)
+                             legParams=legParams,
+                             plotType=plotType)
     
     
     binning1l = {
@@ -722,7 +735,8 @@ for ana in analyses:
                              drawRatio=False,
                              widthInYTitle=bool(units[var]),
                              mcSystFracUp=stackSystUp[channel],
-                             mcSystFracDown=stackSystDown[channel])
+                             mcSystFracDown=stackSystDown[channel],
+                             plotType=plotType)
     
     
     
