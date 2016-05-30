@@ -51,7 +51,8 @@ def CMS_lumi(pad,  iPeriod,  iPosX ):
     b = pad.GetBottomMargin()
     e = 0.025
 
-    pad.cd()
+    if pad != rt.TVirtualPad.Pad():
+        pad.cd()
 
     lumiText = ""
     if( iPeriod==1 ):
@@ -105,7 +106,8 @@ def CMS_lumi(pad,  iPeriod,  iPosX ):
         latex.SetTextSize(cmsTextSize*t)    
         latex.DrawLatex(l,1-t+lumiTextOffset*t,cmsText)
   
-    pad.cd()
+    if pad != rt.TVirtualPad.Pad():
+        pad.cd()
 
     posX_ = 0
     if( iPosX%10<=1 ):
