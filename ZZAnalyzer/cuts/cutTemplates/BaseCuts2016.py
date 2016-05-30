@@ -289,10 +289,22 @@ class BaseCuts2016(Cutter):
                 },
                 'objects' : 2, # only need to test leptons 1 and 3 in FSA ordering
                 'logic' : 'objor',
-            },                    
-            'LeptonPairPt' : {
+            },
+            'eLepton2Pt' : {
                 'cuts' : {
                     'Pt' : (10., '>='),
+                },
+                'objects' : 1,
+            },
+            'mLepton2Pt' : {
+                'cuts' : {
+                    'Pt' : (10., '>='),
+                },
+                'objects' : 1,
+            },
+            'LeptonPairPt' : {
+                'cuts' : {
+                    'Pt' : 'TYPELepton2Pt',
                 },
                 'objects' : 2,
                 'logic' : 'objand',
