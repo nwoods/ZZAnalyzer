@@ -6,7 +6,7 @@ Author: Nate Woods, U. Wisconsin
 
 '''
 
-from ROOT import gROOT, gStyle, kBlack, kTRUE, TGaxis, TH1, TPad, THStack, TLatex
+from ROOT import gROOT, gStyle, kBlack, kTRUE, TGaxis, TH1, TH2, TPad, THStack, TLatex
 
 import tdrstyle, CMS_lumi
 
@@ -70,6 +70,9 @@ class PlotStyle(object):
         '''
         # Make sure that if there's an exponent on the X axis, it's visible but not on top of the axis title
         self.fixXExponent(canvas)
+
+        # Make sure that temperature plot scales don't run off the right side
+        self.fixZScale(canvas)
         
         # Put "Preliminary" or similar on the plots
         if dataType:
@@ -153,6 +156,22 @@ class PlotStyle(object):
                     axis.CenterTitle()
             if obj.InheritsFrom(TPad.Class()):
                 self.fixXExponent(obj)
+
+
+    def fixZScale(self,canvas):
+        '''
+        Temperature plot scales may run off the right side of the canvas. Fix 
+        that if applicable
+        '''
+        for obj in canvas.GetListOfPrimitives():
+            if obj.InheritsFrom(TH2.Class()):
+                scale = obj.GetListOfFunctions().FindObject("palette")
+                if scale:
+                    if canvas.GetRightMargin() < 0.075:
+                        canvas.SetRightMargin(0.075)
+                    scale.SetX1(1.005)
+                    scale.SetX2(1.035)
+                    canvas.Update()
 
 
 
