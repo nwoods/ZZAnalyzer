@@ -2,16 +2,21 @@
 
 Metadata needed for plotting samples relevant to 4l
 
-Preferred sample name format is datasetFromDAS_campaign_PUbxScenario[_dataTier if important -- probably won't be]
-
 Info items (key):
-    Cross section (xsec)
-    Number of events in original dataset before ntuplization (n)
-    Boolean for data (true) or Monte Carlo (isData)
-    Boolean for whether the sample is signal or background (isSignal)
-    Short name for sample (shortName)
-    TeX formatted name for plot legends, etc. (prettyName)
-    ROOT color for plotting (color)
+    xsec: Cross section (pb)
+    sumW: Sum of MC weights for dataset (used as fallback if it can't be
+        determined from the file)
+    n: Number of events in original dataset before ntuplization (used as 
+        fallback if sum of weights can't be found)
+    isData: Boolean for data (True) or Monte Carlo
+    isSignal: Boolean for whether the sample is signal or background (changes
+        stacking order)
+    shortName: Short name for sample
+    prettyName: TeX formatted name for plot legends, etc.
+    color: color for plotting. May be any color type supported by rootpy
+    kFactor: scale factor for higher order cross section
+    group: samples in the same group are plotted together. Groups are defined
+        at the bottom of this file
 
 Author: Nate Woods, U. Wisconsin
 
@@ -211,6 +216,36 @@ sampleInfo['ZZZ_TuneCUETP8M1_13TeV-amcatnlo-pythia8'] = {
     'group' : 'VVV',
 }
 
+sampleInfo['ZZTo4E_doubleres_powheg_pythia8'] = {
+    'xsec' : 0.057643,
+    'isData' : False,
+    'isSignal' : True,
+    'shortName' : 'doubleres4e',
+    'prettyName' : '\\text{Double Resonant ZZ} \\!\\! \\rightarrow \\!\\! 4\\text{e}',
+    'color' : 'gray',
+    'group' : 'doubleres',
+}
+
+sampleInfo['ZZTo2E2Mu_doubleres_powheg_pythia8'] = {
+    'xsec' : 0.1491,
+    'isData' : False,
+    'isSignal' : True,
+    'shortName' : 'doubleres2e2mu',
+    'prettyName' : '\\text{Double Resonant ZZ} \\!\\! \\rightarrow \\!\\! 2\\text{e}2\\mu',
+    'color' : 'gray',
+    'group' : 'doubleres',
+}
+
+sampleInfo['ZZTo4Mu_doubleres_powheg_pythia8'] = {
+    'xsec' : 0.057643,
+    'isData' : False,
+    'isSignal' : True,
+    'shortName' : 'doubleres4mu',
+    'prettyName' : '\\text{Double Resonant ZZ} \\!\\! \\rightarrow \\!\\! 4\\mu',
+    'color' : 'gray',
+    'group' : 'doubleres',
+}
+
 
 sampleGroups = {}
 
@@ -243,3 +278,10 @@ sampleGroups['qqZZ'] = {
     'prettyName' : '\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
     'color' : '#99ccff',
 }
+
+sampleGroups['doubleres'] = {
+    'isSignal' : True,
+    'prettyName' : '\\text{Double Resonant}',
+    'color' : 'gray',
+}
+
