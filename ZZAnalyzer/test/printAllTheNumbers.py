@@ -57,21 +57,25 @@ if args.z4l:
 
 sampleID = ana
 
+ntupleSet = '26jan2016_0'
+ntupleSet3P1F = '26jan2016_0'
+ntupleSet2P2F = '26jan2016_0'
+
 mcSamples = {
-    'mc':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}/GluGlu*.root'.format(sampleID),
-    'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_3P1F/*.root'.format(sampleID),
-    'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/results_{0}_2P2F/*.root'.format(sampleID),
+    'mc':'/data/nawoods/ntuples/zzNtuples_mc_{1}/results_{0}/ZZTo4L_13TeV_*.root,/data/nawoods/ntuples/zzNtuples_mc_{1}/results_{0}/GluGlu*.root'.format(sampleID, ntupleSet),
+    'mc3P1F':'/data/nawoods/ntuples/zzNtuples_mc_{1}/results_{0}_3P1F/*.root'.format(sampleID, ntupleSet3P1F),
+    'mc2P2F':'/data/nawoods/ntuples/zzNtuples_mc_{1}/results_{0}_2P2F/*.root'.format(sampleID, ntupleSet2P2F),
     } 
 if args.dySkim:
-    mcSamples['mc'] += ',/data/nawoods/ntuples/zzNtuples_mc_dySkim_10feb2016_0/results_{0}/DYSkim_*.root'.format(sampleID)
+    mcSamples['mc'] += ',/data/nawoods/ntuples/zzNtuples_mc_dySkim_10feb2016_0/results_{0}/DYSkim_*.root'.format(sampleID, ntupleSet)
 
 dataSamples = {
-    'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}/data*.root'.format(sampleID),
-    '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_3P1F/data*.root'.format(sampleID),
-    '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_{0}_2P2F/data*.root'.format(sampleID),
+    'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_{1}/results_{0}/data*.root'.format(sampleID, ntupleSet),
+    '3P1F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_{1}/results_{0}_3P1F/data*.root'.format(sampleID, ntupleSet3P1F),
+    '2P2F':'/data/nawoods/ntuples/zzNtuples_data_2015silver_{1}/results_{0}_2P2F/data*.root'.format(sampleID, ntupleSet2P2F),
     }
 
-plotter = NtuplePlotter('zz', './plots/counting_{0}_{1}'.format(date.today().strftime('%d%b%Y').lower(), ana),
+plotter = NtuplePlotter('zz', '/afs/cern.ch/user/n/nawoods/www/ZZPlots/counting_{0}_{1}'.format(date.today().strftime('%d%b%Y').lower(), ana),
                         mcSamples, dataSamples,
                         intLumi=2619.)
 
