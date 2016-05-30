@@ -15,17 +15,20 @@ rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
 # load FWlite python libraries
 from DataFormats.FWLite import Handle, Events
 
-from rootpy.plotting import Hist, Graph, Canvas, Legend
+from rootpy.plotting import Hist, Hist2D, Graph, Canvas, Legend
+from rootpy.plotting.hist import _Hist2D
 from rootpy.plotting.utils import draw
 from rootpy import asrootpy
 
 from collections import OrderedDict
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, Pool, Manager
 import signal
 import time
 from math import sqrt
+from itertools import combinations
 
 from ZZAnalyzer.plotting import PlotStyle
+from ZZAnalyzer.utils.helpers import deltaR, Z_MASS
 
 style = PlotStyle()
 
@@ -41,13 +44,26 @@ class Observation(object):
 
         if not self.uniform:
             for h in self.hists.values():
-                baseSize = h.GetBinWidth(1)
-                for i, b in enumerate(h):
+                for b in h:
                     if b.overflow:
                         continue
-                    factor = h.GetBinWidth(i) / baseSize
+                    baseSize = Observation.getBinSize(b)
+                    break
+                for b in h:
+                    if b.overflow:
+                        continue
+                    factor = Observation.getBinSize(b) / baseSize
                     b.value = b.value / factor
                     b.error = b.error / sqrt(factor)
+
+    @staticmethod
+    def getBinSize(bin):
+        '''
+        Takes a bin proxy, returns width/area/volume
+        Works because the "width" in a nonexistent dimension is set to 1
+        '''
+        return bin.x.width * bin.y.width * bin.z.width
+        
 
     def failingHist(self, cut):
         try: # pickling unrootpys ROOT things
@@ -72,12 +88,14 @@ class Observation(object):
 
 class Observable(object):
     def __init__(self, function, binning):
-        if len(binning) == 3:
+        if len(binning) == 3 or len(binning) == 1:
             self.hBase = Hist(*binning)
-            self.uniform = True
+            self.uniform = len(binning) == 3
+        elif len(binning) == 6 or len(binning) == 4 or len(binning) == 2:
+            self.hBase = Hist2D(*binning)
+            self.uniform = len(binning) == 6
         else:
-            self.hBase = Hist(binning)
-            self.uniform = False
+            raise ValueError("binning {} is not allowed".format(binning))
 
         self.binning = binning
             
@@ -92,15 +110,24 @@ class Observable(object):
     def selfDestruct(self, *args):
         raise ValueError("You may not add a cut after the first time"
                          " an observable is filled!")
-    def _fill(self, obj, vtx, cut):
+
+    def _fill(self, cut, *args):
         '''
         Actual fill function. self.fill is set to this after the first use
         '''
-        val = self.f(obj, vtx)
+        val = self.f(*args)
         
         self.hists[cut].fill(val)
+
+    def _fillND(self, cut, *args):
+        '''
+        Fill function for >= 2D histograms
+        '''
+        vals = self.f(*args)
+
+        self.hists[cut].fill(*vals)
         
-    def fill(self, obj, vtx, cut):
+    def fill(self, cut, *args):
         '''
         The first time this is done, add a hist to the cut flow for leptons
         that pass everything, and forbid adding new cuts. Then set this
@@ -110,8 +137,11 @@ class Observable(object):
 
         self.addCut = self.selfDestruct
 
-        self.fill = self._fill
-        self.fill(obj, vtx, cut)
+        if self.hBase.GetDimension() == 1:
+            self.fill = self._fill
+        else:
+            self.fill = self._fillND
+        self.fill(cut, *args)
 
     def getResults(self):
         return Observation(self.hBase, self.hists, self.uniform)
@@ -121,9 +151,12 @@ class Classification(object):
     '''
     Need pickleable thing
     '''
-    def __init__(self, observables, cutFlow, mass, color='black', marker=20):
-        self.observables = observables
+    def __init__(self, observables1, observables2, cutFlow, zCutFlow, mass, 
+                 color='black', marker=20):
+        self.observables = observables2
+        self.observables.update(observables1)
         self.cutFlow = cutFlow
+        self.zCutFlow = zCutFlow
         self.m = mass
         self.color = color
         self.marker=marker
@@ -131,31 +164,44 @@ class Classification(object):
     def formatHist(self, h, normalize=True):
         if normalize and bool(h.Integral()):
             h.scale(1. / h.Integral())
-        h.color = self.color
-        h.drawstyle = 'hist'
-        h.SetTitle("m_{{H}} = {}".format(self.m))
+
+        if(h.GetDimension() == 1):
+            h.color = self.color
+            h.drawstyle = 'hist'
+            h.SetTitle("m_{{H}} = {}".format(self.m))
+        else:
+            h.drawstyle = 'colz'
+            h.SetTitle('_M-{}'.format(self.m))
 
         return h
         
     def makeEfficiency(self, cut, var, nMinus1=False):
-        eff = Graph(type='asymm')
+        obs = self.observables[var]
 
-        num = self.observables[var].passingHist(cut)
+        num = obs.passingHist(cut)
 
         if nMinus1:
             denom = num.clone()
-            denom.add(self.observables[var].failingHist(cut))
+            denom.add(obs.failingHist(cut))
         else:
-            denom = self.observables[var].passingHist('genMatched')
+            denom = obs.passingHist('genMatched')
 
-        eff.Divide(num, denom)
+        if num.GetDimension() == 1:
+            eff = Graph(type='asymm')
+            eff.Divide(num, denom)
 
-        eff.color = self.color
-        eff.markerstyle = self.marker
-        eff.drawstyle = 'PE'
-        eff.SetTitle("m_{{H}} = {}".format(self.m))
+            eff.color = self.color
+            eff.markerstyle = self.marker
+            eff.drawstyle = 'PE'
+            eff.SetTitle("m_{{H}} = {}".format(self.m))
 
-        return eff
+            return eff
+        else:
+            num.Divide(denom)
+            num.drawstyle = 'colz'
+            num.SetTitle('_M-{}'.format(self.m))
+            
+            return num
 
     def passingHist(self, cut, var, normalize=True):
         return self.formatHist(self.observables[var].passingHist(cut),
@@ -169,22 +215,39 @@ class Classification(object):
 class LeptonClassifier(object):
     def __init__(self):
         self.cuts = OrderedDict()
-        self.observables = {}
+        self.observables1 = {}
+        self.observables2 = {}
         self.cutFlow = OrderedDict()
+        self.zCutFlow = OrderedDict()
         self.addCut('total', lambda *args: True)
         self.addCut('genMatched', self.__class__.goodGen)
 
 
-    def addObservable(self, name, function, binning):
+    def addObservable1(self, name, function, binning):
+        '''
+        observables that needs just 1 object (+ maybe the vertext) to calculate
+        '''
         obs = Observable(function, binning)
         for cut in self.cuts:
             obs.addCut(cut)
-        self.observables[name] = obs
+        self.observables1[name] = obs
+
+    def addObservable2(self, name, function, binning):
+        '''
+        observable that needs 2 objects (and maybe their delta R) to calculate
+        '''
+        obs = Observable(function, binning)
+        for cut in self.cuts:
+            obs.addCut(cut)
+        self.observables2[name] = obs
 
     def addCut(self, name, function):
         self.cuts[name] = function
         self.cutFlow[name] = 0
-        for obs in self.observables.itervalues():
+        self.zCutFlow[name] = 0
+        for obs in self.observables1.itervalues():
+            obs.addCut(name)
+        for obs in self.observables2.itervalues():
             obs.addCut(name)
 
     @classmethod
@@ -201,19 +264,38 @@ class LeptonClassifier(object):
     def preselect(cls, lep, *args):
         return lep.pt() > 4.
 
-    def classify(self, lep, vtx):
+    def classify1(self, lep, vtx):
+        '''
+        classify single object
+        returns failed cut (or '' for preselection, or 'pass')
+        '''
         if not self.__class__.preselect(lep):
-            return
+            return ''
 
         for cut, f in self.cuts.iteritems():
             if not f(lep, vtx):
-                for obs in self.observables.itervalues():
-                    obs.fill(lep, vtx, cut)
-                break
+                for obs in self.observables1.itervalues():
+                    obs.fill(cut, lep, vtx)
+                return cut
             self.cutFlow[cut] += 1
         else: # if all cuts are passed
-            for obs in self.observables.itervalues():
-                obs.fill(lep, vtx, "pass")
+            for obs in self.observables1.itervalues():
+                obs.fill("pass", lep, vtx)
+            return 'pass'
+
+    def classify2(self, obj1, failedCut1, obj2, failedCut2):
+        '''
+        classify dilepton object given which cuts they failed
+        (the earlier failure is used)
+        '''
+        for cut in self.zCutFlow:
+            if cut == failedCut1 or cut == failedCut2:
+                break
+            self.zCutFlow[cut] += 1
+        dR = deltaR(obj1.eta(), obj1.phi(), obj2.eta(), obj2.phi())
+        for obs in self.observables2.itervalues():
+            obs.fill(failedCut1, obj1, obj2, dR)
+            obs.fill(failedCut2, obj2, obj1, dR)
 
     def firstFailedCut(self, lep, vtx):
         '''
@@ -227,10 +309,13 @@ class LeptonClassifier(object):
                 return cut
         
         return ''
-
+    
     def getResults(self, mass, color, marker):
-        observations = {name : obs.getResults() for name, obs in self.observables.iteritems()}
-        return Classification(observations, self.cutFlow, mass, color, marker)
+        observations1 = {name : obs.getResults() for name, obs in self.observables1.iteritems()}
+        observations2 = {name : obs.getResults() for name, obs in self.observables2.iteritems()}
+        
+        return Classification(observations1, observations2, self.cutFlow, 
+                              self.zCutFlow, mass, color, marker)
 
 
 class MuonClassifier(LeptonClassifier):
@@ -257,10 +342,11 @@ class MuonClassifier(LeptonClassifier):
 
 
 class MassPoint(object):
-    def __init__(self, m, files, color='black', marker=20):
+    def __init__(self, m, files, color='black', marker=20, name=''):
         self.m = m
         self.color = color
         self.marker = marker
+        self.name = name
         if isinstance(files, str):
             self.files = files.split(',')
         else:
@@ -272,14 +358,17 @@ class MassPoint(object):
     def addCut(self, name, function):
         self.classifier.addCut(name, function)
 
-    def addObservable(self, name, function, binning):
-        self.classifier.addObservable(name, function, binning)
+    def addObservable1(self, name, function, binning):
+        self.classifier.addObservable1(name, function, binning)
+
+    def addObservable2(self, name, function, binning):
+        self.classifier.addObservable2(name, function, binning)
 
     def listFailing(self, cut, nEvents=5):
         nFailed = 0
 
         lines = []
-        lines.append("Finding some events that fail {} cut for m = {}".format(cut, self.m))
+        lines.append("Finding some events that fail {} cut for m = {} {}".format(cut, self.m, self.name))
         
         muons, muonsLabel = Handle("std::vector<pat::Muon>"), "slimmedMuons"
         vertices, vertexLabel = Handle("std::vector<reco::Vertex>"), "offlineSlimmedPrimaryVertices"
@@ -312,7 +401,7 @@ class MassPoint(object):
 
     def process(self, maxEvents=-1, verbose=True):
         if verbose:
-            print "Processing m = {}".format(self.m)
+            print "Processing m = {} {}".format(self.m, self.name)
         
         muons, muonsLabel = Handle("std::vector<pat::Muon>"), "slimmedMuons"
         vertices, vertexLabel = Handle("std::vector<reco::Vertex>"), "offlineSlimmedPrimaryVertices"
@@ -322,7 +411,7 @@ class MassPoint(object):
                 break
 
             if verbose and iEv % 5000 == 0:
-                print "m={} Processing event {}".format(self.m, iEv)
+                print "m={} Processing event {} {}".format(self.m, iEv, self.name)
 
             ev.getByLabel(vertexLabel, vertices)
             if len(vertices.product()) == 0:
@@ -332,26 +421,63 @@ class MassPoint(object):
                 continue
 
             ev.getByLabel(muonsLabel, muons)
+            
+            leps = {}
 
             for mu in muons.product():
-                self.classifier.classify(mu, pv)
+                lastCut = self.classifier.classify1(mu, pv)
+                if lastCut:
+                    leps[mu] = lastCut
+
+            zs = MassPoint.getZPairs(*leps.keys())
+            for z in zs:
+                self.classifier.classify2(z[0], leps[z[0]], z[1], leps[z[1]])
 
         if verbose:
-            print "m={} Done!".format(self.m)
+            print "m={} {} Done!".format(self.m, self.name)
 
         cutFlowStrs = ["Cut flow:"]
         nTot = self.classifier.cutFlow['genMatched']
+        nZTot = self.classifier.zCutFlow['genMatched']
         nPrev = nTot
+        nZPrev = nZTot
         for cut, n in self.classifier.cutFlow.iteritems():
+            nZs = self.classifier.zCutFlow[cut]
             if cut == 'total':
                 continue
-            cutFlowStrs.append("    {}: {}% ({}% retained)".format(cut, 
-                                                                   100. * n / nTot,
-                                                                   100. * n / nPrev))
+            cutFlowStrs.append("    {}: {}% removed ({}% of Zs)".format(cut, 
+                                                                        100. * (nPrev - n) / nTot,
+                                                                        100. * (nZPrev - nZs) / nZTot))
             nPrev = n
+            nZPrev = nZs
         cutFlowStrs.append('')
 
         return '\n'.join(cutFlowStrs)
+
+    @staticmethod
+    def zCompatibility(leps):
+        if leps[0].pdgId() != -1 * leps[1].pdgId():
+            return 999.
+
+        return abs((leps[0].p4() + leps[1].p4()).mass() - Z_MASS)
+
+    @staticmethod
+    def getZPairs(*leps):
+        out = []
+
+        if len(leps) > 1:
+            bestZ = min(combinations(leps, 2), key=MassPoint.zCompatibility)
+            if bestZ[0].pdgId() != -1 * bestZ[1].pdgId():
+                return []
+            mZ = (bestZ[0].p4() + bestZ[1].p4()).mass()
+            if mZ < 60. or mZ > 120.:
+                return []
+            out.append(bestZ)
+
+            otherLeps = [lep for lep in leps if lep not in bestZ]
+            out += MassPoint.getZPairs(otherLeps)
+
+        return out
 
     def getResults(self):
         return self.classifier.getResults(self.m, self.color, self.marker)
@@ -365,37 +491,73 @@ def drawThings(outFile, *things, **opts):
     c = Canvas(1000, 1000)
 
     legOpts = opts.pop('legOpts', {})
-    draw(things, c, **opts)
 
-    leg = Legend(things, c, **legOpts)
-    leg.Draw("SAME")
+    if 'xtitle' in opts and 'Vs' in opts['xtitle']:
+        titles = opts['xtitle'].split('Vs')
+        opts['xtitle'] = titles[0]
+        opts['ytitle'] = titles[1]
 
-    # broken for some reason
-    # style.setCMSStyle(c, "", True, "Preliminary Simulation", 13, 1000.)
-    c.Print(outFile)
-    c.Print(outFile.replace('.png', '.C'))
+    if not any(isinstance(t, _Hist2D) for t in things):
+        draw(things, c, **opts)
+        leg = Legend(things, c, **legOpts)
+        leg.Draw("SAME")
+        # broken for some reason
+        # style.setCMSStyle(c, "", True, "Preliminary Simulation", 13, 1000.)
+        c.Print(outFile)
+        c.Print(outFile.replace('.png', '.C'))
+    else:
+        for i, t in enumerate(things):
+            can = Canvas(1000,1000)
 
+            t.draw("colz")
+
+            # fix temperature plot scale
+            zScale = t.GetListOfFunctions().FindObject("palette")
+            if zScale:
+                can.SetRightMargin(0.105)
+                can.Update()
+                # print "scale location:", zScale.GetX1(), zScale.GetX2()
+                # exit(1)
+                # canvases[i].Update()
+                zScale.SetX1NDC(.9)
+                zScale.SetX2NDC(.925)
+                can.Paint() # TODO: figure out why this gets rid of that stupid box
+                
+
+            can.Print(outFile.replace('.png', '{}.png'.format(t.GetTitle())))
+            can.Print(outFile.replace('.png', '{}.C'.format(t.GetTitle())))
+        
 ### Functions needed for threads
-def newMassPoint(m, files, cuts, observables, binnings, color):
-    mp = MassPoint(m, files, color)
+def newMassPoint(m, files, cuts, observables, observables2, binnings, color,
+                 name=''):
+    mp = MassPoint(m, files, color, name=name)
     for c, f in cuts.iteritems():
         mp.addCut(c, f)
     for obs, f in observables.iteritems():
-        mp.addObservable(obs, f, binnings[obs])
+        mp.addObservable1(obs, f, binnings[obs])
+    for obs, f in observables2.iteritems():
+        mp.addObservable2(obs, f, binnings[obs])
 
     return mp
     
-def makeAndProcessMassPoint(m, files, useHighPtID,
-                            color, maxEvents):
-    print "processing m = {}{}".format(m, " High Pt ID" if useHighPtID else "")
+def makeAndProcessMassPoint(m, files, whichID,
+                            color, maxEvents, errorQueue):
+    print "processing m = {} {}".format(m, whichID)
     try:
-        if useHighPtID:
+        if whichID == 'HighPt':
             cuts = getCutsHighPt()
+        elif whichID == 'HighPtTracker':
+            cuts = getCutsHighPtTracker()
+        elif whichID == 'HighPtOr':
+            cuts = getCutsHighPtOr()
         else:
             cuts = getCuts()
         observables = getObservables()
+        observables2 = getObservables2()
         binnings = getBinning()
-        mp = newMassPoint(m, files, cuts, observables, binnings, color)
+        mp = newMassPoint(m, files, cuts, observables, 
+                          observables2, binnings, color,
+                          name=whichID)
         resultText = mp.process(maxEvents)
         return mp.getResults(), resultText
     # exceptions won't print from threads without help
@@ -406,7 +568,8 @@ def makeAndProcessMassPoint(m, files, useHighPtID,
         print e
         print "Killing task"
         print "**********************************************************************"
-        return mp, "FAILED"
+        errorQueue.put(e)
+        return mp.getResults(), "FAILED"
 
 def listFailingFromMassPoint(failingCut, m, files, allCuts, observables, 
                              binnings, nEvents):
@@ -431,25 +594,15 @@ def init_worker():
 
 
 
-def main():
-    from argparse import ArgumentParser
-    parser = ArgumentParser(description='Muon efficiency at various Higgs masses.')
-    parser.add_argument('--outdir', nargs='?', type=str, 
-                        default='/afs/cern.ch/user/n/nawoods/www/highMassEfficiency/',
-                        help='Output plot location')
-    parser.add_argument('--maxEvents', nargs='?', type=int, default=-1,
-                        help='Max number of events to run (or -1 for infinite)')
-    parser.add_argument('--printFailing', nargs='?', type=str, default='',
-                        help='Instead of making plots, print a few events which fail this cut')
-    parser.add_argument('--maxThreads', nargs='?', type=int, default=6,
-                        help='Maximum number of threads to use at one time')
-    args = parser.parse_args()
-
+def main(args):
     files = getFiles()
     colors = getColors()
     cuts = getCuts()
     cutsHighPt = getCutsHighPt()
+    cutsHighPtTracker = getCutsHighPt()
+    cutsHighPtOr = getCutsHighPt()
     observables = getObservables()
+    observables2 = getObservables2()
     binning = getBinning()
 
     masses = [1500, 2500, 125]
@@ -457,6 +610,10 @@ def main():
     pool = Pool(args.maxThreads, init_worker)
     results = {}
     resultsHighPt = {}
+    resultsHighPtTracker = {}
+    resultsHighPtOr = {}
+    manager = Manager()
+    errorQueue = manager.Queue()
 
     if args.printFailing:
         if args.printFailing in cuts:
@@ -467,7 +624,7 @@ def main():
                                                      observables, binning,
                                                      args.maxEvents),
                                                callback=printSomeThings)
-        if args.printFailing in cutsHighPt:
+        if args.highPtID and args.printFailing in cutsHighPt:
             for mH in masses:
                 resultsHighPt[mH] = pool.apply_async(listFailingFromMassPoint,
                                                      args=(args.printFailing, mH, 
@@ -475,25 +632,58 @@ def main():
                                                            observables, binning,
                                                            args.maxEvents),
                                                      callback=printSomeThings)
+                resultsHighPtTracker[mH] = pool.apply_async(listFailingFromMassPoint,
+                                                            args=(args.printFailing, mH, 
+                                                                  files[mH], cutsHighPtTracker, 
+                                                                  observables, binning,
+                                                                  args.maxEvents),
+                                                            callback=printSomeThings)
+                resultsHighPtOr[mH] = pool.apply_async(listFailingFromMassPoint,
+                                                       args=(args.printFailing, mH, 
+                                                             files[mH], cutsHighPtOr, 
+                                                             observables, binning,
+                                                             args.maxEvents),
+                                                       callback=printSomeThings)
     else:
         for mH in masses:
             results[mH] = pool.apply_async(makeAndProcessMassPoint,
-                                           args=(mH, files[mH], False,
-                                                 colors[mH], args.maxEvents),
+                                           args=(mH, files[mH], 'Regular',
+                                                 colors[mH], args.maxEvents, 
+                                                 errorQueue),
                                            callback=printSomeThings)
-            resultsHighPt[mH] = pool.apply_async(makeAndProcessMassPoint,
-                                                 args=(mH, files[mH], True,
-                                                       colors[mH], args.maxEvents),
-                                                 callback=printSomeThings)
+            if args.highPtID:
+                resultsHighPt[mH] = pool.apply_async(makeAndProcessMassPoint,
+                                                     args=(mH, files[mH], 'HighPt',
+                                                           colors[mH], args.maxEvents,
+                                                           errorQueue),
+                                                     callback=printSomeThings)
+                resultsHighPtTracker[mH] = pool.apply_async(makeAndProcessMassPoint,
+                                                            args=(mH, files[mH], 'HighPtTracker',
+                                                                  colors[mH], args.maxEvents,
+                                                                  errorQueue),
+                                                            callback=printSomeThings)
+                resultsHighPtOr[mH] = pool.apply_async(makeAndProcessMassPoint,
+                                                       args=(mH, files[mH], 'HighPtOr',
+                                                             colors[mH], args.maxEvents,
+                                                             errorQueue),
+                                                       callback=printSomeThings)
 
     try:
         while not all(result.ready() for result in (results.values()+resultsHighPt.values())):
             time.sleep(3)
+            if not errorQueue.empty():
+                e = errorQueue.get()
+                raise e
     except KeyboardInterrupt:
         pool.terminate()
         pool.join()
         print "\n Killing..."
         exit(1)
+    except Exception as e:
+        pool.terminate()
+        pool.join()
+        print "\n Error! Killing everything!"
+        raise
     else:
         pool.close()
         pool.join()
@@ -502,7 +692,40 @@ def main():
         return
 
     observations = {mH : res.get()[0] for mH, res in results.iteritems()}
+    cutFlows = {mH : res.get()[1] for mH, res in results.iteritems()}
     observationsHighPt = {mH : res.get()[0] for mH, res in resultsHighPt.iteritems()}
+    cutFlowsHighPt = {mH : res.get()[1] for mH, res in resultsHighPt.iteritems()}
+    observationsHighPtTracker = {mH : res.get()[0] for mH, res in resultsHighPtTracker.iteritems()}
+    cutFlowsHighPtTracker = {mH : res.get()[1] for mH, res in resultsHighPtTracker.iteritems()}
+    observationsHighPtOr = {mH : res.get()[0] for mH, res in resultsHighPtOr.iteritems()}
+    cutFlowsHighPtOr = {mH : res.get()[1] for mH, res in resultsHighPtOr.iteritems()}
+
+    print "\nCut Flows:"
+    for mH in sorted(cutFlows.keys()):
+        print "m = {}:".format(mH)
+        print cutFlows[mH]
+    
+    if args.highPtID:
+        print ''
+        print "High Pt ID:"
+        for mH in sorted(cutFlowsHighPt.keys()):
+            print "m = {}:".format(mH)
+            print cutFlowsHighPt[mH]
+
+        print ''
+        print "Tracker High Pt ID:"
+        for mH in sorted(cutFlowsHighPtTracker.keys()):
+            print "m = {}:".format(mH)
+            print cutFlowsHighPtTracker[mH]
+
+        print ''
+        print "OR of IDs:"
+        for mH in sorted(cutFlowsHighPtOr.keys()):
+            print "m = {}:".format(mH)
+            print cutFlowsHighPtOr[mH]
+        print ''
+    
+
 
     effLegOpts = {
         'leftmargin' : 0.1,
@@ -511,41 +734,104 @@ def main():
         }
 
     # make plots
-    for cut in ['genMatched', 'PVDZ', 'PF']:
+    for cut in ['genMatched', 'PF']:
         if cut != 'genMatched':
-            for obs in observables:
+            for obs in observables.keys() + observables2.keys():
                 plots = [mp.makeEfficiency(cut, obs) for mp in observations.values()]
                 drawThings(args.outdir+'eff{}_{}.png'.format(obs[0].upper()+obs[1:], cut), 
                            *plots, xtitle=obs, ytitle='efficiency',
                            legOpts=effLegOpts)
-    
-        for obs in observables:
+        for obs in observables.keys() + observables2.keys():
             plots = [mp.passingHist(cut, obs) for mp in observations.values()]
             drawThings(args.outdir+obs+'_after_{}_Cut.png'.format(cut), *plots,
                        xtitle=obs, ytitle='arb.')
-    for obs in observables:
+    for obs in observables.keys() + observables2.keys():
         plots = [mp.failingHist('PF', obs) for mp in observations.values()]
         drawThings(args.outdir+obs+'_failing_PF_Cut.png', *plots,
                    xtitle=obs, ytitle='arb.')
     
-    for cut in ['genMatched', 'global', 'trackerHits']:
-        if cut != 'genMatched':
-            for obs in observables:
-                plots = [mp.makeEfficiency(cut, obs) for mp in observationsHighPt.values()]
-                drawThings(args.outdir+'highPtID/eff{}_{}.png'.format(obs[0]+obs[1:], cut), 
-                           *plots, xtitle=obs, ytitle='efficiency',
-                           legOpts=effLegOpts)
-    
-        for obs in observables:
-            plots = [mp.passingHist(cut, obs) for mp in observationsHighPt.values()]
-            drawThings(args.outdir+'highPtID/'+obs+'_after_{}_Cut.png'.format(cut), *plots,
+    if args.highPtID:
+        for cut in ['genMatched', 'muonChamberInFit', 'matchedStations']:
+            if cut != 'genMatched':
+                for obs in observables.keys() + observables2.keys():
+                    plots = [mp.makeEfficiency(cut, obs) for mp in observationsHighPt.values()]
+                    drawThings(args.outdir+'highPtID/eff{}_{}.png'.format(obs[0]+obs[1:], cut), 
+                               *plots, xtitle=obs, ytitle='efficiency',
+                               legOpts=effLegOpts)    
+            for obs in observables.keys() + observables2.keys():
+                plots = [mp.passingHist(cut, obs) for mp in observationsHighPt.values()]
+                drawThings(args.outdir+'highPtID/'+obs+'_after_{}_Cut.png'.format(cut), *plots,
+                           xtitle=obs, ytitle='arb.')
+        for obs in observables.keys() + observables2.keys():
+            plots = [mp.failingHist('global', obs) for mp in observationsHighPt.values()]
+            drawThings(args.outdir+'highPtID/'+obs+'_failing_global_Cut.png', *plots,
                        xtitle=obs, ytitle='arb.')
-    for obs in observables:
-        plots = [mp.failingHist('global', obs) for mp in observationsHighPt.values()]
-        drawThings(args.outdir+'highPtID/'+obs+'_failing_global_Cut.png', *plots,
-                   xtitle=obs, ytitle='arb.')
+
+        for cut in ['genMatched', 'tracker', 'matchedStations']:
+            if cut != 'genMatched':
+                for obs in observables.keys() + observables2.keys():
+                    plots = [mp.makeEfficiency(cut, obs) for mp in observationsHighPtTracker.values()]
+                    drawThings(args.outdir+'highPtIDTracker/eff{}_{}.png'.format(obs[0]+obs[1:], cut), 
+                               *plots, xtitle=obs, ytitle='efficiency',
+                               legOpts=effLegOpts)    
+            for obs in observables.keys() + observables2.keys():
+                plots = [mp.passingHist(cut, obs) for mp in observationsHighPtTracker.values()]
+                drawThings(args.outdir+'highPtIDTracker/'+obs+'_after_{}_Cut.png'.format(cut), *plots,
+                           xtitle=obs, ytitle='arb.')
+        for obs in observables.keys() + observables2.keys():
+            plots = [mp.failingHist('matchedStations', obs) for mp in observationsHighPtTracker.values()]
+            drawThings(args.outdir+'highPtIDTracker/'+obs+'_failing_matchedStations_Cut.png', *plots,
+                       xtitle=obs, ytitle='arb.')
+
+        for cut in ['genMatched', 'globalOrTrackerOrPF']:
+            if cut != 'genMatched':
+                for obs in observables.keys() + observables2.keys():
+                    plots = [mp.makeEfficiency(cut, obs) for mp in observationsHighPtOr.values()]
+                    drawThings(args.outdir+'highPtIDOr/eff{}_{}.png'.format(obs[0]+obs[1:], cut), 
+                               *plots, xtitle=obs, ytitle='efficiency',
+                               legOpts=effLegOpts)    
+            for obs in observables.keys() + observables2.keys():
+                plots = [mp.passingHist(cut, obs) for mp in observationsHighPtOr.values()]
+                drawThings(args.outdir+'highPtIDOr/'+obs+'_after_{}_Cut.png'.format(cut), *plots,
+                           xtitle=obs, ytitle='arb.')
+        for obs in observables.keys() + observables2.keys():
+            plots = [mp.failingHist('globalOrTrackerOrPF', obs) for mp in observationsHighPtOr.values()]
+            drawThings(args.outdir+'highPtIDOr/'+obs+'_failing_globalOrTrackerOrPF_Cut.png', *plots,
+                       xtitle=obs, ytitle='arb.')
 
 
+        for mp in observationsHighPt.keys():
+            for obs in ['dR', 'zPt', 'pt', 'eta']:
+                plots = []
+                plots.append(observations[mp].makeEfficiency('PF', obs))
+                plots[-1].SetTitle("Legacy")
+                plots[-1].color = 'black'
+                plots.append(observationsHighPt[mp].makeEfficiency('matchedStations', obs))
+                plots[-1].SetTitle("High p_{T}")
+                plots[-1].color = 'red'
+                plots.append(observationsHighPtTracker[mp].makeEfficiency('matchedStations', obs))
+                plots[-1].SetTitle("Tracker High p_{T}")
+                plots[-1].color = 'blue'
+                plots.append(observationsHighPtOr[mp].makeEfficiency('globalOrTrackerOrPF', obs))
+                plots[-1].SetTitle("OR")
+                plots[-1].color = 'forestgreen'
+                
+                compLegOpts = effLegOpts.copy()
+                compLegOpts['textsize'] = .04
+                compLegOpts['rightmargin'] = .37
+                if obs == 'dR':
+                    xTitle = '\\Delta R'
+                elif obs == 'zPt':
+                    xTitle = 'p_{T_{\\text{Z}}}'
+                elif obs == 'pt':
+                    xTitle = 'p_{T_{\\mu}}'
+                elif obs == 'eta':
+                    xTitle = '\\eta_{\\mu}'
+                else:
+                    xTitle = obs
+                drawThings(args.outdir + "effComp_{}_{}.png".format(obs, mp), *plots,
+                           xtitle=xTitle, ytitle='efficiency', legOpts=compLegOpts)
+                
 
 
 _files = {
@@ -664,14 +950,33 @@ def getCuts():
 _cutsHighPt = OrderedDict()
 _cutsHighPt['dxy'] = lambda mu, vtx: abs(mu.muonBestTrack().dxy(vtx.position())) < 0.2
 _cutsHighPt['dz'] = lambda mu, vtx: abs(mu.muonBestTrack().dz(vtx.position())) < 0.5
+_cutsHighPt['ptRelError'] = lambda mu, vtx: mu.muonBestTrack().ptError()/mu.muonBestTrack().pt() < 0.3
 _cutsHighPt['global'] = lambda mu, vtx: mu.isGlobalMuon()
 _cutsHighPt['muonChamberInFit'] = lambda mu, vtx: mu.globalTrack().hitPattern().numberOfValidMuonHits() > 0
-_cutsHighPt['matchedStations'] = lambda mu, vtx: mu.numberOfMatchedStations() > 1
-_cutsHighPt['ptRelError'] = lambda mu, vtx: mu.muonBestTrack().ptError()/mu.muonBestTrack().pt() < 0.3
 _cutsHighPt['pixelHits'] = lambda mu, vtx: mu.innerTrack().hitPattern().numberOfValidPixelHits() > 0
 _cutsHighPt['trackerHits'] = lambda mu, vtx: mu.innerTrack().hitPattern().trackerLayersWithMeasurement() > 5
+_cutsHighPt['matchedStations'] = lambda mu, vtx: mu.numberOfMatchedStations() > 1
 def getCutsHighPt():
     return _cutsHighPt
+
+_cutsHighPtTracker = OrderedDict()
+_cutsHighPtTracker['dxy'] = lambda mu, vtx: abs(mu.muonBestTrack().dxy(vtx.position())) < 0.2
+_cutsHighPtTracker['dz'] = lambda mu, vtx: abs(mu.muonBestTrack().dz(vtx.position())) < 0.5
+_cutsHighPtTracker['ptRelError'] = lambda mu, vtx: mu.muonBestTrack().ptError()/mu.muonBestTrack().pt() < 0.3
+_cutsHighPtTracker['tracker'] = lambda mu, vtx: mu.isTrackerMuon()
+_cutsHighPtTracker['pixelHits'] = lambda mu, vtx: mu.innerTrack().hitPattern().numberOfValidPixelHits() > 0
+_cutsHighPtTracker['trackerHits'] = lambda mu, vtx: mu.innerTrack().hitPattern().trackerLayersWithMeasurement() > 5
+_cutsHighPtTracker['matchedStations'] = lambda mu, vtx: mu.numberOfMatchedStations() > 1
+def getCutsHighPtTracker():
+    return _cutsHighPtTracker
+
+_cutsHighPtOr = OrderedDict()
+_cutsHighPtOr['eta'] = lambda mu, vtx: abs(mu.eta()) < 2.4
+_cutsHighPtOr['dxy'] = lambda mu, vtx: abs(mu.muonBestTrack().dxy(vtx.position())) < 0.2
+_cutsHighPtOr['dz'] = lambda mu, vtx: abs(mu.muonBestTrack().dz(vtx.position())) < 0.5
+_cutsHighPtOr['globalOrTrackerOrPF'] = lambda mu, vtx: ((mu.isTrackerMuon() or (mu.isGlobalMuon() and mu.globalTrack().hitPattern().numberOfValidMuonHits() > 0)) and (mu.numberOfMatchedStations() > 1 and mu.muonBestTrack().ptError()/mu.muonBestTrack().pt() < 0.3 and mu.innerTrack().hitPattern().numberOfValidPixelHits > 0 and mu.innerTrack().hitPattern().trackerLayersWithMeasurement() > 5)) or (mu.isPFMuon() and mu.muonBestTrackType() != 2 and ((mu.isTrackerMuon() and mu.numberOfMatchedStations() > 0) or mu.isGlobalMuon()))
+def getCutsHighPtOr():
+    return _cutsHighPtOr
 
 def nPixelHits(mu, vtx):
     if mu.innerTrack().isNull():
@@ -684,9 +989,9 @@ def trackerLayersWithHit(mu, vtx):
     return mu.innerTrack().hitPattern().trackerLayersWithMeasurement()
 
 _observables = {
-    'nHits' : lambda mu, vtx: mu.numberOfValidHits(),
+    #'nHits' : lambda mu, vtx: mu.numberOfValidHits(),
     'normChi2' : lambda mu, vtx: mu.muonBestTrack().normalizedChi2(),
-    'trackKink' : lambda mu, vtx: mu.combinedQuality().trkKink,
+    #'trackKink' : lambda mu, vtx: mu.combinedQuality().trkKink,
     'trackMatch' : lambda mu, vtx: mu.combinedQuality().chi2LocalPosition,
     'segmentCompatibility' : lambda mu, vtx: mu.segmentCompatibility(),
     'nMuonHits' : lambda mu, vtx: mu.muonBestTrack().hitPattern().numberOfValidMuonHits(),
@@ -699,6 +1004,18 @@ _observables = {
 def getObservables():
     return _observables
 
+_observables2 = {
+    'dR' : lambda lep1, lep2, dR: dR,
+    'zMass' : lambda lep1, lep2, dR: (lep1.p4()+lep2.p4()).mass(),
+    'zPt' : lambda lep1, lep2, dR: (lep1.p4()+lep2.p4()).pt(),
+    'ptVsDR' : lambda lep1, lep2, dR: (lep1.pt(), dR),
+    'zPtVsDR' : lambda lep1, lep2, dR: ((lep1.p4()+lep2.p4()).pt(), dR),
+    'segmentCompatibilityVsDR' : lambda lep1, lep2, dR: (lep1.segmentCompatibility(), dR),
+    'normChi2VsDR' : lambda lep1, lep2, dR: (lep1.muonBestTrack().normalizedChi2(), dR),
+    }
+def getObservables2():
+    return _observables2
+
 _binning = {
     'nHits' : [12, 5, 17],
     'normChi2' : [16, 0., 8.],
@@ -709,11 +1026,65 @@ _binning = {
     'nMatchedStations' : [9,0,9],
     'nPixelHits' : [7,0,7],
     'trackerLayersWithHit' : [11,0,11],
-    'pt' : [i*40. for i in xrange(20)] + [800.+i*80 for i in xrange(5)] + [1200.+i*160. for i in xrange(6)], #[50, 0., 2000.],
+    'pt' : [[i*40. for i in xrange(20)] + [800.+i*80 for i in xrange(5)] + [1200.+i*160. for i in xrange(6)]], #[50, 0., 2000.],
     'eta' : [24, 0., 2.4],
+    'dR' : [20, 0., 2.],
+    'zMass' : [60, 60., 120.],
+    'zPt' : [45, 0., 1800],
+    'ptVsDR' : [[i*40. for i in xrange(20)] + [800.+i*80 for i in xrange(5)] + [1200.+i*160. for i in xrange(6)], 20, 0., 2.],
+    'zPtVsDR' : [45, 0., 1800., 20, 0., 2.],
+    'segmentCompatibilityVsDR' : [20, 0., 1., 20, 0., 2.],
+    'normChi2VsDR' : [16, 0., 8., 20, 0., 2.],
     }
 def getBinning():
     return _binning
 
+
 if __name__ == "__main__":
-    main()
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description='Muon efficiency at various Higgs masses.')
+    parser.add_argument('--outdir', nargs='?', type=str, 
+                        default='/afs/cern.ch/user/n/nawoods/www/highMassEfficiency/',
+                        help='Output plot location')
+    parser.add_argument('--maxEvents', nargs='?', type=int, default=-1,
+                        help='Max number of events to run (or -1 for infinite)')
+    parser.add_argument('--printFailing', nargs='?', type=str, default='',
+                        help='Instead of making plots, print a few events which fail this cut')
+    parser.add_argument('--maxThreads', nargs='?', type=int, default=6,
+                        help='Maximum number of threads to use at one time')
+    parser.add_argument('--email', action='store_true', 
+                        help='Send email when finished')
+    parser.add_argument('--highPtID', action='store_true',
+                        help='Also analyzer the POG high pt ID')
+    args = parser.parse_args()
+
+
+    if args.email:
+        from os import system
+        from socket import gethostname
+
+        def sendMail(subject, message):
+            mailInfo = [
+                'To: nwoods@hep.wisc.edu',
+                'From: {}.noreply@mail.cern.ch'.format(gethostname()),
+                'Subject: {}'.format(subject),
+                message,
+                ]
+
+            system('echo "{}" | /usr/lib/sendmail -t'.format('\n'.join(mailInfo)))
+
+    startTime = time.time()
+
+    try:
+        main(args)
+    except Exception as e:
+        if args.email:
+            sendMail('High Mass Efficiency Analyzer FAILURE',
+                     'Analyzer failed due to exception:\n    {}'.format(e))
+        raise
+    else:
+        elapsedTime = time.time() - startTime
+        if args.email:
+            sendMail('High Mass Efficiency Analyzer done',
+                     'Analyzer finished successfully in {}s'.format(elapsedTime))
+        print 'done in {}s!'.format(elapsedTime)
