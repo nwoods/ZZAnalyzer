@@ -19,6 +19,12 @@ class HZZ2016(Cutter):
                 'objects' : 2,
                 }
         
+        temp['m4l'] = {
+            'cuts' : {
+                'Mass%s'%self.fsrVar : (70., ">="),
+                },
+            }
+
         return temp
 
 
@@ -29,5 +35,7 @@ class HZZ2016(Cutter):
         flow = super(HZZ2016, self).setupCutFlow()
 
         flow['Z2MassLoose'] = ('ZMassLoose', [3,4])
+        flow['SmartCut'] = ('SmartCut', [1,2,3,4])
+        flow['4lMass'] = ('m4l', [])
 
         return flow
