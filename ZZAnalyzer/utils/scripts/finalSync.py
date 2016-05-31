@@ -15,7 +15,7 @@ Author: N. Woods, U. Wisconsin
 
 '''
 
-from ZZAnalyzer.utils.helpers import evVar
+from ZZAnalyzer.utils.helpers import evVar, parseChannels
 
 from rootpy.io import root_open
 import argparse
