@@ -131,8 +131,9 @@ class BaseCuts2016(Cutter):
             },
             'eTightID' : {
                 'cuts' : {
-                    'MVA' : 'eMVAID',
-                    'looseEle' : 'eLooseID',
+                    'HZZTightID' : (1, ">="),
+                    # 'MVA' : 'eMVAID',
+                    # 'looseEle' : 'eLooseID',
                 },
                 'objects' : 1,
             },
