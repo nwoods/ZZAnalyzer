@@ -12,7 +12,7 @@
 
 import os, glob
 
-from ZZAnalyzer.analyzers import Analyzer
+from Analyzer import Analyzer
 
 
 def parseInputs(inputs):

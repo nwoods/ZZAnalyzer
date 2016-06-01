@@ -10,7 +10,6 @@ Author: Nate Woods, U. Wisconsin
 import glob
 import multiprocessing
 import argparse
-import ZZAnalyzer
 import os
 import signal
 import time
@@ -19,7 +18,7 @@ from rootpy.plotting import Hist
 from rootpy import ROOT
 
 from ZZAnalyzer.metadata.analyses import *
-from ZZAnalyzer.utils import AnalysisManager
+from ZZAnalyzer.analyzers import AnalysisManager
 
 ROOT.gROOT.SetBatch(True)
 
