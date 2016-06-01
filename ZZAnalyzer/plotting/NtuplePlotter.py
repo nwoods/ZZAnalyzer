@@ -142,7 +142,7 @@ def getMinBinWidth(obj):
 
 class NtuplePlotter(object):
     def __init__(self, channels, outdir='./plots', mcFiles={}, 
-                 dataFiles={}, intLumi=-1.):
+                 dataFiles={}, intLumi=-1., ntupleDir='ntuple'):
         self.intLumi = float(intLumi)
         if not outdir or outdir[:1] == './':
             self.outdir = os.path.join(os.environ['zza'], 'ZZAnalyzer', outdir[2:])
@@ -169,6 +169,8 @@ class NtuplePlotter(object):
 
         self.sumOfWeights = {} # for MC
 
+        self.ntupleDir = ntupleDir
+        
         self.ntuples = {cat : {} for cat in mcFiles}
         self.ntuples.update({cat : {cat:{}} for cat in dataFiles})
         for cat, samples in self.files.iteritems():
@@ -181,7 +183,7 @@ class NtuplePlotter(object):
                         self.ntuples[cat][cat][c] = n
                     elif len(dataFileList) == 1:
                         self.files[cat] = { c : root_open(dataFileList[0]) for c in self.channels }
-                        self.ntuples[cat][cat] = { c : self.files[cat][cat].Get('%s/final/Ntuple'%c) for c in self.channels }
+                        self.ntuples[cat][cat] = { c : self.files[cat][cat].Get('{}/{}'.format(c,self.ntupleDir)) for c in self.channels }
                     else:
                         self.files[cat] = {}
                         self.ntuples[cat][cat] = {}
@@ -191,9 +193,9 @@ class NtuplePlotter(object):
                     self.sumOfWeights[cat][sample] = self.getWeightSum(fileNames, sample)
                     if len(fileNames) == 1:
                         self.files[cat][sample] = root_open(fileNames[0])
-                        self.ntuples[cat][sample] = { c : self.files[cat][sample].Get("%s/final/Ntuple"%c) for c in self.channels }
+                        self.ntuples[cat][sample] = { c : self.files[cat][sample].Get("{}/{}".format(c,self.ntupleDir)) for c in self.channels }
                     else:
-                        self.ntuples[cat][sample] = { c : TreeChain("%s/final/Ntuple"%c, fileNames) for c in self.channels }
+                        self.ntuples[cat][sample] = { c : TreeChain("{}/{}".format(c,self.ntupleDir), fileNames) for c in self.channels }
 
         self.drawings = {}
 
@@ -314,12 +316,12 @@ class NtuplePlotter(object):
         and it doesn't matter which is kept.
         '''
         tempFile = root_open("dataTEMP_%s%s%s.root"%(channel, _tempFileEnding, category), "recreate")
-        out = Tree("%s/final/Ntuple"%channel)
+        out = Tree("{}/{}".format(channel,self.ntupleDir))
 
         if len(files) == 0:
             return out, tempFile
         
-        chain = TreeChain('%s/final/Ntuple'%channel, files)
+        chain = TreeChain("{}/{}".format(channel,self.ntupleDir), files)
 
         foundEvents = set()
         out.set_buffer(chain._buffer, create_branches=True)
@@ -362,23 +364,21 @@ class NtuplePlotter(object):
         ZZMetadata.py is used, but this is dangerous because I don't trust
         myself to keep it up to date.
         '''
-        for ch in self.channels:
-            if len(inFiles) == 1:
-                try:
-                    with root_open(inFiles[0]) as f:
-                        metaTree = f.Get("%s/metaInfo"%ch)
-                        return metaTree.Draw('1', 'summedWeights').Integral()
-                except DoesNotExist:
-                    continue
-            else:
-                try:
-                    metaChain = TreeChain('%s/metaInfo'%ch, inFiles)
-                    return metaChain.Draw('1', 'summedWeights').Integral()
-                except DoesNotExist:
-                    continue
-            
-        else: # no tree in any channel
-            return sampleInfo[sample]['sumW']
+        if len(inFiles) == 1:
+            try:
+                with root_open(inFiles[0]) as f:
+                    metaTree = f.Get("metaInfo/metaInfo")
+                    return metaTree.Draw('1', 'summedWeights').Integral()
+            except DoesNotExist:
+                continue
+        else:
+            try:
+                metaChain = TreeChain('metaInfo/metaInfo', inFiles)
+                return metaChain.Draw('1', 'summedWeights').Integral()
+            except DoesNotExist:
+                continue
+        
+        return sampleInfo[sample]['sumW']
 
 
     WrappedHist = WrapPlottable(Hist)

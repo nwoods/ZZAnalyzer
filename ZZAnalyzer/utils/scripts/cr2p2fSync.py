@@ -76,7 +76,7 @@ with root_open(inFile) as fin:
     with open(args.output, 'w') as fout:
         for channel in channels:
             print "\nChannel %s:"%channel
-            ntuple = fin.Get(channel+'/final/Ntuple')
+            ntuple = fin.Get(channel+'/ntuple')
             objects = getObjects(channel)
             needReorder = cutter.needReorder(channel)
         

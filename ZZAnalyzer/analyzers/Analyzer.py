@@ -33,7 +33,7 @@ assert os.environ["zza"], "Run setup.sh before running analysis"
 class Analyzer(object):
     def __init__(self, channels, baseCutSet, inFile, outfile='./results/output.root', 
                  resultType = "CopyNtuple", maxEvents=float("inf"), intLumi=10000, rowCleaner='',
-                 cutModifiers=[]):
+                 cutModifiers=[], ntupleDir='ntuple'):
         '''
         Channels:    list of strings or single string in the format (e.g.) eemm for 
                          a 2e2mu final state. '4l', 'zz' and 'ZZ' turn into ['eeee' 'eemm' 'mmmm']
@@ -68,7 +68,7 @@ class Analyzer(object):
         self.ntuples = {}
         for channel in parseChannels(channels):
             try:
-                nt = self.inFile.Get(channel+'/final/Ntuple')
+                nt = self.inFile.Get('/'.join([channel,ntupleDir]))
                 # if not nt.GetEntries():
                 #     raise DoesNotExist('')
                 self.ntuples[channel] = nt
@@ -337,6 +337,11 @@ if __name__ == "__main__":
                         help="Name of module to clean extra rows from each event. Without this option, no cleaning is performed.")
     parser.add_argument("--modifiers", nargs='*', type=str,
                         help="Other cut sets that modify the base cuts.")
+    parser.add_argument("--ntupleDir", nargs="?", default='ntuple',
+                        type=str, 
+                        help=("path to the ntuple in the root file, "
+                              "relative to the channel. So the "
+                              "ntuple will be channel/<this variable>"))
     args = parser.parse_args()
 
     if args.modifiers:
@@ -346,7 +351,7 @@ if __name__ == "__main__":
 
     a = Analyzer(args.channel, args.cutset, args.infile, args.outfile, 
                    args.resultType, args.nEvents, 1000, args.cleanRows,
-                   cutModifiers=mods,)
+                   cutModifiers=mods, ntupleDir=args.ntupleDir)
 
     print "TESTING Analyzer"
     a.analyze()

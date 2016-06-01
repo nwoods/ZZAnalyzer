@@ -98,7 +98,7 @@ else:
 with root_open(inFile) as fin:
     for channel in channels:
         print "\nChannel %s:"%channel
-        ntuple = fin.Get(channel+'/final/Ntuple')
+        ntuple = fin.Get(channel+'/ntuple')
         objects = getObjects(channel)
         z1MassVar = "%s_%s_MassDREtFSR"%(objects[0], objects[1])
         z2MassVar = "%s_%s_MassDREtFSR"%(objects[2], objects[3])

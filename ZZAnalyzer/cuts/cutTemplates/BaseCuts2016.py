@@ -12,7 +12,7 @@ from ZZAnalyzer.utils.helpers import *
 
 
 class BaseCuts2016(Cutter):
-    fsrVar = "DREtFSR"
+    fsrVar = "FSR"
 
     def __init__(self, cutset="BaseCuts2016"):
         super(BaseCuts2016, self).__init__(cutset)
@@ -26,7 +26,6 @@ class BaseCuts2016(Cutter):
             # Good vertex
             'Vertex' : {
                 'cuts' : {
-                    'pvIsFake' : (1, "<"),
                     'pvndof' : (4., ">="),
                     'pvZ#POS' : (24., "<"),
                     'pvZ#NEG' : (-24., ">"),
@@ -131,7 +130,7 @@ class BaseCuts2016(Cutter):
             },
             'eTightID' : {
                 'cuts' : {
-                    'HZZTightID' : (1, ">="),
+                    'ZZTightID' : (1, ">="),
                     # 'MVA' : 'eMVAID',
                     # 'looseEle' : 'eLooseID',
                 },
@@ -203,28 +202,28 @@ class BaseCuts2016(Cutter):
             },
 
             # Cross Cleaning
-            'eCrossClean' : {
-                'cuts' : {
-                    'NearestMuonDR' : (0.05, ">="),
-                },
-                'objects' : 1,
-            },
-            'mCrossClean' : {
-                'cuts' : { 'foo' : 'true', },
-                'objects' : 1,
-            },
-            'LeptonCrossClean' : {
-                'cuts' : {
-                    'clean' : 'TYPECrossClean',
-                },
-                'objects' : 1,
-            },
-            'CrossCleaning' : {
-                'cuts' : {
-                    'lepXClean' : 'LeptonCrossClean',
-                },
-                'logic' : 'objand',
-            },
+            # 'eCrossClean' : {
+            #     'cuts' : {
+            #         'NearestMuonDR' : (0.05, ">="),
+            #     },
+            #     'objects' : 1,
+            # },
+            # 'mCrossClean' : {
+            #     'cuts' : { 'foo' : 'true', },
+            #     'objects' : 1,
+            # },
+            # 'LeptonCrossClean' : {
+            #     'cuts' : {
+            #         'clean' : 'TYPECrossClean',
+            #     },
+            #     'objects' : 1,
+            # },
+            # 'CrossCleaning' : {
+            #     'cuts' : {
+            #         'lepXClean' : 'LeptonCrossClean',
+            #     },
+            #     'logic' : 'objand',
+            # },
 
             # SIP
             'SIP' : {
@@ -244,11 +243,11 @@ class BaseCuts2016(Cutter):
 
             # Isolation
             'mIso' : { 
-                'cuts' : {'HZZIsoPass' : (0.5, ">")}, # {'HZZIsoFSR' : (0.4, "<")}, #{ 'RelPFIsoDB'+(self.fsrVar if self.fsrVar else 'Default') : (0.4, "<") },
+                'cuts' : {'ZZIsoPass' : (0.5, ">")},
                 'objects' : 1,
             },
             'eIso' : { 
-                'cuts' : {'HZZIsoPass' : (0.5, ">")}, # {'HZZIsoFSR' : (0.4, "<")}, # { 'RelPFIsoRho'+self.fsrVar : (0.5, "<") },
+                'cuts' : {'ZZIsoPass' : (0.5, ">")},
                 'objects' : 1,
             },
             # 'eIso' : {
@@ -373,7 +372,6 @@ class BaseCuts2016(Cutter):
         flow['Isolation'] = ('Isolation', [1,2,3,4])
         flow['Z1Mass'] = ('ZMassTight', [1,2])
         flow['Z2MassLoose'] = ('ZMassLoose', [3,4])
-        flow['CrossCleaning'] = ('CrossCleaning', [1,2,3,4])
         flow['SIP'] = ('SIP', [1,2,3,4])
         flow['GoodZ1'] = ('GoodZ', [1,2])
         flow['GoodZ2'] = ('GoodZ', [3,4])
@@ -445,26 +443,3 @@ class BaseCuts2016(Cutter):
         return not (zACompatibility < z1Compatibility and zBMass < 12)
 
 
-    def eIsoScaledEA(self, row, obj):
-        '''
-        Recalculate (and cut on) electron isolation, scaling the effective
-        area for the difference between a cone of 0.3 and 0.4.
-        '''
-        neutralIso = objVar(row, "PFNeutralIso", obj) + objVar(row, "PFPhotonIso", obj)
-        neutralIso -= objVar(row, "Rho", obj) * objVar(row, "EffectiveAreaSpring15", obj) * 16. / 9.
-        
-        fsrPt = objVar(row, "DREtFSRPt", obj)
-        if fsrPt > 0.:
-            fsrDR = deltaR(objVar(row, "Eta", obj),
-                           objVar(row, "Phi", obj),
-                           objVar(row, "DREtFSREta", obj),
-                           objVar(row, "DREtFSRPhi", obj))
-            if fsrDR < 0.4 and (objVar(row, "SCEta", obj) < 1.479 or fsrDR > 0.08):
-                neutralIso -= fsrPt
-
-        if neutralIso < 0.:
-            neutralIso = 0.
-
-        chargedIso = objVar(row, "PFChargedIso", obj)
-
-        return (chargedIso + neutralIso) / objVar(row, "Pt", obj) < 0.5

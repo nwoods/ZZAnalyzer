@@ -22,7 +22,7 @@ class CopyNtuple(NtupleSaver):
         template = {}
 
         for channel in self.channels:
-            template[channel] = {'final':{'vars':{'copy':{'ntuple':self.inputs[channel]}}}}
+            template[channel] = {'vars':{'copy':{'ntuple':self.inputs[channel]}}}
     
         return template
 
