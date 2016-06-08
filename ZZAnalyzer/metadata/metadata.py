@@ -168,7 +168,7 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'sumW' : 6652512.,
     'isData' : False,
     'shortName' : 'ZZ4l',
-    'prettyName' : '\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma*', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : True,
     'color' : '#99ccff', #'skyblue',
     'kFactor' : 1.1, #1.074,
@@ -181,7 +181,7 @@ sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
     'sumW' : 479600.,
     'isData' : False,
     'shortName' : 'ggHZZ4l',
-    'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{H} \\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'gg #rightarrow H #rightarrow ZZ',#'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{H} \\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : False,
     'color' : '#ffafaf', #'red',
 }
@@ -251,7 +251,7 @@ sampleGroups = {}
 
 sampleGroups['ggZZ4l'] = {
     'isSignal' : True,
-    'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'gg #rightarrow ZZ', #'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
     'color' : "#3366ff",
 }
 
@@ -269,13 +269,13 @@ sampleGroups['VVV'] = {
 
 sampleGroups['DYJets'] = {
     'isSignal' : False,
-    'prettyName' : '\\text{Z}/\\gamma^{*} \\text{ + jets}',
+    'prettyName' : '\\text{Z}/\\gamma* \\text{ + jets}',
     'color' : '#669966',
 }
 
 sampleGroups['qqZZ'] = {
     'isSignal' : True,
-    'prettyName' : '\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma^{*}', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
     'color' : '#99ccff',
 }
 

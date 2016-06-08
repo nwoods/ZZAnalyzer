@@ -303,13 +303,13 @@ for ana in analyses:
             else:
                 cr3P1F = plotter.makeHist('3P1F', '3P1F', channel, var, constSelection, 
                                           bins, weights=cr3PScale[channel], 
-                                          perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
+                                          perUnitWidth=False, nameForLegend='Z/WZ+X',
                                           isBackground=True)
 
 
                 cr2P2F = plotter.makeHist('2P2F', '2P2F', channel, var, constSelection, 
                                           bins, weights=cr2PScale[channel], 
-                                          perUnitWidth=False, nameForLegend='\\text{Z/WZ+X}',
+                                          perUnitWidth=False, nameForLegend='Z/WZ+X',
                                           isBackground=True)
         
 
@@ -417,7 +417,7 @@ for ana in analyses:
         'MassDREtFSR#1' : [40, 40., 120.],
         'MassDREtFSR#2' : [60, 0., 120.],
         'EtaDREtFSR' : [20, -5., 5.],
-        'PtDREtFSR' : [30, 0., 150.],
+        'PtDREtFSR' : [60, 0., 600.],
         # 'PhiDREtFSR' : [12, -3.15, 3.15],
         }
     if ana == 'smp':
@@ -523,13 +523,13 @@ for ana in analyses:
                                           selections2l[z], bins, 
                                           weights=[cr3PScale[c] for c in channels], 
                                           perUnitWidth=False, 
-                                          nameForLegend='\\text{Z/WZ+X}',
+                                          nameForLegend='Z/WZ+X',
                                           isBackground=True)
                 cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables,
                                           selections2l[z], bins,
                                           weights=[cr2PScale[c] for c in channels], 
                                           perUnitWidth=False, 
-                                          nameForLegend='\\text{Z/WZ+X}',
+                                          nameForLegend='Z/WZ+X',
                                           isBackground=True)
         
                 cr3P1F.sumw2()
@@ -622,7 +622,7 @@ for ana in analyses:
     binning1l = {
         # 'Phi' : [12, -3.15, 3.15],
         'Eta' : [10, -2.5, 2.5],
-        'Pt' : [30, 0., 150.],
+        'Pt' : [30, 0., 300.],
         'Iso' : [16, 0., 0.4],
         # 'PVDXY' : [10, -.5, .5],
         # 'PVDZ' : [10, -1., 1.],
@@ -680,13 +680,13 @@ for ana in analyses:
                                           constSelection, bins, 
                                           weights=[cr3PScale[c] for c in channels], 
                                           perUnitWidth=False, 
-                                          nameForLegend='\\text{Z/WZ+X}',
+                                          nameForLegend='Z/WZ+X',
                                           isBackground=True)
                 cr2P2F = plotter.makeHist('2P2F', '2P2F', channels, variables, 
                                           constSelection, bins,
                                           weights=[cr2PScale[c] for c in channels], 
                                           perUnitWidth=False, 
-                                          nameForLegend='\\text{Z/WZ+X}',
+                                          nameForLegend='Z/WZ+X',
                                           isBackground=True)
         
                 cr3P1F.sumw2()
