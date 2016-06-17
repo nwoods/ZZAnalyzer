@@ -370,13 +370,13 @@ class NtuplePlotter(object):
                     metaTree = f.Get("metaInfo/metaInfo")
                     return metaTree.Draw('1', 'summedWeights').Integral()
             except DoesNotExist:
-                continue
+                pass
         else:
             try:
                 metaChain = TreeChain('metaInfo/metaInfo', inFiles)
                 return metaChain.Draw('1', 'summedWeights').Integral()
             except DoesNotExist:
-                continue
+                pass
         
         return sampleInfo[sample]['sumW']
 
