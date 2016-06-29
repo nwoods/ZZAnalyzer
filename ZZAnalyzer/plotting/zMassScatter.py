@@ -63,6 +63,8 @@ for ana in ['full', 'z4l']:
         g[ch].markerstyle = markers[ch]
         g[ch].drawstyle = 'P'
         g[ch].SetMarkerSize(g[ch].GetMarkerSize()*1.5)
+        if ch == 'mmmm':
+            g[ch].SetMarkerSize(g[ch].GetMarkerSize()*1.18)
     
     for ch in plotter.channels:
         #nWithFSR = 0
