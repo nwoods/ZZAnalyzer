@@ -164,7 +164,7 @@ class AnalysisManager(object):
     defaultParams = {
         'baseCuts' : 'BaseCuts2016',
         'maxEvents' : float('inf'),
-        'intLumi' : 2560.,
+        'intLumi' : 9200.,
         'cleanRows' : '',
         'cutModifiers' : [],
         'resultType' : 'CopyNtuple',
