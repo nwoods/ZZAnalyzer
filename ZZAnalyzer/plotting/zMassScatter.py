@@ -89,8 +89,8 @@ for ana in ['full', 'z4l']:
 
 
     c = Canvas(1000,1000)
-    (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} \\, [\\text{GeV}]', 
-                                 ytitle='m_{Z_2} \\, [\\text{GeV}]',
+    (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{\\text{Z}_1} \\, [\\text{GeV}]', 
+                                 ytitle='m_{\\text{Z}_2} \\, [\\text{GeV}]',
                                  xlimits=xlimits, ylimits=ylimits)
     yaxis.SetTitleSize(yaxis.GetTitleSize()*0.9)
     c.Update()
