@@ -16,8 +16,8 @@ from rootpy.plotting.utils import draw
 
 plotter = NtuplePlotter('zz', '',
                         {}, 
-                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_0/results_full/data*.root'}, 
-                        intLumi=2619.,)
+                        {'data':'/data/nawoods/ntuples/zzNtuples_data_2015silver_26jan2016_l2pt16/results_full/data*.root'}, 
+                        intLumi=2619., ntupleDir='final/Ntuple')
 
 
 colors = {'eeee':'b','eemm':'r','mmmm':'forestgreen'}
@@ -89,8 +89,8 @@ for ana in ['full', 'z4l']:
 
 
     c = Canvas(1000,1000)
-    (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} [\\text{GeV}]', 
-                                 ytitle='m_{Z_2} [\\text{GeV}]',
+    (xaxis,yaxis), things = draw(g.values(), c, xtitle='m_{Z_1} \\, [\\text{GeV}]', 
+                                 ytitle='m_{Z_2} \\, [\\text{GeV}]',
                                  xlimits=xlimits, ylimits=ylimits)
     yaxis.SetTitleSize(yaxis.GetTitleSize()*0.9)
     c.Update()
