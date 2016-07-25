@@ -44,10 +44,11 @@ class PlotStyle(object):
         gStyle.SetPalette(1)
 
         # Make axis title and labels just a little smaller and (for Y) closer to the axis
-        gStyle.SetTitleSize(0.044, "XYZ")
+        gStyle.SetTitleSize(0.048, "X")
+        gStyle.SetTitleSize(0.044, "YZ")
         gStyle.SetLabelSize(0.033, "XYZ")
         gStyle.SetTitleYOffset(1.15)
-        gStyle.SetTitleXOffset(0.95)
+        gStyle.SetTitleXOffset(0.86)
         gStyle.SetPadLeftMargin(0.1)
         gStyle.SetPadRightMargin(0.025)
         gStyle.SetPadBottomMargin(0.095)

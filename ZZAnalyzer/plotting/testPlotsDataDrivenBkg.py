@@ -292,9 +292,9 @@ for ana in analyses:
             if channel == 'zz':
                 particles = '4\\ell'
             elif channel == 'eeee':
-                particles = '4e'
+                particles = '4\\text{e}'
             elif channel == 'eemm':
-                particles = '2e2\\mu'
+                particles = '2\\text{e}2\\mu'
             elif channel == 'mmmm':
                 particles = '4\\mu'
     
@@ -490,14 +490,14 @@ for ana in analyses:
     
     objects2l = {
         'z' : '\\ell\\ell',
-        'z1' : 'Z_{1}',
-        'z2' : 'Z_{2}',
-        'z1e' : 'Z_{1} \\left(ee \\right)',
-        'z2e' : 'Z_{2} \\left(ee \\right)',
-        'z1m' : 'Z_{1} \\left(\\mu\\mu \\right)',
-        'z2m' : 'Z_{2} \\left(\\mu\\mu \\right)',
-        'ze' : 'Z \\left(ee \\right)',
-        'zm' : 'Z \\left(\\mu\\mu \\right)',
+        'z1' : '\\text{Z}_{1}',
+        'z2' : '\\text{Z}_{2}',
+        'z1e' : '\\text{Z}_{1} \\left(\\text{ee} \\right)',
+        'z2e' : '\\text{Z}_{2} \\left(\\text{ee} \\right)',
+        'z1m' : '\\text{Z}_{1} \\left(\\mu\\mu \\right)',
+        'z2m' : '\\text{Z}_{2} \\left(\\mu\\mu \\right)',
+        'ze' : '\\text{Z} \\left(ee \\right)',
+        'zm' : '\\text{Z} \\left(\\mu\\mu \\right)',
         }
 
     for vbl, bins in binning2l.iteritems():
@@ -661,7 +661,7 @@ for ana in analyses:
         }
     
     objName1l = {
-        'e' : 'e',
+        'e' : '\\text{e}',
         'm' : '\\mu',
         }
     
