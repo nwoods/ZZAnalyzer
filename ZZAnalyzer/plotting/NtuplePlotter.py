@@ -716,7 +716,7 @@ class NtuplePlotter(object):
                     # An unweighted histogram should be drawn with Poisson errors. 
                     # Since that doesn't seem to work in rootpy (:-(), we'll replace 
                     # it with a TGraphAsymmErrors that has the correct error bars
-                    if obj.GetEffectiveEntries() == obj.GetEntries():
+                    if obj.GetEffectiveEntries() == obj.GetEntries() or not self.uniformBins:
                         # if this is the first item, make sure the axes don't get messed up
                         if iObj == 0:
                             toDraw.append(obj.empty_clone())
@@ -931,6 +931,10 @@ class NtuplePlotter(object):
                 h.legendstyle = "F"
         else:
             h = self.WrappedHist(binning, **histKWArgs)
+            if self.isData(category) and '2P2F' not in category and '3P1F' not in category:
+                h.legendstyle = "LPE"
+            else:
+                h.legendstyle = "F"
 
         channels = parseChannels(channels)
 
@@ -1243,7 +1247,7 @@ class NtuplePlotter(object):
         etc.) accordingly.
         '''
         g.drawstyle = 'PE'
-        g.legendstyle = 'LPE'
+        g.legedstyle = 'LPE'
         if not self.isData(g.getCategory()):
             g.color = sampleInfo[g.getSample()]['color']
            
@@ -1420,8 +1424,19 @@ class NtuplePlotter(object):
                                    extraHists=extraBkgs)
         if len(s):
             self.drawings[name].addObject(s)
-        h = self.makeHist(dataCategory, dataCategory, channel, variable, selection,
-                          binning)
+
+        if isinstance(dataCategory, str):
+            dataCategory = [dataCategory]
+
+        h = None
+        for dc in dataCategory:
+            hTemp = self.makeHist(dc, dc, channel, variable, selection,
+                                  binning)
+            if h is None:
+                h = hTemp
+            else:
+                h += hTemp
+
         if h.GetEntries():
             self.drawings[name].addObject(h)
             
