@@ -43,7 +43,7 @@ class HZZ4l2016Cleaner(RowCleanerBase):
             '''
             Need d_bkg^kin and Z1 distance from nominal mass.
             '''
-            self.dbk = row.D_bkg_kin
+            self.dbk = row.D_bkg_kin #row.D_sel_kin
             self.dZ = zCompatibility(row, objects[0], objects[1], cuts.fsrVar)
             self.m4l = evVar(row, 'Mass'+cuts.fsrVar)
 

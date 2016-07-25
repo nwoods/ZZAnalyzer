@@ -169,7 +169,7 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'isData' : False,
     'shortName' : 'ZZ4l',
     'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma*', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
-    'isSignal' : True,
+    'isSignal' : False,
     'color' : '#99ccff', #'skyblue',
     'kFactor' : 1.1, #1.074,
 #    'group' : 'qqZZ',
@@ -260,6 +260,18 @@ sampleInfo["GluGluHToZZTo4L_M750_13TeV_powheg2_JHUgenV698_pythia8"] = {
     'color' : 'magenta', #'#ffafaf', #'red',
 }
 
+sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg2_JHUgenV6_pythia8"] = {
+    'xsec' : 0.01212,
+    # 'n' : 479600,
+    # 'sumW' : 479600.,
+    'isData' : False,
+    'shortName' : 'ggHZZ4l',
+    'prettyName' : 'gg #rightarrow H #rightarrow ZZ',#'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{H} \\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
+    'isSignal' : True,
+    'color' : 'magenta', #'#ffafaf', #'red',
+    'kFactor' : 1.3,
+}
+
 sampleInfo["GluGluToContinToZZTo4e_13TeV_MCFM701_pythia8"] = {
     'xsec' : 0.001586,
     #'n' : 348800,
@@ -267,7 +279,7 @@ sampleInfo["GluGluToContinToZZTo4e_13TeV_MCFM701_pythia8"] = {
     'isData' : False,
     'shortName' : 'ggZZ4e',
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4e',
-    'isSignal' : True,
+    'isSignal' : False,
     'color' : 'lightsteelblue',
     'kFactor' : 1.7,
     'group' : 'ggZZ4l',
@@ -280,7 +292,7 @@ sampleInfo["GluGluToContinToZZTo4mu_13TeV_MCFM701_pythia8"] = {
     'isData' : False,
     'shortName' : 'ggZZ4mu',
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\mu',
-    'isSignal' : True,
+    'isSignal' : False,
     'color' : 'lightsteelblue',
     'kFactor' : 1.7,
     'group' : 'ggZZ4l',
@@ -293,7 +305,7 @@ sampleInfo["GluGluToContinToZZTo4tau_13TeV_MCFM701_pythia8"] = {
     'isData' : False,
     'shortName' : 'ggZZ4tau',
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 4\\tau',
-    'isSignal' : True,
+    'isSignal' : False,
     'color' : 'darkgray',
     'kFactor' : 1.7,
     'group' : 'ggZZ4l', #'ggZZ2l2t',
@@ -306,7 +318,7 @@ sampleInfo["GluGluToContinToZZTo2e2mu_13TeV_MCFM701_pythia8"] = {
     'isData' : False,
     'shortName' : 'ggZZ2e2mu',
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\mu',
-    'isSignal' : True,
+    'isSignal' : False,
     'color' : 'aliceblue',
     'kFactor' : 1.7,
     'group' : 'ggZZ4l',
@@ -319,7 +331,7 @@ sampleInfo["GluGluToContinToZZTo2e2tau_13TeV_MCFM701_pythia8"] = {
     'isData' : False,
     'shortName' : 'ggZZ2e2tau',
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2e2\\tau',
-    'isSignal' : True,
+    'isSignal' : False,
     'color' : 'aliceblue',
     'kFactor' : 1.7,
     'group' : 'ggZZ4l',
@@ -332,7 +344,7 @@ sampleInfo["GluGluToContinToZZTo2mu2tau_13TeV_MCFM701_pythia8"] = {
     'isData' : False,
     'shortName' : 'ggZZ2mu2tau',
     'prettyName' : '\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}\\!\\!\\rightarrow \\!\\! 2\\mu 2\\tau',
-    'isSignal' : True,
+    'isSignal' : False,
     'color' : 'aliceblue',
     'kFactor' : 1.7,
     'group' : 'ggZZ4l',
@@ -345,7 +357,7 @@ sampleInfo["GluGluToContinToZZTo2mu2tau_13TeV_MCFM701_pythia8"] = {
 sampleGroups = {}
 
 sampleGroups['ggZZ4l'] = {
-    'isSignal' : True,
+    'isSignal' : False,
     'prettyName' : 'gg #rightarrow ZZ', #'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
     'color' : "#3366ff",
 }
@@ -369,7 +381,7 @@ sampleGroups['DYJets'] = {
 }
 
 sampleGroups['qqZZ'] = {
-    'isSignal' : True,
+    'isSignal' : False,
     'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma^{*}', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
     'color' : '#99ccff',
 }

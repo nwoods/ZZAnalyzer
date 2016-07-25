@@ -15,7 +15,7 @@ Author: N. Woods, U. Wisconsin
 
 '''
 
-from ZZAnalyzer.utils.helpers import evVar, parseChannels, zMassDist
+from ZZAnalyzer.utils.helpers import evVar, objVar, nObjVar, parseChannels, zMassDist
 
 from rootpy.io import root_open
 import argparse
@@ -45,14 +45,14 @@ def getEventInfo(row):
     return ':'.join(str(n) for n in [run,lumi,evt])
 
 
-def getCandInfo(z1Var, z2Var, row):
+def getCandInfo(zMassVar, row, *objects):
     numbers = {}
     numbers['run'] = row.run
     numbers['lumi'] = row.lumi
     numbers['event'] = row.evt
     numbers['mass4l'] = evVar(row, 'MassFSR')
-    numbers['mZ1'] = evVar(row, z1Var)
-    numbers['mZ2'] = evVar(row, z2Var)
+    numbers['mZ1'] = nObjVar(row, zMassVar, objects[0], objects[1])
+    numbers['mZ2'] = nObjVar(row, zMassVar, objects[2], objects[3])
 
     # eemm channel may have masses swapped
     if zMassDist(numbers['mZ1']) > zMassDist(numbers['mZ2']):
@@ -63,25 +63,31 @@ def getCandInfo(z1Var, z2Var, row):
     numbers['D_bkg^kin'] = evVar(row, 'D_bkg_kin')
     numbers['D_bkg'] = evVar(row, 'D_bkg')
     numbers['D_gg'] = evVar(row, 'D_gg')
-    numbers['Dkin_HJJ^VBF'] = evVar(row, 'D_HJJ_VBF')
+    numbers['Dkin_HJJ^VBF'] = evVar(row, 'D_VBF2j')
     numbers['D_0-'] = evVar(row, 'D_g4')
-    numbers['Dkin_HJ^VBF-1'] = evVar(row, 'D_HJ_VBF')
-    numbers['Dkin_HJJ^WH-h'] = evVar(row, 'D_HJJ_WHh')
-    numbers['Dkin_HJJ^ZH-h'] = evVar(row, 'D_HJJ_ZHh')
+    numbers['Dkin_HJ^VBF-1'] = evVar(row, 'D_VBF1j')
+    numbers['Dkin_HJJ^WH-h'] = evVar(row, 'D_WHh')
+    numbers['Dkin_HJJ^ZH-h'] = evVar(row, 'D_ZHh')
     numbers['njets30'] = evVar(row, 'nJets')
     numbers['jet1pt'] = max(-1.,evVar(row, 'jet1Pt'))
     numbers['jet2pt'] = max(-1.,evVar(row, 'jet2Pt'))
     numbers['jet1qgl'] = evVar(row, 'jet1QGLikelihood')
     numbers['jet2qgl'] = evVar(row, 'jet2QGLikelihood')
-    numbers['Dfull_HJJ^VBF'] = evVar(row, 'D_VBF2j')
-    numbers['Dfull_HJ^VBF-1'] = evVar(row, 'D_VBF1j')
-    numbers['Dfull_HJJ^WH-h'] = evVar(row, 'D_WHh')
-    numbers['Dfull_HJJ^ZH-h'] = evVar(row, 'D_ZHh')
+    numbers['Dfull_HJJ^VBF'] = evVar(row, 'D_VBF2j_QG')
+    numbers['Dfull_HJ^VBF-1'] = evVar(row, 'D_VBF1j_QG')
+    numbers['Dfull_HJJ^WH-h'] = evVar(row, 'D_WHh_QG')
+    numbers['Dfull_HJJ^ZH-h'] = evVar(row, 'D_ZHh_QG')
     numbers['category'] = evVar(row, "ZZCategory")
     numbers['m4lRefit'] = evVar(row, 'MassRefit')
     numbers['m4lRefitError'] = evVar(row, 'MassRefitError')
     numbers['weight'] = evVar(row, 'genWeight')
     numbers['weight'] /= abs(numbers['weight'])
+
+    for ob in objects:
+        numbers['weight'] *= objVar(row, 'EffScaleFactor', ob)
+        if 'm' in ob:
+            numbers['weight'] *= objVar(row, 'TrkRecoEffScaleFactor')
+
     return ('{run}:{lumi}:{event}:{mass4l:.2f}:{mZ1:.2f}:{mZ2:.2f}:{D_bkg^kin:'
             '.3f}:{D_bkg:.3f}:{D_gg:.3f}:{Dkin_HJJ^VBF:.3f}:{D_0-:.3f}:'
             '{Dkin_HJ^VBF-1:.3f}:{Dkin_HJJ^WH-h:.3f}:{Dkin_HJJ^ZH-h:.3f}:'
@@ -111,21 +117,19 @@ outStrings = {}
 if args.listOnly:
     getInfo = lambda row, *args: getEventInfo(row)
 else:
-    getInfo = lambda row, z1MassVar, z2MassVar: getCandInfo(z1MassVar, z2MassVar, row)
+    getInfo = lambda row, zMassVar, *objects: getCandInfo(zMassVar, row, *objects)
         
 with root_open(inFile) as fin:
     for channel in channels:
         print "\nChannel %s:"%channel
         ntuple = fin.Get(channel+'/ntuple')
         objects = getObjects(channel)
-        z1MassVar = "%s_%s_MassFSR"%(objects[0], objects[1])
-        z2MassVar = "%s_%s_MassFSR"%(objects[2], objects[3])
     
         for n, row in enumerate(ntuple):
             if n % 500 == 0:
                 print "Processing row %d"%n
     
-            evStr = getInfo(row, z1MassVar, z2MassVar)
+            evStr = getInfo(row, 'MassFSR', *objects)
             run = row.run
             lumi = row.lumi
             evt = row.evt

@@ -92,6 +92,8 @@ class BaseCuts2016(Cutter):
                     'singleESingleMuPass' : (1, ">="),
                     'tripleMuPass' : (1, ">="),
                     'singleEPass' : (1, ">="),
+                    'singleIsoMuPass' : (1, ">="),
+                    #'singleIsoMu20Pass' : (1, ">="),
                     'doubleESingleMuPass' : (1, ">="),
                     'doubleMuSingleEPass' : (1, ">="),
                 },

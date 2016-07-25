@@ -13,7 +13,7 @@ class HighPtMuons(Cutter):
         temp['mHighPtID'] = {
             'cuts' : {
                 'Pt' : (200., '>='),
-                'TrackerHighPtID' : (1., '>='),
+                'HighPtID' : (1., '>='),
                 },
             'objects' : 1,
             }

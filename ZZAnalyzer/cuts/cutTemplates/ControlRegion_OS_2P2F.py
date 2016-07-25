@@ -82,7 +82,7 @@ class ControlRegion_OS_2P2F(ControlRegion_Base):
                 crFlow['Z2FakeID'] = ('FakeID', [3,4])
             else:
                 crFlow[cut] = params
-        crFlow['ExtraLeptonVeto'] = ('ExtraLepVeto', [3])
+        #crFlow['ExtraLeptonVeto'] = ('ExtraLepVeto', [3])
 
         return crFlow
 
