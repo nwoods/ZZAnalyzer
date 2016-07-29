@@ -78,23 +78,26 @@ def getCandInfo(zMassVar, row, *objects):
     numbers['Dfull_HJJ^WH-h'] = evVar(row, 'D_WHh_QG')
     numbers['Dfull_HJJ^ZH-h'] = evVar(row, 'D_ZHh_QG')
     numbers['category'] = evVar(row, "ZZCategory")
-    numbers['m4lRefit'] = evVar(row, 'MassRefit')
-    numbers['m4lRefitError'] = evVar(row, 'MassRefitError')
-    numbers['weight'] = evVar(row, 'genWeight')
-    numbers['weight'] /= abs(numbers['weight'])
+    # numbers['m4lRefit'] = evVar(row, 'MassRefit')
+    # numbers['m4lRefitError'] = evVar(row, 'MassRefitError')
 
-    for ob in objects:
-        numbers['weight'] *= objVar(row, 'EffScaleFactor', ob)
-        if 'm' in ob:
-            numbers['weight'] *= objVar(row, 'TrkRecoEffScaleFactor')
+    if not args.data:
+        numbers['weight'] = evVar(row, 'genWeight')
+        numbers['weight'] /= abs(numbers['weight'])
 
-    return ('{run}:{lumi}:{event}:{mass4l:.2f}:{mZ1:.2f}:{mZ2:.2f}:{D_bkg^kin:'
-            '.3f}:{D_bkg:.3f}:{D_gg:.3f}:{Dkin_HJJ^VBF:.3f}:{D_0-:.3f}:'
-            '{Dkin_HJ^VBF-1:.3f}:{Dkin_HJJ^WH-h:.3f}:{Dkin_HJJ^ZH-h:.3f}:'
-            '{njets30:d}:{jet1pt:.2f}:{jet2pt:.2f}:{jet1qgl:.3f}:{jet2qgl:.3f}:'
-            '{Dfull_HJJ^VBF:.3f}:{Dfull_HJ^VBF-1:.3f}:{Dfull_HJJ^WH-h:.3f}:'
-            '{Dfull_HJJ^ZH-h:.3f}:{category}:{m4lRefit:.2f}:{m4lRefitError:.2f}:'
-            '{weight:.3f}').format(**numbers)
+        for ob in objects:
+            numbers['weight'] *= objVar(row, 'EffScaleFactor', ob)
+
+    outTemp = ('{run}:{lumi}:{event}:{mass4l:.2f}:{mZ1:.2f}:{mZ2:.2f}:{D_bkg^kin:'
+               '.3f}:{D_bkg:.3f}:{D_gg:.3f}:{Dkin_HJJ^VBF:.3f}:{D_0-:.3f}:'
+               '{Dkin_HJ^VBF-1:.3f}:{Dkin_HJJ^WH-h:.3f}:{Dkin_HJJ^ZH-h:.3f}:'
+               '{njets30:d}:{jet1pt:.2f}:{jet2pt:.2f}:{jet1qgl:.3f}:{jet2qgl:.3f}:'
+               '{Dfull_HJJ^VBF:.3f}:{Dfull_HJ^VBF-1:.3f}:{Dfull_HJJ^WH-h:.3f}:'
+               '{Dfull_HJJ^ZH-h:.3f}:{category}') #:{m4lRefit:.2f}:{m4lRefitError:.2f}:'
+    if not args.data:
+        outTemp += ':{weight:.3f}'
+
+    return outTemp.format(**numbers)
 
 
 parser = argparse.ArgumentParser(description='Dump information about the 4l candidates in an ntuple to a text file, for synchronization.')
@@ -105,6 +108,10 @@ parser.add_argument('channels', nargs='?', type=str, default='zz',
                     help='Comma separated (no spaces) list of channels, or keyword "zz" for eeee,mmmm,eemm')
 parser.add_argument('--listOnly', action='store_true', 
                     help='Print only run:lumi:event with no further info')
+parser.add_argument('--printChannel', action='store_true',
+                    help='Print the name of the channel for each event')
+parser.add_argument('--data', action='store_true',
+                    help="Treat as data (don't print weight).")
 
 args = parser.parse_args()
 
@@ -125,11 +132,20 @@ with root_open(inFile) as fin:
         ntuple = fin.Get(channel+'/ntuple')
         objects = getObjects(channel)
     
+        if not args.printChannel:
+            chStr = ''
+        elif channel == 'mmmm':
+            chStr = '4mu:'
+        elif channel == 'eemm':
+            chStr = '2e2mu:'
+        elif channel == 'eeee':
+            chStr = '4e:'
+
         for n, row in enumerate(ntuple):
             if n % 500 == 0:
                 print "Processing row %d"%n
     
-            evStr = getInfo(row, 'MassFSR', *objects)
+            evStr = chStr + getInfo(row, 'MassFSR', *objects)
             run = row.run
             lumi = row.lumi
             evt = row.evt
