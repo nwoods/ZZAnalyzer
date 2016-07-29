@@ -45,7 +45,8 @@ parser.add_argument('--smooth', action='store_true', help='Smooth reducible back
 parser.add_argument('--pas', action='store_true', help='Only make plots used in the PAS')
 parser.add_argument('--an', action='store_true', help='Only make plots used in the analysis note')
 parser.add_argument('--paper', action='store_true', 
-                    help='Only make plots used in the paper, and don\'t label them "preliminary"')
+                    help=('Only make plots used in the paper, format them as .eps files, '
+                          'and don\'t label them "preliminary"'))
 parser.add_argument('--link', action='store_true', 
                     help='Make the latest plots directory link to these plots')
 parser.add_argument('--tpVersion', type=str, nargs='?', default='v2.0-13-g36fc26c',
@@ -79,8 +80,12 @@ if args.z4l:
 if args.paper:
     args.pas = True
     plotType = ""
+
+    plotFormat = 'eps'
 else:
     plotType = "Preliminary"
+
+    plotFormat = 'png'
 
 if args.an:
     if args.paper:
@@ -399,7 +404,7 @@ for ana in analyses:
                              bins, 'mc', 'data', canvasX=1000, logy=False, 
                              xTitle=xTitle4l[varName].replace('__PARTICLES__',particles), 
                              xUnits=units[varName],
-                             extraBkgs=extraBkgs, outFile='%s%s.png'%(varName,chEnding), 
+                             extraBkgs=extraBkgs, outFile='%s%s.%s'%(varName,chEnding,plotFormat), 
                              mcWeights=mcWeight[channel], drawRatio=False,
                              widthInYTitle=bool(units[var]),
                              mcSystFracUp=stackSystUp[channel],
@@ -408,6 +413,9 @@ for ana in analyses:
                              legParams=legParams,
                              extraObjects=extraObjects,
                              plotType=plotType)
+
+            if args.paper:
+                os.system('epstopdf {0}.eps --outfile={0}.pdf'.format(outdir+'/'+varName+chEnding))
 
             if args.test:
                 exit()
@@ -609,7 +617,7 @@ for ana in analyses:
                              xTitle=xTitles2l[var]%objects2l[z],
                              xUnits=units[var],
                              yTitle=yAxisTitle,
-                             extraBkgs=extraBkgs, outFile='%s%s.png'%(z,var), 
+                             extraBkgs=extraBkgs, outFile='%s%s.%s'%(z,var,plotFormat), 
                              mcWeights=[mcWeight[c] for c in channels], 
                              drawRatio=False,
                              widthInYTitle=bool(units[var]),
@@ -618,6 +626,8 @@ for ana in analyses:
                              legParams=legParams,
                              plotType=plotType)
     
+            if args.paper:
+                os.system('epstopdf {0}.eps --outfile={0}.pdf'.format(outdir+'/'+z+var))
     
     binning1l = {
         # 'Phi' : [12, -3.15, 3.15],
@@ -730,7 +740,7 @@ for ana in analyses:
                              xTitle=xTitles1l[var]%objName1l[lep],
                              xUnits=units[var],
                              yTitle='Electrons' if lep == 'e' else 'Muons',
-                             extraBkgs=extraBkgs, outFile='%s%s.png'%(lep,var), 
+                             extraBkgs=extraBkgs, outFile='%s%s.%s'%(lep,var,plotFormat), 
                              mcWeights=[mcWeight[c] for c in channels], 
                              drawRatio=False,
                              widthInYTitle=bool(units[var]),
@@ -738,6 +748,8 @@ for ana in analyses:
                              mcSystFracDown=stackSystDown[channel],
                              plotType=plotType)
     
+            if args.paper:
+                os.system('epstopdf {0}.eps --outfile={0}.pdf'.format(outdir+'/'+lep+var))
     
     
 

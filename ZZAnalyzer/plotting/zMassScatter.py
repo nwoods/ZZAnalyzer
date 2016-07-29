@@ -12,6 +12,7 @@ from ZZAnalyzer.utils.helpers import Z_MASS
 from rootpy.plotting import Graph, Canvas, Legend
 from rootpy.plotting.utils import draw
 
+from os import system
 
 
 plotter = NtuplePlotter('zz', '',
@@ -101,4 +102,6 @@ for ana in ['full', 'z4l']:
     plotter.style.setCMSStyle(c, "", True, "", 13, plotter.intLumi)
     
     c.Print('~/www/ZZPlots/mZ2VsmZ1_{}.png'.format(ana))
+    c.Print('~/www/ZZPlots/mZ2VsmZ1_{}.eps'.format(ana))
     
+    system('epstopdf /afs/cern.ch/user/n/nawoods/www/ZZPlots/mZ2VsmZ1_{0}.eps --outfile=/afs/cern.ch/user/n/nawoods/www/ZZPlots/mZ2VsmZ1_{0}.pdf'.format(ana))
