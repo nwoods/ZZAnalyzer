@@ -168,11 +168,12 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'sumW' : 6652512.,
     'isData' : False,
     'shortName' : 'ZZ4l',
-    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma*', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'q#bar{q} #rightarrow ZZ, Z#gamma*', 
     'isSignal' : False,
-    'color' : '#99ccff', #'skyblue',
-    'kFactor' : 1.1, #1.074,
-#    'group' : 'qqZZ',
+    'color' : '#99ccff', 
+    'lineColor' : '#000099',
+    'kFactor' : 1.1, 
+    'group' : 'qqZZ',
 }
 
 sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
@@ -181,7 +182,7 @@ sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg_JHUgen_pythia8"] = {
     'sumW' : 479600.,
     'isData' : False,
     'shortName' : 'ggHZZ4l',
-    'prettyName' : 'gg #rightarrow H #rightarrow ZZ',#'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{H} \\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'gg #rightarrow H #rightarrow ZZ',
     'isSignal' : False,
     'color' : '#ffafaf', #'red',
 }
@@ -249,15 +250,61 @@ sampleInfo['ZZTo4Mu_doubleres_powheg_pythia8'] = {
 
 ## 80X MC
 
+sampleInfo["GluGluHToZZTo4L_M450_13TeV_powheg2_JHUgenV698_pythia8"] = {
+    'xsec' : 6.771*0.00263,
+    'isData' : False,
+    'shortName' : 'ggH450',
+    'prettyName' : 'H(450)',
+    'isSignal' : False,
+    'color' : 'indigo', #'#ffafaf', #'red',
+}
+
 sampleInfo["GluGluHToZZTo4L_M750_13TeV_powheg2_JHUgenV698_pythia8"] = {
     'xsec' : 0.0018874,
     # 'n' : 479600,
     # 'sumW' : 479600.,
     'isData' : False,
-    'shortName' : 'ggHZZ4l',
-    'prettyName' : 'gg #rightarrow H(750) #rightarrow ZZ',#'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{H} \\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
+    'shortName' : 'ggH750',
+    'prettyName' : 'H(750) #times 10',
+    'isSignal' : False,
+    'color' : 'purple', #'#ffafaf', #'red',
+    'kFactor' : 10.,
+}
+
+sampleInfo["GluGluHToZZTo4L_M1000_13TeV_powheg2_JHUgenV698_pythia8"] = {
+    'xsec' : 0.1233*0.00318,
+    # 'n' : 479600,
+    # 'sumW' : 479600.,
+    'isData' : False,
+    'shortName' : 'ggH1000',
+    'prettyName' : 'H(1000) #times 10^{2}',
+    'isSignal' : False,
+    'color' : 'pink', #'#ffafaf', #'red',
+    'kFactor' : 100,
+}
+
+sampleInfo["GluGluHToZZTo4L_M1500_13TeV_powheg2_JHUgenV698_pythia8"] = {
+    'xsec' : 0.008913*0.003,
+    # 'n' : 479600,
+    # 'sumW' : 479600.,
+    'isData' : False,
+    'shortName' : 'ggH1500',
+    'prettyName' : 'H(1500) #times 2 #lower[-.3]{#scale[0.5]{#bullet}} 10^{3}',
+    'isSignal' : False,
+    'color' : 'violet', #'#ffafaf', #'red',
+    'kFactor' : 2000,
+}
+
+sampleInfo["GluGluHToZZTo4L_M2500_13TeV_powheg2_JHUgenV698_pythia8"] = {
+    'xsec' : 0.0001778*.003,
+    # 'n' : 479600,
+    # 'sumW' : 479600.,
+    'isData' : False,
+    'shortName' : 'ggH2500',
+    'prettyName' : 'H(2500) #times 5 #lower[-.3]{#scale[0.5]{#bullet}} 10^{4}',
     'isSignal' : False,
     'color' : 'magenta', #'#ffafaf', #'red',
+    'kFactor' : 50000,
 }
 
 sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg2_JHUgenV6_pythia8"] = {
@@ -268,8 +315,9 @@ sampleInfo["GluGluHToZZTo4L_M125_13TeV_powheg2_JHUgenV6_pythia8"] = {
     'shortName' : 'ggHZZ4l',
     'prettyName' : 'gg #rightarrow H #rightarrow ZZ',#'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{H} \\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : True,
-    'color' : 'magenta', #'#ffafaf', #'red',
-    'kFactor' : 1.3,
+    'color' : '#ffb2b2', #'red',
+    'lineColor' : 'cc0000',
+    #'kFactor' : 1.3,
 }
 
 sampleInfo["GluGluToContinToZZTo4e_13TeV_MCFM701_pythia8"] = {
@@ -350,6 +398,15 @@ sampleInfo["GluGluToContinToZZTo2mu2tau_13TeV_MCFM701_pythia8"] = {
     'group' : 'ggZZ4l',
 }
 
+sampleInfo["Z+X"] = {
+    'isData' : False,
+    'shortName' : 'Z+X',
+    'prettyName' : 'Z+X',
+    'isSignal' : False,
+    'color' : '#669966',
+    'lineColor' : '#003300',
+}
+
 
 
 
@@ -358,8 +415,9 @@ sampleGroups = {}
 
 sampleGroups['ggZZ4l'] = {
     'isSignal' : False,
-    'prettyName' : 'gg #rightarrow ZZ', #'\\text{gg}\\!\\!\\rightarrow \\!\\! \\text{ZZ}',#\\!\\!\\rightarrow \\!\\! 4\\ell',
-    'color' : "#3366ff",
+    'prettyName' : 'gg #rightarrow ZZ, Z#gamma*', 
+    'color' : "#4b78ff",#"#3366ff",
+    'lineColor' : "#000099",
 }
 
 sampleGroups['ggZZ2l2t'] = {
@@ -382,8 +440,9 @@ sampleGroups['DYJets'] = {
 
 sampleGroups['qqZZ'] = {
     'isSignal' : False,
-    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma^{*}', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'q#bar{q} #rightarrow ZZ, Z#gamma*', 
     'color' : '#99ccff',
+    'lineColor' : '#000099',
 }
 
 sampleGroups['doubleres'] = {

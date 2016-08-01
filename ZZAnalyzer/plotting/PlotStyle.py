@@ -152,7 +152,7 @@ class PlotStyle(object):
         for obj in canvas.GetListOfPrimitives():
             if obj.InheritsFrom(TH1.Class()) or obj.InheritsFrom(THStack.Class()):
                 axis = obj.GetXaxis()
-                if axis.GetXmax() >= 10**TGaxis.GetMaxDigits():
+                if axis.GetXmax() >= 10**TGaxis.GetMaxDigits() and not canvas.GetLogx():
                     # has exponent
                     axis.CenterTitle()
             if obj.InheritsFrom(TPad.Class()):
