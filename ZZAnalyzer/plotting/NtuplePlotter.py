@@ -33,7 +33,7 @@ from rootpy.plotting.hist import _Hist, _Hist2D, _Hist3D
 from rootpy.plotting.graph import _Graph1DBase
 from rootpy.plotting.utils import draw, get_band
 from rootpy.ROOT import kTRUE, kFALSE, TLine
-from rootpy.ROOT import gROOT, TBox
+from rootpy.ROOT import gROOT, TBox, TAttFill
 from rootpy.tree import Tree, TreeChain, Cut
 from rootpy.plotting.base import Plottable
 from rootpy import asrootpy, QROOT
@@ -834,7 +834,8 @@ class NtuplePlotter(object):
                 hi[i].value = total[i].value + errUp
             err = get_band(lo, hi, total)
 
-            err.fillstyle = 'x'
+            TAttFill.SetFillStyle(err, 3244)
+            # err.fillstyle = 'x'
             err.drawstyle = '2'
             err.fillcolor = 'black'
 

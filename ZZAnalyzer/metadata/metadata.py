@@ -168,7 +168,7 @@ sampleInfo["ZZTo4L_13TeV_powheg_pythia8"] = {
     'sumW' : 6652512.,
     'isData' : False,
     'shortName' : 'ZZ4l',
-    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma*', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma*/Z', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
     'isSignal' : True,
     'color' : '#99ccff', #'skyblue',
     'kFactor' : 1.1, #1.074,
@@ -275,7 +275,7 @@ sampleGroups['DYJets'] = {
 
 sampleGroups['qqZZ'] = {
     'isSignal' : True,
-    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma^{*}', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
+    'prettyName' : 'q#bar{q} #rightarrow ZZ/Z#gamma^{*}/Z', #'\\text{qq} \\!\\! \\rightarrow \\!\\! \\text{ZZ}/\\text{Z}\\gamma^{*}',# \\!\\!\\rightarrow \\!\\! 4\\ell',
     'color' : '#99ccff',
 }
 

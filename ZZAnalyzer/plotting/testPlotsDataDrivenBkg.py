@@ -22,7 +22,7 @@ from ZZAnalyzer.utils.helpers import Z_MASS
 from ZZAnalyzer.utils import WeightStringMaker, TPFunctionManager, BkgManager
 
 from rootpy.io import root_open
-from rootpy.ROOT import R
+from rootpy.ROOT import R, gStyle
 
 import os
 from datetime import date
@@ -161,8 +161,9 @@ units = {
 def joinSelections(*selections):
     return ' && '.join([s for s in selections if bool(s)])
 
+#gStyle.SetHatchesLineWidth(3*gStyle.GetHatchesLineWidth())
 
-for ana in analyses:
+for iAna, ana in enumerate(analyses):
     print "Initializing plotter for {} analysis".format(ana.upper())
 
     # cut that is always applied, in case it's needed
@@ -202,6 +203,10 @@ for ana in analyses:
                              }, 
                             intLumi=(1340. if args.goldv2 else 2619.))
     
+    #gStyle.SetLineScalePS(1)
+    gStyle.SetHatchesLineWidth(1)
+    gStyle.SetHatchesSpacing(1.01)
+
     if args.link:
         try:
             os.unlink(link)
@@ -295,7 +300,7 @@ for ana in analyses:
             if channel != 'zz':
                 chEnding = '_%s'%channel
             if channel == 'zz':
-                particles = '4\\ell'
+                particles = '\\ell^{+}\\ell^{-}\\ell\\prime^{+}\\ell\\prime^{-}'#'4\\ell'
             elif channel == 'eeee':
                 particles = '4\\text{e}'
             elif channel == 'eemm':
@@ -497,7 +502,7 @@ for ana in analyses:
         }
     
     objects2l = {
-        'z' : '\\ell\\ell',
+        'z' : '\\ell^{+}\\ell^{-}',
         'z1' : '\\text{Z}_{1}',
         'z2' : '\\text{Z}_{2}',
         'z1e' : '\\text{Z}_{1} \\left(\\text{ee} \\right)',
