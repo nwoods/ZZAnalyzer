@@ -65,8 +65,8 @@ class BkgManager(object):
         arglebargle = getattr(ROOTComp, 'lepFakeFactor')
 
         self.singleLepWeightTemp = ('(lepFakeFactor({f}, '
-                                    '{{0}}HZZTightID, '
-                                    '{{0}}HZZIsoPass))')
+                                    '{{0}}ZZTightID, '
+                                    '{{0}}ZZIsoPass))')
 
         self.zTemps = {
             lep : '*'.join([
@@ -77,8 +77,8 @@ class BkgManager(object):
             }
 
         self.corCondition = (
-            '((({{0}}HZZTightID + {{0}}HZZIsoPass + '
-            '   {{1}}HZZTightID + {{1}}HZZIsoPass) < 4.) && '
+            '((({{0}}ZZTightID + {{0}}ZZIsoPass + '
+            '   {{1}}ZZTightID + {{1}}ZZIsoPass) < 4.) && '
             ' {{0}}_{{1}}_DR < 0.6 ? {0} : 1.)'
             )
         self.corStrTemp3P1F = self.corCondition.format(0.)
@@ -87,8 +87,8 @@ class BkgManager(object):
         # To find 2P2F contribution to 3P1F region, we need F1+F2 instead of 
         # F1*F2, so the 'identity' (for tight leptons) needs to be 0
         self.singleLepWeightTempAdditive = ('(lepFakeFactorAdditive({f}, '
-                                            '{{0}}HZZTightID, '
-                                            '{{0}}HZZIsoPass))')
+                                            '{{0}}ZZTightID, '
+                                            '{{0}}ZZIsoPass))')
 
         self.zTempsAdditive = {
             lep : '(' + ('+'.join([
@@ -296,8 +296,8 @@ class BkgManagerFactorized(object):
         arglebargle = getattr(ROOTComp, 'lepFakeFactor')
 
         self.singleLepWeightTemp = ('lepFakeFactor({fID}, '
-                                    '{{0}}HZZTightID > 0.5, '
-                                    '{fIso}, {{0}}HZZIsoPass > 0.5)')
+                                    '{{0}}ZZTightID > 0.5, '
+                                    '{fIso}, {{0}}ZZIsoPass > 0.5)')
 
         self.zTemps = {
             lep : '*'.join([
@@ -311,10 +311,10 @@ class BkgManagerFactorized(object):
             }
 
         self.zWeightTempCor = (
-            'zFakeFactorGeom({fID0}, {{0}}HZZTightID > 0.5, '
-            '{fIso0}, {{0}}HZZIsoFSR, {{0}}Pt, '
-            '{fID1}, {{1}}HZZTightID > 0.5, {fIso1}, '
-            '{{1}}HZZIsoFSR, {{1}}Pt, {{0}}_{{1}}_DR)'
+            'zFakeFactorGeom({fID0}, {{0}}ZZTightID > 0.5, '
+            '{fIso0}, {{0}}ZZIsoFSR, {{0}}Pt, '
+            '{fID1}, {{1}}ZZTightID > 0.5, {fIso1}, '
+            '{{1}}ZZIsoFSR, {{1}}Pt, {{0}}_{{1}}_DR)'
             )
 
         self.zTempsCor = {

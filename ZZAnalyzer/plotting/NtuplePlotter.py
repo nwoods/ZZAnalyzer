@@ -31,7 +31,7 @@ from rootpy.io import root_open, File, DoesNotExist
 from rootpy.plotting import Hist, Hist2D, Hist3D, HistStack, Graph, Canvas, Legend, Pad
 from rootpy.plotting.hist import _Hist, _Hist2D, _Hist3D
 from rootpy.plotting.graph import _Graph1DBase
-from rootpy.plotting.utils import draw, get_band
+from rootpy.plotting.utils import draw, get_band, get_limits
 from rootpy.ROOT import kTRUE, kFALSE, TLine
 from rootpy.ROOT import gROOT, TBox
 from rootpy.tree import Tree, TreeChain, Cut
@@ -142,7 +142,7 @@ def getMinBinWidth(obj):
 
 class NtuplePlotter(object):
     def __init__(self, channels, outdir='./plots', mcFiles={}, 
-                 dataFiles={}, intLumi=-1.):
+                 dataFiles={}, intLumi=-1., ntupleDir='ntuple'):
         self.intLumi = float(intLumi)
         if not outdir or outdir[:1] == './':
             self.outdir = os.path.join(os.environ['zza'], 'ZZAnalyzer', outdir[2:])
@@ -169,6 +169,8 @@ class NtuplePlotter(object):
 
         self.sumOfWeights = {} # for MC
 
+        self.ntupleDir = ntupleDir
+        
         self.ntuples = {cat : {} for cat in mcFiles}
         self.ntuples.update({cat : {cat:{}} for cat in dataFiles})
         for cat, samples in self.files.iteritems():
@@ -181,7 +183,7 @@ class NtuplePlotter(object):
                         self.ntuples[cat][cat][c] = n
                     elif len(dataFileList) == 1:
                         self.files[cat] = { c : root_open(dataFileList[0]) for c in self.channels }
-                        self.ntuples[cat][cat] = { c : self.files[cat][cat].Get('%s/final/Ntuple'%c) for c in self.channels }
+                        self.ntuples[cat][cat] = { c : self.files[cat][cat].Get('{}/{}'.format(c,self.ntupleDir)) for c in self.channels }
                     else:
                         self.files[cat] = {}
                         self.ntuples[cat][cat] = {}
@@ -191,9 +193,9 @@ class NtuplePlotter(object):
                     self.sumOfWeights[cat][sample] = self.getWeightSum(fileNames, sample)
                     if len(fileNames) == 1:
                         self.files[cat][sample] = root_open(fileNames[0])
-                        self.ntuples[cat][sample] = { c : self.files[cat][sample].Get("%s/final/Ntuple"%c) for c in self.channels }
+                        self.ntuples[cat][sample] = { c : self.files[cat][sample].Get("{}/{}".format(c,self.ntupleDir)) for c in self.channels }
                     else:
-                        self.ntuples[cat][sample] = { c : TreeChain("%s/final/Ntuple"%c, fileNames) for c in self.channels }
+                        self.ntuples[cat][sample] = { c : TreeChain("{}/{}".format(c,self.ntupleDir), fileNames) for c in self.channels }
 
         self.drawings = {}
 
@@ -314,12 +316,12 @@ class NtuplePlotter(object):
         and it doesn't matter which is kept.
         '''
         tempFile = root_open("dataTEMP_%s%s%s.root"%(channel, _tempFileEnding, category), "recreate")
-        out = Tree("%s/final/Ntuple"%channel)
+        out = Tree("{}/{}".format(channel,self.ntupleDir))
 
         if len(files) == 0:
             return out, tempFile
         
-        chain = TreeChain('%s/final/Ntuple'%channel, files)
+        chain = TreeChain("{}/{}".format(channel,self.ntupleDir), files)
 
         foundEvents = set()
         out.set_buffer(chain._buffer, create_branches=True)
@@ -362,23 +364,21 @@ class NtuplePlotter(object):
         ZZMetadata.py is used, but this is dangerous because I don't trust
         myself to keep it up to date.
         '''
-        for ch in self.channels:
-            if len(inFiles) == 1:
-                try:
-                    with root_open(inFiles[0]) as f:
-                        metaTree = f.Get("%s/metaInfo"%ch)
-                        return metaTree.Draw('1', 'summedWeights').Integral()
-                except DoesNotExist:
-                    continue
-            else:
-                try:
-                    metaChain = TreeChain('%s/metaInfo'%ch, inFiles)
-                    return metaChain.Draw('1', 'summedWeights').Integral()
-                except DoesNotExist:
-                    continue
-            
-        else: # no tree in any channel
-            return sampleInfo[sample]['sumW']
+        if len(inFiles) == 1:
+            try:
+                with root_open(inFiles[0]) as f:
+                    metaTree = f.Get("metaInfo/metaInfo")
+                    return metaTree.Draw('1', 'summedWeights').Integral()
+            except DoesNotExist:
+                pass
+        else:
+            try:
+                metaChain = TreeChain('metaInfo/metaInfo', inFiles)
+                return metaChain.Draw('1', 'summedWeights').Integral()
+            except DoesNotExist:
+                pass
+        
+        return sampleInfo[sample]['sumW']
 
 
     WrappedHist = WrapPlottable(Hist)
@@ -394,7 +394,7 @@ class NtuplePlotter(object):
         plotted on it.
         '''
         def __init__(self, title, style, width=1000, height=800, logy=False, 
-                     ipynb=False):
+                     ipynb=False, logx=False):
             self.ipynb = ipynb
             if self.ipynb:
                 self.c = rootnotes.canvas("x"+title, (width, height))
@@ -403,6 +403,7 @@ class NtuplePlotter(object):
             self.pads = [self.c]
 
             self.logy = logy
+            self.logx = logx
             self.c.cd()
             self.objects = [] # for Hists, HistStacks, and Graphs (objects with axes)
             self.objectsAux = [] # for anything else you want drawn on the canvas
@@ -607,18 +608,18 @@ class NtuplePlotter(object):
             if xTitle:
                 if xUnits:
                     if '\\' in xTitle: # TeX style
-                        xUnitsText = "\\: [\\text{%s}]"%xUnits
+                        xUnitsText = "\\: (\\text{%s})"%xUnits
                     else:
-                        xUnitsText = " [%s]"%xUnits
+                        xUnitsText = " (%s)"%xUnits
                     xTitle = "%s %s"%(xTitle, xUnitsText)
             else:
                 xTitle = None
             if yTitle:
                 if yUnits:
                     if '\\' in yTitle: # TeX style
-                        yUnitsText = "\\: [\\text{%s}]"%yUnits
+                        yUnitsText = "\\: (\\text{%s})"%yUnits
                     else:
-                        yUnitsText = " [%s]"%yUnits
+                        yUnitsText = " (%s)"%yUnits
                     yTitle = "%s %s"%(yTitle, yUnitsText)
                 elif perUnitWidth and self.minBinWidth != -1:
                     yTitle = "%s / %s"%(yTitle, makeNumberPretty(self.minBinWidth, 2))
@@ -655,7 +656,8 @@ class NtuplePlotter(object):
                      xUnits="GeV", yTitle="Events", yUnits="", logy=False,
                      legObjects=[], legParamsOverride={}, stackErr=True, 
                      perUnitWidth=True, legSolid=False, widthInYTitle=False,
-                     mcSystFracUp=0., mcSystFracDown=0., blinding=[]):
+                     mcSystFracUp=0., mcSystFracDown=0., blinding=[], 
+                     logx=False, noPointWidth=False):
             '''
             Draws objects (Hists, HistStacks, and Graphs) and objectsAux
             (anything else) on pad.
@@ -670,6 +672,7 @@ class NtuplePlotter(object):
                                  fraction (i.e. 0.1 for 10%)
             blinding (list of length-2 iterables): Blind on this list of 
                                                    (xMin, xMax)
+            noPointWidth (bool): If true, don't put x error bars on data points
             '''
             if legObjects:
                 legParams = {
@@ -716,12 +719,16 @@ class NtuplePlotter(object):
                     # An unweighted histogram should be drawn with Poisson errors. 
                     # Since that doesn't seem to work in rootpy (:-(), we'll replace 
                     # it with a TGraphAsymmErrors that has the correct error bars
-                    if obj.GetEffectiveEntries() == obj.GetEntries():
+                    if obj.GetEffectiveEntries() == obj.GetEntries() or not self.uniformBins:
                         # if this is the first item, make sure the axes don't get messed up
                         if iObj == 0:
                             toDraw.append(obj.empty_clone())
                         pois = obj.poisson_errors()
                         pois.drawstyle = "PE"
+                        if noPointWidth:
+                            for iPt in xrange(pois.GetN()):
+                                pois.SetPointEXlow(iPt, 0.)
+                                pois.SetPointEXhigh(iPt, 0.)
                         pois.linecolor = obj.linecolor
                         pois.markercolor = obj.markercolor
                         toDraw.append(pois)
@@ -733,9 +740,14 @@ class NtuplePlotter(object):
             auxDrawOpt = '' # draw option for all auxiliary plotted objects
             axisRanges = (-1000.,1000.,-1000.,1000.)
             if(toDraw):
-                (xaxis, yaxis), axisRanges = draw(toDraw, pad, logy=logy, **opts)
+                xmin, xmax, ymin, ymax = get_limits(toDraw, logy=logy, logx=logx)
+                if 'ylimits' not in opts and ymin < 0.:
+                    opts['ylimits'] = (0., ymax)
+                (xaxis, yaxis), axisRanges = draw(toDraw, pad, logy=logy, logx=logx, **opts)
                 auxDrawOpt = "SAME"
                 pad.xaxis = xaxis
+                if logx:
+                    xaxis.SetMoreLogLabels()
                 pad.yaxis = yaxis
 
             for blind in blinding:
@@ -765,7 +777,8 @@ class NtuplePlotter(object):
                  intLumi=40.03, simOnly=False, perUnitWidth=True,
                  legSolid=False, widthInYTitle=False,
                  mcSystFracUp=0., mcSystFracDown=0.,
-                 blinding=[], plotType="Preliminary"):
+                 blinding=[], plotType="Preliminary",
+                 noPointWidth=False):
             '''
             opts (dict): passed directly to rootpy.plotting.utils.draw
             outFile (str): location to save plot (not saved if empty str)
@@ -778,7 +791,7 @@ class NtuplePlotter(object):
             perUnitWidth affects only the y-axis title
             legSolid (bool): Make the legend background a solid white box 
                              instead of transparent
-            widthInYTitle (bool): Append " / [binsize] [units]" to y axis title
+            widthInYTitle (bool): Append " / [binsize] (units]" to y axis title
             mcSystFrac* (float): systematic errors on MC yield given as a 
                                  fraction (i.e. 0.1 for 10%)
             blinding (list of length-2 iterables): Blind on this list of 
@@ -797,7 +810,8 @@ class NtuplePlotter(object):
                           xTitle, xUnits, yTitle, yUnits, self.logy, legObjs, 
                           legParamsOverride, stackErr, perUnitWidth, legSolid,
                           widthInYTitle, mcSystFracUp, mcSystFracDown,
-                          blinding=blinding)
+                          blinding=blinding, logx=self.logx,
+                          noPointWidth=noPointWidth)
 
             if len(self.pads) > 1:
                 self.c.cd()
@@ -902,7 +916,7 @@ class NtuplePlotter(object):
         else:
             if self.isData(category):
                 if category == 'data':
-                    prettyName = '\\text{Data}'
+                    prettyName = 'Data'
                 else:
                     prettyName = category
             else:
@@ -931,6 +945,10 @@ class NtuplePlotter(object):
                 h.legendstyle = "F"
         else:
             h = self.WrappedHist(binning, **histKWArgs)
+            if self.isData(category) and '2P2F' not in category and '3P1F' not in category:
+                h.legendstyle = "LPE"
+            else:
+                h.legendstyle = "F"
 
         channels = parseChannels(channels)
 
@@ -999,7 +1017,10 @@ class NtuplePlotter(object):
         h.drawstyle = 'hist'
         h.fillstyle = 'solid'
         h.fillcolor = sampleGroups[group]['color']
-        h.linecolor = 'black'
+        if 'lineColor' in sampleGroups[group]:
+            h.linecolor = sampleGroups[group]['lineColor']
+        else:
+            h.linecolor = 'black'
         h.legendstyle = "F"
 
         return h
@@ -1201,8 +1222,13 @@ class NtuplePlotter(object):
             h.fillstyle = 'solid'
             if self.isData(h.getCategory()):
                 h.fillcolor = '#669966'
+                h.linecolor = '#003300'
             else:
                 h.fillcolor = sampleInfo[h.getSample()]['color']
+                if 'lineColor' in sampleInfo[h.getSample()]:
+                    h.linecolor = sampleInfo[h.getSample()]['lineColor']
+                else:
+                    h.linecolor = 'black'
            
         for opt, val in opts.iteritems():
             setattr(h, opt, val)
@@ -1243,7 +1269,7 @@ class NtuplePlotter(object):
         etc.) accordingly.
         '''
         g.drawstyle = 'PE'
-        g.legendstyle = 'LPE'
+        g.legedstyle = 'LPE'
         if not self.isData(g.getCategory()):
             g.color = sampleInfo[g.getSample()]['color']
            
@@ -1405,44 +1431,72 @@ class NtuplePlotter(object):
                  mcWeights='GenWeight', drawOpts={}, drawRatio=True,
                  legSolid=False, widthInYTitle=False,
                  mcSystFracUp=0., mcSystFracDown=0.,
-                 blinding=[], extraObjects=[], plotType="Preliminary"):
+                 blinding=[], extraObjects=[], plotType="Preliminary",
+                 stackErr=True, logx=False, 
+                 finishingFuncData=None,finishingFuncMC=None,
+                 noPointWidth=False):
         '''
         Make the "normal" plot, i.e. stack of MC compared to data points.
         extraBkgs may be a list of other background histograms (e.g. a data-
         driven background estimation) to be included in the stack with the MC.
         Store it in self.drawings keyed to name, and save the plot if outFile
         is specified.
+        finishingFunc* arguments allow a function to be passed in which takes
+        a hist/graph/hist stack as an argument, which will be run just before
+        the data points and MC stack are plotted
         '''
         self.drawings[name] = self.Drawing(name, self.style, canvasX, canvasY, 
-                                           logy, ipynb)
+                                           logy, ipynb, logx=logx)
+
         s = self.makeCategoryStack(mcCategory, channel, variable, selection,
                                    binning, 1., mcWeights,
                                    extraHists=extraBkgs)
+
+        if hasattr(finishingFuncMC, '__call__'):
+            finishingFuncMC(s)
+
         if len(s):
             self.drawings[name].addObject(s)
-        h = self.makeHist(dataCategory, dataCategory, channel, variable, selection,
-                          binning)
+
+        # Do the extra objects first because we usually want them at 
+        # the bottom of the legend
+        if not hasattr(extraObjects, '__iter__'): # non-string iterable
+            extraObjects = [extraObjects]
+        for ob in extraObjects:
+            self.drawings[name].addObject(ob, hasattr(ob, "legendstyle"))
+
+        if isinstance(dataCategory, str):
+            dataCategory = [dataCategory]
+
+        h = None
+        for dc in dataCategory:
+            hTemp = self.makeHist(dc, dc, channel, variable, selection,
+                                  binning)
+            if h is None:
+                h = hTemp
+            else:
+                h += hTemp
+
         if h.GetEntries():
+            if hasattr(finishingFuncData, '__call__'):
+                finishingFuncData(h)
+
             self.drawings[name].addObject(h)
             
             # add data/MC ratio plot
             if drawRatio:
                 self.drawings[name].addRatio(h, s, yTitle="Data / MC")
 
-        if not hasattr(extraObjects, '__iter__'): # non-string iterable
-            extraObjects = [extraObjects]
-        for ob in extraObjects:
-            self.drawings[name].addObject(ob, hasattr(ob, "legendstyle"))
-
         if outFile:
             self.drawings[name].draw(drawOpts, self.outdir+outFile, drawNow, 
                                      xTitle, xUnits, yTitle, yUnits, True, 
-                                     legParams, True, self.intLumi, 
+                                     legParams, stackErr, self.intLumi, 
                                      h.GetEntries()==0, legSolid=legSolid,
                                      widthInYTitle=widthInYTitle,
                                      mcSystFracUp=mcSystFracUp, 
                                      mcSystFracDown=mcSystFracDown,
-                                     blinding=blinding, plotType=plotType)
+                                     blinding=blinding, plotType=plotType,
+                                     noPointWidth=noPointWidth)
 
 
     def makeEfficiency(self, category, sample, channels, variables, 

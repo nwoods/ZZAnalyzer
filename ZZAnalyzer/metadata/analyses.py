@@ -1,36 +1,47 @@
 
 
-cleaner = 'HZZ4l2015Cleaner'
+cleaner = 'HZZ4l2016Cleaner'
 
 zzAnalyses = {
     'channels' : 'zz',
     'fullSpectrum_noclean' : {
         'resultDir' : 'results_full_noclean',
+        'cutModifiers' : ['HighPtMuons',],
+        },
+    'fullSpectrum_bkg_noclean' : {
+        'resultDir' : 'results_full_noclean',
+        'cutModifiers' : ['HighPtMuons', 'NoTrigger'],
         },
     'fullSpectrum_blind' : {
         'resultDir' : 'results_full',
-        'cutModifiers' : ['Blind'],
+        'cutModifiers' : ['Blind', 'HighPtMuons',],
         'cleanRows' : cleaner,
         },
     'fullSpectrum' : {
         'resultDir' : 'results_full',
+        'cutModifiers' : ['HighPtMuons',],
+        'cleanRows' : cleaner,
+        },
+    'fullSpectrum_bkg' : {
+        'resultDir' : 'results_full',
+        'cutModifiers' : ['HighPtMuons', 'NoTrigger'],
         'cleanRows' : cleaner,
         },
     'fullSpectrum_2P2F' : {
         'resultDir' : 'results_full_2P2F',
-        'cutModifiers' : ['ControlRegion_OS_2P2F'],
+        'cutModifiers' : ['ControlRegion_OS_2P2F', 'HighPtMuons', 'NoTrigger'],
         'cleanRows' : cleaner,
         },
     'fullSpectrum_3P1F' : {
         'resultDir' : 'results_full_3P1F',
-        'cutModifiers' : ['ControlRegion_OS_3P1F'],
+        'cutModifiers' : ['ControlRegion_OS_3P1F', 'HighPtMuons', 'NoTrigger'],
         'cleanRows' : cleaner,
         },
     'smp' : {
         'baseCuts' : 'AllPass',
         'resultDir' : 'results_smp',
         'cutModifiers' : ['SMPZZ2016'],
-        'prereq' : 'fullSpectrum',
+        'prereq' : 'fullSpectrum_bkg',
         },
     'smp_2P2F' : {        
         'baseCuts' : 'AllPass',
@@ -56,6 +67,12 @@ zzAnalyses = {
         'cutModifiers' : ['HZZ2016'],
         'prereq' : 'fullSpectrum',
         },
+    'hzz_bkg' : {
+        'baseCuts' : 'AllPass',
+        'resultDir' : 'results_hzz',
+        'cutModifiers' : ['HZZ2016'],
+        'prereq' : 'fullSpectrum_bkg',
+        },
     'hzz_2P2F' : {
         'baseCuts' : 'AllPass',
         'resultDir' : 'results_hzz_2P2F',
@@ -73,6 +90,12 @@ zzAnalyses = {
         'resultDir' : 'results_z4l',
         'cutModifiers' : ['ZMassWindow'],
         'prereq' : 'fullSpectrum',
+        },
+    'z4l_bkg' : {
+        'baseCuts' : 'AllPass',
+        'resultDir' : 'results_z4l',
+        'cutModifiers' : ['ZMassWindow'],
+        'prereq' : 'fullSpectrum_bkg',
         },
     'z4l_2P2F' : {
         'baseCuts' : 'AllPass',

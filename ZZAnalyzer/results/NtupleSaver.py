@@ -33,20 +33,19 @@ class NtupleSaver(ResultSaverBase):
 
         super(NtupleSaver, self).__init__(fileName, channels, *args, **kwargs)
 
-        self.copyMetaData(channels)
+        self.copyMetaData()
         
 
-    def copyMetaData(self, channels):
+    def copyMetaData(self):
         '''
         Copy over metadata for each channel if it exists. If metaInfo tree
         doesn't exist, print a warning but don't crash.
         '''
-        for ch in channels:
-            chDir = self.inputs[ch].GetDirectory().GetMotherDir()
-            try:
-                chDir.copytree(self.outFile.Get(ch), "metaInfo")
-            except DoesNotExist:
-                print "WARNING: %s/metaInfo not found. Metadata will not be copied!"%ch
+        toCopy = self.inputs.values()[0].GetDirectory().GetFile().Get("metaInfo")
+        try:
+            toCopy.copytree(self.outFile)
+        except DoesNotExist:
+            print "WARNING: metaInfo not found. Metadata will not be copied!"
 
 
     def saveNumber(self, tree, num, var=''):
@@ -126,7 +125,7 @@ class NtupleSaver(ResultSaverBase):
             modelCols[col] = cols[col]()
     
         ntupleModel = type("aModel", (TreeModel,), modelCols)
-        ntuple = Tree("Ntuple", model=ntupleModel)
+        ntuple = Tree("ntuple", model=ntupleModel)
         
         if bool(copyFrom):
             # This seems to be required to initialize the buffer. No idea why.
@@ -136,14 +135,14 @@ class NtupleSaver(ResultSaverBase):
             # Set copying branches to point to the input ntuple's buffer
             ntuple.set_buffer(copyFrom._buffer, copyOnly, copyExcept)
 
-        return {'Ntuple' : ntuple}
+        return {'ntuple' : ntuple}
 
                      
     def getResultObject(self, resultDict, var):
         '''
         Get correct histogram from dictionary
         '''
-        return resultDict['Ntuple']
+        return resultDict['ntuple']
 
     
     def finalizeResultObject(self, ntuple):
