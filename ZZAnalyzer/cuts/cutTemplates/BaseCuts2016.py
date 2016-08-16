@@ -12,7 +12,7 @@ from ZZAnalyzer.utils.helpers import *
 
 
 class BaseCuts2016(Cutter):
-    fsrVar = "FSR"
+    fsrVar = ''#"FSR"
 
     def __init__(self, cutset="BaseCuts2016"):
         super(BaseCuts2016, self).__init__(cutset)

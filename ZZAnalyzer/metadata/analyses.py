@@ -138,7 +138,7 @@ zAnalyses = {
     'channels' : 'z',
     'singleZ' : {
         'resultDir' : 'results',
-        'cutModifiers' : ['ZPlusAnything','SMPZZ2016'],
+        'cutModifiers' : ['SingleZ','HighPtMuons','ZPlusAnything','SMPZZ2016'],
         'cleanRows' : 'SingleZCleaner',
         },
     }

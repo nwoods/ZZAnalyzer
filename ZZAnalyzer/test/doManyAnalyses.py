@@ -38,7 +38,7 @@ parser.add_argument('--zzData', type=str, nargs='?',
 parser.add_argument('--zlData', type=str, nargs='?',
                     help='Identifier for Z+l data files (located in /data/nawoods/ntuples/zPlusl_data<this variable>).')
 parser.add_argument('--zData', type=str, nargs='?',
-                    help='Identifier for Z data files (located in /data/nawoods/ntuples/singlez_data<this variable>).')
+                    help='Identifier for Z data files (located in /data/nawoods/ntuples/singleZ_data<this variable>).')
 parser.add_argument('--zzMC', type=str, nargs='?',
                     help='Identifier for ZZ MC files (located in /data/nawoods/ntuples/uwvvNtuples_<this variable>).')
 parser.add_argument('--zzBkg', type=str, nargs='?',
@@ -46,7 +46,7 @@ parser.add_argument('--zzBkg', type=str, nargs='?',
 parser.add_argument('--zlMC', type=str, nargs='?',
                     help='Identifier for Z+l MC files (located in /data/nawoods/ntuples/zPlusl_mc_<this variable>).')
 parser.add_argument('--zMC', type=str, nargs='?',
-                    help='Identifier for Z MC files (located in /data/nawoods/ntuples/singlez_mc_<this variable>).')
+                    help='Identifier for Z MC files (located in /data/nawoods/ntuples/singleZ_mc_<this variable>).')
 parser.add_argument('--smp', action='store_true', help='Do the on-shell analysis')
 parser.add_argument('--hzz', action='store_true', help='Do the Higgs analysis')
 parser.add_argument('--full', action='store_true', help='Do the full spectrum analysis')
@@ -158,7 +158,7 @@ if args.zlData:
     managers.append(man)
 
 if args.zData:
-    inputs = os.path.join(pathStart, "singlez_data"+args.zData)
+    inputs = os.path.join(pathStart, "singleZ_data"+args.zData)
     man = AnalysisManager(zAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
@@ -182,7 +182,7 @@ if args.zlMC:
     managers.append(man)
 
 if args.zMC:
-    inputs = os.path.join(pathStart, "singlez_mc_"+args.zMC)
+    inputs = os.path.join(pathStart, "singleZ_mc_"+args.zMC)
     man = AnalysisManager(zAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
