@@ -419,7 +419,7 @@ for iAna, ana in enumerate(analyses):
                              extraObjects=extraObjects,
                              plotType=plotType)
 
-            if args.paper:
+            if 'eps' in plotFormat:
                 os.system('epstopdf {0}.eps --outfile={0}.pdf'.format(outdir+'/'+varName+chEnding))
 
             if args.test:
@@ -631,7 +631,7 @@ for iAna, ana in enumerate(analyses):
                              legParams=legParams,
                              plotType=plotType)
     
-            if args.paper:
+            if 'eps' in plotFormat:
                 os.system('epstopdf {0}.eps --outfile={0}.pdf'.format(outdir+'/'+z+var))
     
     binning1l = {
@@ -753,7 +753,7 @@ for iAna, ana in enumerate(analyses):
                              mcSystFracDown=stackSystDown[channel],
                              plotType=plotType)
     
-            if args.paper:
+            if 'eps' in plotFormat:
                 os.system('epstopdf {0}.eps --outfile={0}.pdf'.format(outdir+'/'+lep+var))
     
     
