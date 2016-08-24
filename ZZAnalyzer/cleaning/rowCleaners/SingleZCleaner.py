@@ -17,6 +17,11 @@ class SingleZCleaner(RowCleanerBase):
         self.cleanAtEnd = True # do cleaning last
 
 
+    def branchesToEnable(self):
+        out = super(SingleZCleaner, self).branchesToEnable()
+        return out + ['Mass'+self.cuts.fsrVar]
+
+
     def betterRow(self, a, b):
         '''
         The correct row is the one with Z closest to on-shell. 

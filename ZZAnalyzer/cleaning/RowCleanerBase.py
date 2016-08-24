@@ -41,6 +41,8 @@ class RowCleanerBase(object):
         self.bestRows = {}
 
         self.cuts = cutter
+
+        self.cuts.enableBranches(self.branchesToEnable())
         
         self.setChannel(initChannel)
 
@@ -82,6 +84,10 @@ class RowCleanerBase(object):
         '''
         self.bestRows[(self.prevRun, self.prevLumi, self.prevEvt)] = self.prevInfo
         
+
+    def branchesToEnable(self):
+        return ['run','lumi','evt']
+
 
     def bookRow(self, row, idx):
         '''

@@ -13,11 +13,14 @@ import logging
 from rootpy import log as rlog; rlog = rlog['/Analyzer']
 logging.basicConfig(level=logging.WARNING)
 rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
+rlog["/ROOT.TTree.SetBranchStatus"].setLevel(rlog.CRITICAL)
 
 from rootpy import ROOT
 from rootpy.io import root_open
 from rootpy.plotting import Hist
 from rootpy.io.file import DoesNotExist
+from rootpy import ROOTError
+
 import os
 from itertools import combinations
 import math
@@ -76,7 +79,7 @@ class Analyzer(object):
                 print "Ntuple for channel %s is empty or not found! Skipping."%channel
                 self.channels.remove(channel)
                 continue
-            
+
             if self.maxEvents < float('inf'):
                 self.ntupleSize[channel] = self.ntuples[channel].GetEntries()
 
@@ -144,6 +147,14 @@ class Analyzer(object):
                 rowCleaner.setChannel(channel)
                 self.cutsPassed[channel]["SelectBest"] = 0
 
+                self.ntuples[channel].SetBranchStatus('*', 0)
+                for b in self.cuts.branchesNeeded:
+                    try:
+                        self.ntuples[channel].SetBranchStatus(b, 1)
+                    except ROOTError:
+                        pass
+
+
             iRow = -1 # in case of empty ntuple
             # Loop through and do the cuts
             for iRow, row in enumerate(self.ntuples[channel]):
@@ -183,6 +194,9 @@ class Analyzer(object):
                         self.results.saveRow(row, channel, nested=True)
             else:
                 print "%s: Done with %s (%d rows)"%(self.sample, channel, iRow+1)
+
+            if cleanAfter:
+                self.ntuples[channel].SetBranchStatus('*', 1)
 
         if cleanAfter:
             rowCleaner.finalize()

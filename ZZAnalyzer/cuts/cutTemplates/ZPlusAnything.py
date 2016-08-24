@@ -69,17 +69,17 @@ class ZPlusAnything(Cutter):
         For use with 4l final states only. If the second Z is made out of
         tight + isolated leptons and the first isn't, swap them.
         '''
-        if (objVar(row, 'HZZTightID', objects[2]) < 0.5 or
-            objVar(row, 'HZZTightID', objects[3]) < 0.5 or
-            objVar(row, 'HZZIsoPass', objects[2]) < 0.5 or
-            objVar(row, 'HZZIsoPass', objects[3]) < 0.5 or
+        if (objVar(row, 'ZZTightID', objects[2]) < 0.5 or
+            objVar(row, 'ZZTightID', objects[3]) < 0.5 or
+            objVar(row, 'ZZIsoPass', objects[2]) < 0.5 or
+            objVar(row, 'ZZIsoPass', objects[3]) < 0.5 or
             nObjVar(row, 'SS', objects[2], objects[3])):
             return objects
         
-        if (objVar(row, 'HZZTightID', objects[0]) < 0.5 or
-            objVar(row, 'HZZTightID', objects[1]) < 0.5 or
-            objVar(row, 'HZZIsoPass', objects[0]) < 0.5 or
-            objVar(row, 'HZZIsoPass', objects[1]) < 0.5):
+        if (objVar(row, 'ZZTightID', objects[0]) < 0.5 or
+            objVar(row, 'ZZTightID', objects[1]) < 0.5 or
+            objVar(row, 'ZZIsoPass', objects[0]) < 0.5 or
+            objVar(row, 'ZZIsoPass', objects[1]) < 0.5):
             return objects[2:]+objects[:2] # Z2 good, Z1 not (Z1 guaranteed OSSF if Z2 is)
 
         # if both are good, order however the base class would

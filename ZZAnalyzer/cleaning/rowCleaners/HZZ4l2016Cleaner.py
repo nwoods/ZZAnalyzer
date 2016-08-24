@@ -20,6 +20,14 @@ class HZZ4l2016Cleaner(RowCleanerBase):
         self.cleanAtEnd = True # do cleaning last
 
 
+    def branchesToEnable(self):
+        out = super(HZZ4l2016Cleaner, self).branchesToEnable()
+        return out + ['[em]?_[em]?_Mass'+self.cuts.fsrVar,
+                      'Mass'+self.cuts.fsrVar,
+                      'D_bkg_kin',
+                      'D_sel_kin']
+
+
     def betterRow(self, a, b):
         '''
         Strategy described above

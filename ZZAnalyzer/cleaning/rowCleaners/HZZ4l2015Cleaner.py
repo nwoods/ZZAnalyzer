@@ -16,6 +16,12 @@ class HZZ4l2015Cleaner(RowCleanerBase):
         self.cleanAtEnd = True # do cleaning last
 
 
+    def branchesToEnable(self):
+        out = super(HZZ4l2015Cleaner, self).branchesToEnable()
+        return out + ['[em]?_[em]?_Mass'+self.cuts.fsrVar,
+                      '[em]?Pt']
+
+
     def betterRow(self, a, b):
         '''
         The correct row is the one with Z1 closest
@@ -38,5 +44,4 @@ class HZZ4l2015Cleaner(RowCleanerBase):
             '''
             self.dZ = zCompatibility(row, objects[0], objects[1], cuts.fsrVar)
             self.ptSum = objVar(row, 'Pt', objects[2]) + objVar(row, 'Pt', objects[3])
-
 

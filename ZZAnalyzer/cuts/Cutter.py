@@ -38,7 +38,9 @@ The structure of the dictionary should be:
     the cut result is the (and/or) of all the results for all the objects.
     In the case of 'other', the rest of the dictionary structure may
     change, but it won't matter because it must also call a special
-    function to do the cut. 'objects' points the
+    function to do the cut. The only thing it must contain is a 'branches'
+    entry, which is a list of regexp to be used by TTree.SetBranchStatus() to
+    activate any branches needed by the cut function. 'objects' points the
     number of objects cut on. 'pairs' is a special
     value that will apply the cut on all possible pairs of objects.
     If 'objects' is 'ignore', the cut will accept any number of
@@ -142,6 +144,8 @@ class Cutter(object):
 
 
     def __init__(self, cutSet):
+        self.branchesNeeded = set()
+
         self.cutSet = cutSet
 
         self.otherCuts = self.setupOtherCuts()
@@ -206,11 +210,20 @@ class Cutter(object):
         for cut, params in temp.iteritems():
             if 'logic' not in params:
                 params['logic'] = 'and'
-            elif params['logic'] == 'other':
+
+            if params['logic'] == 'other':
                 cuts[cut] = self.otherCuts[cut]
-                continue
+                try:
+                    toKeep = params['branches']
+                except KeyError:
+                    print "A special cut (logic 'other') must specify what branches it uses."
+                    print "If is uses electron pt, for example, do something like cutTemplate[thisCut]['branches'] = ['e*Pt']"
+                    raise
+                self.enableBranches(toKeep)
+                continue                
             
             cuts[cut] = self.getCutFunction(params)
+            
                 
         return cuts
 
@@ -312,6 +325,15 @@ class Cutter(object):
         except TypeError:
             print "Parameters for cut %s must be an iterable of the form (threshold, wantLessThan)."%cutName
             raise
+
+        toEnable = cutName.split('#')[0]
+        if nObjects and not ignoreObjects:
+            if nObjects == 1:
+                toEnable = '[em]?' + toEnable
+            else:
+                toEnable = '[em]?_[em]?_' + toEnable
+        self.enableBranches(toEnable)
+
         if isinstance(cutParams[1], bool):
             wantLessThan = cutParams[1]
         else:
@@ -337,6 +359,18 @@ class Cutter(object):
             return lambda row, obj: self.cutObjVar(row, thisCut, cutParams[0], wantLessThan, obj)
         else:
             return lambda row, *obj: self.cutNObjVar(row, thisCut, cutParams[0], wantLessThan, *obj)
+
+
+    def enableBranches(self, branches):
+        '''
+        Add one or more items to the list of branches that are needed for this 
+        set of cuts.
+        '''
+        if isinstance(branches, str):
+            self.branchesNeeded.add(branches)
+        else:
+            for b in branches:
+                self.branchesNeeded.add(b)
 
 
     def cutEvVar(self, row, var, val, wantLessThan):
