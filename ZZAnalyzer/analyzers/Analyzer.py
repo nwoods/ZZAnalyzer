@@ -148,11 +148,11 @@ class Analyzer(object):
                 self.cutsPassed[channel]["SelectBest"] = 0
 
                 self.ntuples[channel].SetBranchStatus('*', 0)
-                for b in self.cuts.branchesNeeded:
-                    try:
-                        self.ntuples[channel].SetBranchStatus(b, 1)
-                    except ROOTError:
-                        pass
+                for branch in self.ntuples[channel].iterbranchnames():
+                    for pattern in self.cuts.branchesNeeded:
+                        if pattern.match(branch):
+                            self.ntuples[channel].SetBranchStatus(branch, 1)
+                            break
 
 
             iRow = -1 # in case of empty ntuple

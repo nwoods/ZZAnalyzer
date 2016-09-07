@@ -129,7 +129,7 @@ class BaseCuts2016(Cutter):
                 },
                 'objects' : '1',
                 'logic' : 'other',
-                'branches' : ['e?MVANonTrigID', 'e?Pt', 'e?SCEta'],
+                'branches' : ['e[1-4]?MVANonTrigID', 'e[1-4]?Pt', 'e[1-4]?SCEta'],
             },
             'eTightID' : {
                 'cuts' : {
@@ -356,7 +356,7 @@ class BaseCuts2016(Cutter):
             # Smart Cut
             'SmartCut' : {
                 'logic' : 'other',
-                'branches' : ['[em]?_[em]?_SS','[em]?_[em]?_Mass'+self.fsrVar],
+                'branches' : ['[em][1-3]?_[em][1-4]?_SS','[em][1-3]?_[em][1-4]?_Mass'+self.fsrVar],
             },
         }
 

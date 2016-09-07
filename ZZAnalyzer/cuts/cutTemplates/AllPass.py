@@ -13,7 +13,7 @@ from collections import OrderedDict
 
 
 class AllPass(Cutter):
-    fsrVar = "FSR"
+    fsrVar = ""
     def __init__(self):
         super(AllPass, self).__init__("AllPass")
 

@@ -8,7 +8,7 @@ class NoTrigger(Cutter):
     def getCutTemplate(self, *args):
         temp = super(NoTrigger, self).getCutTemplate()
 
-        temp['Trigger']['cuts'] = {'true' : 'true'}
+        temp['Trigger'] = {'cuts' : {'true' : 'true'}}
         
         return temp
     

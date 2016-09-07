@@ -46,14 +46,34 @@ class ControlRegion_OS_2P2F(ControlRegion_Base):
             }
         temp['eVetoTightIso'] = {
             'cuts' : {
-                'eVetoTightIso' : (0.9, "<"),
+                'nZZTightIsoElec#eemm' : (0.1, "<"),
+                'nZZTightIsoElec#eeee' : 'eVetoTightIso4e',
                 },
+            'logic' : 'or',
+            'objects' : 'ignore',
+            }
+        temp['eVetoTightIso4e'] = {
+            'cuts' : {
+                'nZZTightIsoElec#eeeeup'   : (2.1, '<'),
+                'nZZTightIsoElec#eeeedown' : (1.9, '>='),
+                },
+            'logic' : 'and',
             'objects' : 'ignore',
             }
         temp['mVetoTightIso'] = {
             'cuts' : {
-                'muVetoTightIso' : (0.9, "<"),
+                'nZZTightIsoMu#eemm' : (0.1, "<"),
+                'nZZTightIsoMu#mmmm' : 'mVetoTightIso4m',
                 },
+            'logic' : 'or',
+            'objects' : 'ignore',
+            }
+        temp['mVetoTightIso4m'] = {
+            'cuts' : {
+                'nZZTightIsoMu#mmmmup'   : (2.1, '<'),
+                'nZZTightIsoMu#mmmmdown' : (1.9, '>='),
+                },
+            'logic' : 'and',
             'objects' : 'ignore',
             }
 

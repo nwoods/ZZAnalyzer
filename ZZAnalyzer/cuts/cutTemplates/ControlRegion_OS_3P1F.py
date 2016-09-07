@@ -65,14 +65,50 @@ class ControlRegion_OS_3P1F(ControlRegion_Base):
             }
         temp['eVetoTightIso'] = {
             'cuts' : {
-                'eVetoTightIso' : (0.9, "<"),
+                'nZZTightIsoElec#eemm' : 'eVetoTightIso2e2m',
+                'nZZTightIsoElec#eeee' : 'eVetoTightIso4e',
                 },
+            'logic' : 'or',
+            'objects' : 'ignore',
+            }
+        temp['eVetoTightIso4e'] = {
+            'cuts' : {
+                'nZZTightIsoElec#eeeeup'   : (3.1, '<'),
+                'nZZTightIsoElec#eeeedown' : (2.9, '>='),
+                },
+            'logic' : 'and',
+            'objects' : 'ignore',
+            }
+        temp['eVetoTightIso2e2m'] = {
+            'cuts' : {
+                'nZZTightIsoElec#eemmup'   : (1.1, '<'),
+                'nZZTightIsoElec#eemmdown' : (0.9, '>='),
+                },
+            'logic' : 'and',
             'objects' : 'ignore',
             }
         temp['mVetoTightIso'] = {
             'cuts' : {
-                'muVetoTightIso' : (0.9, "<"),
+                'nZZTightIsoMu#eemm' : 'mVetoTightIso2e2m',
+                'nZZTightIsoMu#mmmm' : 'mVetoTightIso4m',
                 },
+            'logic' : 'or',
+            'objects' : 'ignore',
+            }
+        temp['mVetoTightIso4m'] = {
+            'cuts' : {
+                'nZZTightIsoMu#mmmmup'   : (3.1, '<'),
+                'nZZTightIsoMu#mmmmdown' : (2.9, '>='),
+                },
+            'logic' : 'and',
+            'objects' : 'ignore',
+            }
+        temp['mVetoTightIso2e2m'] = {
+            'cuts' : {
+                'nZZTightIsoMu#eemmup'   : (1.1, '<'),
+                'nZZTightIsoMu#eemmdown' : (0.9, '>='),
+                },
+            'logic' : 'and',
             'objects' : 'ignore',
             }
 

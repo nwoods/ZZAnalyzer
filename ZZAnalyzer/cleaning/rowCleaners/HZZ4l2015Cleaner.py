@@ -18,8 +18,8 @@ class HZZ4l2015Cleaner(RowCleanerBase):
 
     def branchesToEnable(self):
         out = super(HZZ4l2015Cleaner, self).branchesToEnable()
-        return out + ['[em]?_[em]?_Mass'+self.cuts.fsrVar,
-                      '[em]?Pt']
+        return out + ['[em][1-3]?_[em][1-4]?_Mass'+self.cuts.fsrVar,
+                      '[em][1-4]?Pt']
 
 
     def betterRow(self, a, b):

@@ -40,52 +40,85 @@ class ControlRegion_Zplusl(ControlRegion_Base):
             'logic' : 'or',
             }
 
-        # trigger object matching
-        temp['eTriggerMatch'] = {
-            'cuts' : {
-                'MatchesDoubleE' : (1., ">="),
-                },
-            'objects' : 1,
-            }
-        temp['mTriggerMatch'] = {
-            'cuts' : {
-                'MatchesDoubleMu' : (1., ">="),
-                },
-            'objects' : 1,
-            }
-        temp['leptonTriggerMatch'] = {
-            'cuts' : {
-                'trgMtch' : 'TYPETriggerMatch',
-                },
-            'objects' : 1,
-            }
-        temp['ZTriggerMatch'] = {
-            'cuts' : {
-                'trgMtch' : 'leptonTriggerMatch',
-                },
-            'logic' : 'objand',
-            }
+        # # trigger object matching
+        # temp['eTriggerMatch'] = {
+        #     'cuts' : {
+        #         'MatchesDoubleE' : (1., ">="),
+        #         },
+        #     'objects' : 1,
+        #     }
+        # temp['mTriggerMatch'] = {
+        #     'cuts' : {
+        #         'MatchesDoubleMu' : (1., ">="),
+        #         },
+        #     'objects' : 1,
+        #     }
+        # temp['leptonTriggerMatch'] = {
+        #     'cuts' : {
+        #         'trgMtch' : 'TYPETriggerMatch',
+        #         },
+        #     'objects' : 1,
+        #     }
+        # temp['ZTriggerMatch'] = {
+        #     'cuts' : {
+        #         'trgMtch' : 'leptonTriggerMatch',
+        #         },
+        #     'logic' : 'objand',
+        #     }
 
         # Event is not in another category
         temp['4lVeto'] = {
             'cuts' : {
-                'eVeto' : (1, '<'),
-                'muVeto' : (1, '<'),
+                '3e'   : '4lVeto3e',
+                '2e1m' : '4lVeto2e1m',
+                '1e2m' : '4lVeto1e2m',
+                '3m'   : '4lVeto3m',
             },
+            'logic' : 'or',
         }
+        temp['4lVeto3e'] = {
+            'cuts' : {
+                'nZZLooseElec#up' : (3.1, '<'),
+                'nZZLooseElec#down' : (2.9, '>='),
+                'nZZLooseMu' : (0.1, '<'),
+                },
+            }
+        temp['4lVeto2e1m'] = {
+            'cuts' : {
+                'nZZLooseElec#up' : (2.1, '<'),
+                'nZZLooseElec#down' : (1.9, '>='),
+                'nZZLooseMu#up' : (1.1, '<'),
+                'nZZLooseMu#down' : (0.9, '>='),
+                },
+            }
+        temp['4lVeto1e2m'] = {
+            'cuts' : {
+                'nZZLooseElec#up' : (1.1, '<'),
+                'nZZLooseElec#down' : (0.9, '>='),
+                'nZZLooseMu#up' : (2.1, '<'),
+                'nZZLooseMu#down' : (1.9, '>='),
+                },
+            }
+        temp['4lVeto3m'] = {
+            'cuts' : {
+                'nZZLooseElec' : (0.1, '<'),
+                'nZZLooseMu#up' : (3.1, '<'),
+                'nZZLooseMu#down' : (2.9, '>='),
+                },
+            }
 
         temp['ZMassTight']['cuts']['Mass%s#lower'%self.fsrVar] = (Z_MASS-10., ">=")
         temp['ZMassTight']['cuts']['Mass%s#upper'%self.fsrVar] = (Z_MASS+10., "<")
 
         temp['METVeto'] = {
             'cuts' : {
-                'type1_pfMetEt' : (25., "<"),
+                'type1_pfMETEt' : (25., "<"),
                 },
             }
 
         temp['MtVeto'] = {
             'cuts' : {
-                'MtToPfMet_type1' : (30., "<"),
+                'MtToMET' : (30., "<"),
             },
             'objects' : 1,
         }
@@ -105,10 +138,9 @@ class ControlRegion_Zplusl(ControlRegion_Base):
         flow['ExtraLepVeto'] = ('4lVeto', [])
         flow['ZLeptonID'] = ('GoodLeptons', [1,2])
         flow['ZLeptonIso'] = ('Isolation', [1,2])
-        flow['ZLeptonTriggerMatch'] = ('ZTriggerMatch', [1,2])
+        # flow['ZLeptonTriggerMatch'] = ('ZTriggerMatch', [1,2])
         flow['Lepton3ID'] = ('leptonLooseID', [3])
         flow['MtVeto'] = ('MtVeto', [3])
-        flow['CrossCleaning'] = ('CrossCleaning', [1,2,3])
         flow['SIP'] = ('SIP', [1,2,3])
         flow['GoodZ'] = ('GoodZ', [1,2])
         flow['ZMass'] = ('ZMassTight', [1,2])

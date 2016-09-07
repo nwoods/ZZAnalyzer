@@ -100,6 +100,8 @@ Author: Nate Woods, U. Wisconsin
 
 import itertools
 from collections import OrderedDict
+from re import compile as _compile
+
 from ZZAnalyzer.utils.helpers import *
 
 
@@ -144,7 +146,7 @@ class Cutter(object):
 
 
     def __init__(self, cutSet):
-        self.branchesNeeded = set()
+        self.branchesNeeded = []
 
         self.cutSet = cutSet
 
@@ -329,9 +331,9 @@ class Cutter(object):
         toEnable = cutName.split('#')[0]
         if nObjects and not ignoreObjects:
             if nObjects == 1:
-                toEnable = '[em]?' + toEnable
+                toEnable = '[em][1-4]?' + toEnable
             else:
-                toEnable = '[em]?_[em]?_' + toEnable
+                toEnable = '[em][1-3]?_[em][1-4]?_' + toEnable
         self.enableBranches(toEnable)
 
         if isinstance(cutParams[1], bool):
@@ -367,10 +369,10 @@ class Cutter(object):
         set of cuts.
         '''
         if isinstance(branches, str):
-            self.branchesNeeded.add(branches)
-        else:
-            for b in branches:
-                self.branchesNeeded.add(b)
+            branches = [branches]
+
+        for b in branches:
+            self.branchesNeeded.append(_compile(b))
 
 
     def cutEvVar(self, row, var, val, wantLessThan):

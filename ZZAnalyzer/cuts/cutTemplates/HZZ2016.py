@@ -29,7 +29,7 @@ class HZZ2016(Cutter):
         # Smart Cut
         temp['SmartCut'] = {
                 'logic' : 'other',
-                'branches' : ['[em]?_[em]?_SS','[em]?_[em]?_Mass'+self.fsrVar],
+                'branches' : ['[em][1-3]?_[em][1-4]?_SS','[em][1-3]?_[em][1-4]?_Mass'+self.fsrVar],
             }
 
         return temp

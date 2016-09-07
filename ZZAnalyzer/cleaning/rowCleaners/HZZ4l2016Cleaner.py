@@ -22,7 +22,7 @@ class HZZ4l2016Cleaner(RowCleanerBase):
 
     def branchesToEnable(self):
         out = super(HZZ4l2016Cleaner, self).branchesToEnable()
-        return out + ['[em]?_[em]?_Mass'+self.cuts.fsrVar,
+        return out + ['[em][1-3]?_[em][1-4]?_Mass'+self.cuts.fsrVar,
                       'Mass'+self.cuts.fsrVar,
                       'D_bkg_kin',
                       'D_sel_kin']
