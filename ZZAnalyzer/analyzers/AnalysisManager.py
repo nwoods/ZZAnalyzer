@@ -15,6 +15,15 @@ import os, glob
 from Analyzer import Analyzer
 
 
+# temporary hack: samples with one of these in the name will not have trigger
+# requirements applied
+_samplesWithoutTrigger = [
+    'ZZTo4L',
+    'GluGluZZ',
+    'Contin',
+    'WZTo3LNu',
+    ]
+
 def parseInputs(inputs):
     infiles = []
     for path in inputs.split(','):
@@ -182,6 +191,10 @@ class AnalysisManager(object):
         argDict['outDir'] = os.path.join(self.inputDir, params['resultDir'])
         argDict.update(params)
 
+        if any(s in argDict['inFile'] for s in _samplesWithoutTrigger):
+            print 'Not applying trigger requirements for {}'.format(argDict['inFile'])
+            argDict['cutModifiers'] = ['NoTrigger'] + argDict['cutModifiers'][:]
+
         if not os.path.isdir(argDict['outDir']):
             os.makedirs(argDict['outDir'])
 
@@ -190,9 +203,9 @@ class AnalysisManager(object):
         result = self.pool.apply_async(runAnAnalyzer, args=args)
 
         return result
-        
 
 
-            
+
+
 
 
