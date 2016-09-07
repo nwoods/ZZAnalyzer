@@ -36,15 +36,13 @@ parser = argparse.ArgumentParser(description='Run the ZZ4l analyzer on multiple 
 parser.add_argument('--zzData', type=str, nargs='?',
                     help='Identifier for ZZ data files (located in /data/nawoods/ntuples/uwvvNtuples_data<this variable>).')
 parser.add_argument('--zlData', type=str, nargs='?',
-                    help='Identifier for Z+l data files (located in /data/nawoods/ntuples/zPlusl_data<this variable>).')
+                    help='Identifier for Z+l data files (located in /data/nawoods/ntuples/uwvvZPlusl_data<this variable>).')
 parser.add_argument('--zData', type=str, nargs='?',
                     help='Identifier for Z data files (located in /data/nawoods/ntuples/singleZ_data<this variable>).')
 parser.add_argument('--zzMC', type=str, nargs='?',
-                    help='Identifier for ZZ MC files (located in /data/nawoods/ntuples/uwvvNtuples_<this variable>).')
-parser.add_argument('--zzBkg', type=str, nargs='?',
-                    help='Identifier for ZZ MC files that should not have trigger applied (located in /data/nawoods/ntuples/uwvvNtuples_<this variable>).')
+                    help='Identifier for ZZ MC files (located in /data/nawoods/ntuples/uwvvNtuples_mc_<this variable>).')
 parser.add_argument('--zlMC', type=str, nargs='?',
-                    help='Identifier for Z+l MC files (located in /data/nawoods/ntuples/zPlusl_mc_<this variable>).')
+                    help='Identifier for Z+l MC files (located in /data/nawoods/ntuples/uwvvZPlusl_mc_<this variable>).')
 parser.add_argument('--zMC', type=str, nargs='?',
                     help='Identifier for Z MC files (located in /data/nawoods/ntuples/singleZ_mc_<this variable>).')
 parser.add_argument('--smp', action='store_true', help='Do the on-shell analysis')
@@ -54,8 +52,6 @@ parser.add_argument('--z4l', action='store_true', help='Do the Z to 4l analysis'
 parser.add_argument('--SR', action='store_true', help='Do signal region cuts')
 parser.add_argument('--CR2P2F', action='store_true', help='Do 2P2F control region cuts')
 parser.add_argument('--CR3P1F', action='store_true', help='Do 3P1F control region cuts')
-parser.add_argument('--factorizeFakeRate', action='store_true',
-                    help='Run the ID and isolation fake rate steps separately')
 parser.add_argument('--nThreads', type=int, default=12,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 12.')
 parser.add_argument('--assumeInputExists', action='store_true', 
@@ -76,20 +72,18 @@ pathStart = '/data/nawoods/ntuples'
 
 managers = []
 
-if (args.zzData or args.zzMC or args.zzBkg) and not (args.SR or args.CR2P2F or args.CR3P1F):
+if (args.zzData or args.zzMC) and not (args.SR or args.CR2P2F or args.CR3P1F):
     args.SR = True
     args.CR2P2F = True
     args.CR3P1F = True
 
 desiredZZResultsData = []
 desiredZZResultsMC = []
-desiredZZResultsBkg = []
 
 if args.smp:
     if args.SR:
         desiredZZResultsData.append('smp')
         desiredZZResultsMC.append('smp')
-        desiredZZResultsBkg.append('smp_bkg')
     if args.CR2P2F:
         desiredZZResultsData.append('smp_2P2F')
         desiredZZResultsMC.append('smp_2P2F')
@@ -103,7 +97,6 @@ if args.full:
         else:
             desiredZZResultsData.append('fullSpectrum')
         desiredZZResultsMC.append('fullSpectrum')
-        desiredZZResultsBkg.append('fullSpectrum_bkg')
     if args.CR2P2F:
         desiredZZResultsData.append('fullSpectrum_2P2F')
         desiredZZResultsMC.append('fullSpectrum_2P2F')
@@ -117,7 +110,6 @@ if args.hzz:
         else:
             desiredZZResultsData.append('hzz')
         desiredZZResultsMC.append('hzz')
-        desiredZZResultsBkg.append('hzz_bkg')
     if args.CR2P2F:
         desiredZZResultsData.append('hzz_2P2F')
         desiredZZResultsMC.append('hzz_2P2F')
@@ -128,7 +120,6 @@ if args.z4l:
     if args.SR:
         desiredZZResultsData.append('z4l')
         desiredZZResultsMC.append('z4l')
-        desiredZZResultsBkg.append('z4l_bkg')
     if args.CR2P2F:
         desiredZZResultsData.append('z4l_2P2F')
         desiredZZResultsMC.append('z4l_2P2F')
@@ -137,11 +128,7 @@ if args.z4l:
         desiredZZResultsMC.append('z4l_3P1F')
     
 desiredZLResults = ['zPluslLoose',] 
-if args.factorizeFakeRate:
-    desiredZLResults.append('zPluslTightID')
-    desiredZLResults.append('zPluslIso')
-else:
-    desiredZLResults.append('zPluslTight')
+desiredZLResults.append('zPluslTight')
 
 desiredZResults = ['singleZ']
 
@@ -152,7 +139,7 @@ if args.zzData:
     managers.append(man)
 
 if args.zlData:
-    inputs = os.path.join(pathStart, "zPlusl_data"+args.zlData)
+    inputs = os.path.join(pathStart, "uwvvZPlusl_data"+args.zlData)
     man = AnalysisManager(zlAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
@@ -164,19 +151,13 @@ if args.zData:
     managers.append(man)
 
 if args.zzMC:
-    inputs = os.path.join(pathStart, "uwvvNtuples_"+args.zzMC)
+    inputs = os.path.join(pathStart, "uwvvNtuples_mc_"+args.zzMC)
     man = AnalysisManager(zzAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsMC)
     managers.append(man)
 
-if args.zzBkg:
-    inputs = os.path.join(pathStart, "uwvvNtuples_"+args.zzBkg)
-    man = AnalysisManager(zzAnalyses, inputs, pool, args.assumeInputExists)
-    man.addAnalyses(*desiredZZResultsBkg)
-    managers.append(man)
-
 if args.zlMC:
-    inputs = os.path.join(pathStart, "zPlusl_mc_"+args.zlMC)
+    inputs = os.path.join(pathStart, "uwvvZPlusl_mc_"+args.zlMC)
     man = AnalysisManager(zlAnalyses, inputs, pool, args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
