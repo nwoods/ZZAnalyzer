@@ -34,18 +34,32 @@ class NtupleSaver(ResultSaverBase):
         super(NtupleSaver, self).__init__(fileName, channels, *args, **kwargs)
 
         self.copyMetaData()
+        self.copyGenNtuple()
         
 
     def copyMetaData(self):
         '''
-        Copy over metadata for each channel if it exists. If metaInfo tree
+        Copy over metadata if it exists. If metaInfo tree
         doesn't exist, print a warning but don't crash.
         '''
-        toCopy = self.inputs.values()[0].GetDirectory().GetFile().Get("metaInfo")
         try:
+            toCopy = self.inputs.values()[0].GetDirectory().GetFile().Get("metaInfo")
             toCopy.copytree(self.outFile)
         except DoesNotExist:
             print "WARNING: metaInfo not found. Metadata will not be copied!"
+
+
+    def copyGenNtuple(self):
+        '''
+        Copy over gen ntuple for each channel if it exists. If it
+        doesn't exist, do nothing.
+        '''
+        for chan in self.channels:
+            try:
+                toCopy = self.inputs.values()[0].GetDirectory().GetFile().Get(chan+"Gen")
+                toCopy.copytree(self.outFile)
+            except DoesNotExist:
+                pass
 
 
     def saveNumber(self, tree, num, var=''):
