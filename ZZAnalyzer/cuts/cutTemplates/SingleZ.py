@@ -51,15 +51,6 @@ class SingleZ(Cutter):
             if info.get('objects', 0) == 2 and 'obj' not in info.get('logic', ''):
                 del info['objects']
 
-        temp['Trigger'] = {
-                'cuts' : {
-                    'doubleEPass' : (1, ">="),
-                    'doubleMuPass' : (1, ">="),
-                    'doubleMuDZPass' : (1, ">="),
-                },
-                'logic' : 'or',
-            }
-
         return temp
 
 
