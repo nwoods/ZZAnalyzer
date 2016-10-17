@@ -33,17 +33,17 @@ def init_worker():
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
 parser = argparse.ArgumentParser(description='Run the ZZ4l analyzer on multiple samples.')
-parser.add_argument('--zzData', type=str, nargs='?',
+parser.add_argument('--zzData', type=str, nargs='*', default=[],
                     help='Identifier for ZZ data files (located in /data/nawoods/ntuples/uwvvNtuples_data_<this variable>).')
-parser.add_argument('--zlData', type=str, nargs='?',
+parser.add_argument('--zlData', type=str, nargs='*', default=[],
                     help='Identifier for Z+l data files (located in /data/nawoods/ntuples/uwvvZPlusl_data_<this variable>).')
-parser.add_argument('--zData', type=str, nargs='?',
+parser.add_argument('--zData', type=str, nargs='*', default=[],
                     help='Identifier for Z data files (located in /data/nawoods/ntuples/uwvvSingleZ_data_<this variable>).')
-parser.add_argument('--zzMC', type=str, nargs='?',
+parser.add_argument('--zzMC', type=str, nargs='*', default=[],
                     help='Identifier for ZZ MC files (located in /data/nawoods/ntuples/uwvvNtuples_mc_<this variable>).')
-parser.add_argument('--zlMC', type=str, nargs='?',
+parser.add_argument('--zlMC', type=str, nargs='*', default=[],
                     help='Identifier for Z+l MC files (located in /data/nawoods/ntuples/uwvvZPlusl_mc_<this variable>).')
-parser.add_argument('--zMC', type=str, nargs='?',
+parser.add_argument('--zMC', type=str, nargs='*', default=[],
                     help='Identifier for Z MC files (located in /data/nawoods/ntuples/uwvvSingleZ_mc_<this variable>).')
 parser.add_argument('--smp', action='store_true', help='Do the on-shell analysis')
 parser.add_argument('--hzz', action='store_true', help='Do the Higgs analysis')
@@ -134,38 +134,38 @@ desiredZLResults.append('zPluslTight')
 
 desiredZResults = ['singleZ']
 
-if args.zzData:
-    inputs = os.path.join(pathStart, "uwvvNtuples_data_"+args.zzData)
+for sampleID in args.zzData:
+    inputs = os.path.join(pathStart, "uwvvNtuples_data_"+sampleID)
     man = AnalysisManager(zzAnalyses, inputs, pool, args.channels, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsData)
     managers.append(man)
 
-if args.zlData:
-    inputs = os.path.join(pathStart, "uwvvZPlusl_data_"+args.zlData)
+for sampleID in args.zlData:
+    inputs = os.path.join(pathStart, "uwvvZPlusl_data_"+sampleID)
     man = AnalysisManager(zlAnalyses, inputs, pool, '3l', args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
-if args.zData:
-    inputs = os.path.join(pathStart, "uwvvSingleZ_data_"+args.zData)
+for sampleID in args.zData:
+    inputs = os.path.join(pathStart, "uwvvSingleZ_data_"+sampleID)
     man = AnalysisManager(zAnalyses, inputs, pool, 'z', args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
 
-if args.zzMC:
-    inputs = os.path.join(pathStart, "uwvvNtuples_mc_"+args.zzMC)
+for sampleID in args.zzMC:
+    inputs = os.path.join(pathStart, "uwvvNtuples_mc_"+sampleID)
     man = AnalysisManager(zzAnalyses, inputs, pool, args.channels, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsMC)
     managers.append(man)
 
-if args.zlMC:
-    inputs = os.path.join(pathStart, "uwvvZPlusl_mc_"+args.zlMC)
+for sampleID in args.zlMC:
+    inputs = os.path.join(pathStart, "uwvvZPlusl_mc_"+sampleID)
     man = AnalysisManager(zlAnalyses, inputs, pool, '3l', args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
-if args.zMC:
-    inputs = os.path.join(pathStart, "uwvvSingleZ_mc_"+args.zMC)
+for sampleID in args.zMC:
+    inputs = os.path.join(pathStart, "uwvvSingleZ_mc_"+sampleID)
     man = AnalysisManager(zAnalyses, inputs, pool, 'z', args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
