@@ -19,6 +19,7 @@ from Analyzer import Analyzer
 # requirements applied
 _samplesWithoutTrigger = [
     'ZZTo4L',
+    'ZZJJTo4L',
     'GluGluZZ',
     'Contin',
     'WZTo3LNu',
