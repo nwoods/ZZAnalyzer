@@ -3,7 +3,6 @@
 cleaner = 'HZZ4l2015Cleaner'
 
 zzAnalyses = {
-    'channels' : 'zz',
     'fullSpectrum_noclean' : {
         'resultDir' : 'results_full_noclean',
         'cutModifiers' : [],
@@ -42,7 +41,7 @@ zzAnalyses = {
         'cutModifiers' : ['SMPZZ2016'],
         'prereq' : 'fullSpectrum',
         },
-    'smp_2P2F' : {        
+    'smp_2P2F' : {
         'baseCuts' : 'AllPass',
         'resultDir' : 'results_smp_2P2F',
         'cutModifiers' : ['SMPZZ2016'],
@@ -103,7 +102,6 @@ zzAnalyses = {
     }
 
 zlAnalyses = {
-    'channels' : '3l',
     'zPluslLoose' : {
         'resultDir' : 'resultsLoose',
         'cutModifiers' : ['ControlRegion_Zplusl', 'SMPZZ2016'],
@@ -117,7 +115,6 @@ zlAnalyses = {
     }
 
 zAnalyses = {
-    'channels' : 'z',
     'singleZ' : {
         'resultDir' : 'results',
         'cutModifiers' : ['SingleZ','ZPlusAnything','SMPZZ2016'],

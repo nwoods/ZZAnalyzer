@@ -33,14 +33,14 @@ def parseInputs(inputs):
         else:
             if glob.glob(path+'*.root'):
                 infiles += glob.glob(path+'*.root')
-    
+
     # Remove duplicates from input files, just in case
     infiles = list(set(infiles))
 
     return infiles
 
 
-def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType, 
+def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType,
                   maxEvents, intLumi, cleanRows, cutModifiers):
     '''
     Run an Analyzer.
@@ -48,8 +48,8 @@ def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType,
     '''
     outfile = outdir+'/'+(infile.split('/')[-1])
     try:
-        analyzer = Analyzer(channels, baseCuts, infile, outfile, 
-                            resultType, maxEvents, intLumi, 
+        analyzer = Analyzer(channels, baseCuts, infile, outfile,
+                            resultType, maxEvents, intLumi,
                             cleanRows, cutModifiers=cutModifiers)
     # Exceptions won't print from threads without help
     except Exception as e:
@@ -61,7 +61,7 @@ def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType,
         print "Killing task"
         print "**********************************************************************"
         return
-    
+
     try:
         analyzer.analyze()
     except Exception as e:
@@ -76,18 +76,19 @@ def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType,
 
 
 class AnalysisManager(object):
-    def __init__(self, allAnalyses, inputDir, pool, assumeInputExists=False):
+    def __init__(self, allAnalyses, inputDir, pool, channels, assumeInputExists=False):
         self.all = allAnalyses
+        self.channels = channels
         self.inputDir = inputDir
         self.files = parseInputs(os.path.join(inputDir, '*.root'))
         self.samples = [f.split('/')[-1].replace('.root','') for f in self.files]
-                                 
+
         self.analyses = {s:{} for s in self.samples}
         self.pool = pool
 
         self.assumeInputExists = assumeInputExists
         self.endResults = set()
-        
+
     class FakeResult(object):
         '''
         A class that is always ready.
@@ -126,7 +127,7 @@ class AnalysisManager(object):
             above[ana]['params']['inFile'] = os.path.join(self.inputDir, resultDir, sample+'.root')
 
         return above[ana]
-            
+
     def runReady(self):
         '''
         Adds any analyzers that are ready to go to the worker pool.
@@ -165,8 +166,8 @@ class AnalysisManager(object):
                     info[ana]['result'] = self.FakeResult()
                 else:
                     inPrereqChain = False
-                
-            subresults.append(self.tryToRunAnalyses(info[ana], inPrereqChain)) 
+
+            subresults.append(self.tryToRunAnalyses(info[ana], inPrereqChain))
 
         return all(subresults)
 
@@ -187,7 +188,7 @@ class AnalysisManager(object):
         analyzer with those parameters and return a thread result object.
         '''
         argDict = self.defaultParams.copy()
-        argDict['channels'] = self.all['channels']
+        argDict['channels'] = self.channels
         argDict['outDir'] = os.path.join(self.inputDir, params['resultDir'])
         argDict.update(params)
 

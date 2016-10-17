@@ -52,9 +52,11 @@ parser.add_argument('--z4l', action='store_true', help='Do the Z to 4l analysis'
 parser.add_argument('--SR', action='store_true', help='Do signal region cuts')
 parser.add_argument('--CR2P2F', action='store_true', help='Do 2P2F control region cuts')
 parser.add_argument('--CR3P1F', action='store_true', help='Do 3P1F control region cuts')
+parser.add_argument('--channels', type=str, nargs='?', default='zz',
+                    help='Channels to run for 4l.')
 parser.add_argument('--nThreads', type=int, default=12,
                     help='Maximum number of threads for simultaneous processing. If unspecified, python figures how many your machine can deal with automatically, to a maximum of 12.')
-parser.add_argument('--assumeInputExists', action='store_true', 
+parser.add_argument('--assumeInputExists', action='store_true',
                     help='Only run the requested analyses, assuming the prerequisite analyses have already been done.')
 parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding to data')
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
@@ -126,45 +128,45 @@ if args.z4l:
     if args.CR3P1F:
         desiredZZResultsData.append('z4l_3P1F')
         desiredZZResultsMC.append('z4l_3P1F')
-    
-desiredZLResults = ['zPluslLoose',] 
+
+desiredZLResults = ['zPluslLoose',]
 desiredZLResults.append('zPluslTight')
 
 desiredZResults = ['singleZ']
 
 if args.zzData:
     inputs = os.path.join(pathStart, "uwvvNtuples_data_"+args.zzData)
-    man = AnalysisManager(zzAnalyses, inputs, pool, args.assumeInputExists)
+    man = AnalysisManager(zzAnalyses, inputs, pool, args.channels, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsData)
     managers.append(man)
 
 if args.zlData:
     inputs = os.path.join(pathStart, "uwvvZPlusl_data_"+args.zlData)
-    man = AnalysisManager(zlAnalyses, inputs, pool, args.assumeInputExists)
+    man = AnalysisManager(zlAnalyses, inputs, pool, '3l', args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
 if args.zData:
     inputs = os.path.join(pathStart, "uwvvSingleZ_data_"+args.zData)
-    man = AnalysisManager(zAnalyses, inputs, pool, args.assumeInputExists)
+    man = AnalysisManager(zAnalyses, inputs, pool, 'z', args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
 
 if args.zzMC:
     inputs = os.path.join(pathStart, "uwvvNtuples_mc_"+args.zzMC)
-    man = AnalysisManager(zzAnalyses, inputs, pool, args.assumeInputExists)
+    man = AnalysisManager(zzAnalyses, inputs, pool, args.channels, args.assumeInputExists)
     man.addAnalyses(*desiredZZResultsMC)
     managers.append(man)
 
 if args.zlMC:
     inputs = os.path.join(pathStart, "uwvvZPlusl_mc_"+args.zlMC)
-    man = AnalysisManager(zlAnalyses, inputs, pool, args.assumeInputExists)
+    man = AnalysisManager(zlAnalyses, inputs, pool, '3l', args.assumeInputExists)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
 if args.zMC:
     inputs = os.path.join(pathStart, "uwvvSingleZ_mc_"+args.zMC)
-    man = AnalysisManager(zAnalyses, inputs, pool, args.assumeInputExists)
+    man = AnalysisManager(zAnalyses, inputs, pool, 'z', args.assumeInputExists)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
 
@@ -189,7 +191,7 @@ else:
 print "Done!"
 
 
-                              
+
 
 
 
