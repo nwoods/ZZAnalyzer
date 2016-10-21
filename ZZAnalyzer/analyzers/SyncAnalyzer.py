@@ -18,13 +18,13 @@ from ZZAnalyzer.utils.helpers import evVar
 
 
 class SyncAnalyzer(Analyzer):
-    def __init__(self, channels, cutSet, infile, outfile='./results/output_cutflow.root', 
-                 resultType="CopyNtuple", maxEvents=float("inf"), eventFile='failedEvents.txt',
+    def __init__(self, channels, cutSet, infile, outfile='./results/output_cutflow.root',
+                 maxEvents=float("inf"), eventFile='failedEvents.txt',
                  intLumi=10000, cleanRows=True, cutModifiers=[]):
-        super(SyncAnalyzer, self).__init__(channels, cutSet, infile, outfile, 
-                                           resultType, maxEvents, intLumi, 
+        super(SyncAnalyzer, self).__init__(channels, cutSet, infile, outfile,
+                                           maxEvents, intLumi,
                                            cleanRows, cutModifiers)
-        
+
         # save last attempted cut of each event of interest (or 999 if it passed), keyed to tuple(run,lumi,evt)
         self.interesting = {}
         self.interestingChannels = {}
@@ -70,8 +70,8 @@ class SyncAnalyzer(Analyzer):
             rowID = (evVar(row, 'run'), evVar(row, 'lumi'), evVar(row, 'evt'))
             if rowID in self.interesting:
                 self.interesting[rowID] = 999
-            
-                
+
+
         super(SyncAnalyzer, self).passCut(row, channel, cut)
 
 
@@ -82,7 +82,7 @@ class SyncAnalyzer(Analyzer):
         super(SyncAnalyzer, self).cutReport()
 
         print "Interesting events:"
-        
+
         for evt in sorted(self.interesting.keys()):
             result = self.interesting[evt]
             if result == 999:
@@ -102,15 +102,14 @@ class SyncAnalyzer(Analyzer):
 if __name__ == "__main__":
     import argparse
     import os
-    
+
     parser = argparse.ArgumentParser(description='Running SyncAnalyzer directly just does a little test.')
     parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
     parser.add_argument("cutset", nargs='?', default='BaseCuts2016', type=str, help='Base cut set to test.')
-    parser.add_argument("infile", nargs='?', 
+    parser.add_argument("infile", nargs='?',
                         default='/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/ZZTo4L_13TeV_powheg_pythia8.root',
                         type=str, help='Single file to test on. No wildcards.')
     parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
-    parser.add_argument("resultType", nargs='?', default='CopyNtuple', type=str, help='Format of output file')
     parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
     parser.add_argument("eventList", nargs='?', default='eventList.txt', type=str, help='File listing interesting events to check.')
     parser.add_argument("--cleanRows", nargs='?', type=str, default='',
@@ -124,8 +123,8 @@ if __name__ == "__main__":
     else:
         mods = []
 
-    a = SyncAnalyzer(args.channel, args.cutset, args.infile, args.outfile, 
-                     args.resultType, args.nEvents, args.eventList, 1000, 
+    a = SyncAnalyzer(args.channel, args.cutset, args.infile, args.outfile,
+                     args.nEvents, args.eventList, 1000,
                      args.cleanRows, cutModifiers=mods,)
 
     print "TESTING SyncAnalyzer"

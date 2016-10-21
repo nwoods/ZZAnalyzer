@@ -1,7 +1,7 @@
 '''
 
-ZZ->4l analyzer. Takes an FSA Ntuple as input, makes a root file 
-with a bunch of histograms of interesting quantities and a cut flow 
+ZZ->4l analyzer. Takes an FSA Ntuple as input, makes a root file
+with a bunch of histograms of interesting quantities and a cut flow
 text file.
 
 Author: Nate Woods
@@ -28,24 +28,24 @@ import math
 from ZZAnalyzer.metadata import sampleInfo
 from ZZAnalyzer.utils.helpers import * # evVar, objVar, nObjVar, parseChannels, mapObjects, Z_MASS
 from ZZAnalyzer.cuts import getCutClass
-from ZZAnalyzer.results import getResultClass
+from ZZAnalyzer.results import NtupleCopier
 from ZZAnalyzer.cleaning import getCleanerClass
 
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
 class Analyzer(object):
-    def __init__(self, channels, baseCutSet, inFile, outfile='./results/output.root', 
-                 resultType = "CopyNtuple", maxEvents=float("inf"), intLumi=10000, rowCleaner='',
+    def __init__(self, channels, baseCutSet, inFile, outfile='./results/output.root',
+                 maxEvents=float("inf"), intLumi=10000, rowCleaner='',
                  cutModifiers=[], ntupleDir='ntuple'):
         '''
-        Channels:    list of strings or single string in the format (e.g.) eemm for 
+        channels:    list of strings or single string in the format (e.g.) eemm for
                          a 2e2mu final state. '4l', 'zz' and 'ZZ' turn into ['eeee' 'eemm' 'mmmm']
         cutSet:      string with the name of the cut template to use
         infile:      string of an input file name, with path
         outfile:     string of an output file name, with path
         maxEvents:   stop after this many events processed
         intLumi:     in output text file, report how many events we would expect for this integrated luminosity
-        rowCleaner:  name of a module to clean out redundant rows. If an empty 
+        rowCleaner:  name of a module to clean out redundant rows. If an empty
                          string (or other False boolean), no cleaning is performed.
         '''
         self.cutSet = [baseCutSet]+cutModifiers
@@ -57,7 +57,7 @@ class Analyzer(object):
 
         self.cutOrder = self.cuts.getCutList()
 
-        self.sample = inFile.split('/')[-1].replace('.root','')        
+        self.sample = inFile.split('/')[-1].replace('.root','')
         self.inFile = root_open(inFile)
         assert bool(inFile), 'No file %s'%self.inFile
 
@@ -75,6 +75,7 @@ class Analyzer(object):
                 # if not nt.GetEntries():
                 #     raise DoesNotExist('')
                 self.ntuples[channel] = nt
+                nt.create_buffer()
             except DoesNotExist:
                 print "Ntuple for channel %s is empty or not found! Skipping."%channel
                 self.channels.remove(channel)
@@ -83,10 +84,7 @@ class Analyzer(object):
             if self.maxEvents < float('inf'):
                 self.ntupleSize[channel] = self.ntuples[channel].GetEntries()
 
-        self.resultType = resultType
-        ResultClass = getResultClass(resultType)
-
-        self.results = ResultClass(self.outFile, self.channels, self.ntuples)
+        self.results = NtupleCopier(self.outFile, **self.ntuples)
 
         self.prepareCutSummary()
 
@@ -112,7 +110,7 @@ class Analyzer(object):
 
     def analyze(self):
         '''
-        For a given file, do the whole analysis and output the results to 
+        For a given file, do the whole analysis and output the results to
         self.outFile
         '''
         if self.cleanRows:
@@ -138,7 +136,7 @@ class Analyzer(object):
 
 
         for channel in self.channels:
-        
+
             objectTemplate = mapObjects(channel)
             objects = objectTemplate
             needReorder = self.cuts.needReorder(channel)
@@ -174,7 +172,7 @@ class Analyzer(object):
                 # Report progress every 5000 rows
                 if iRow % 5000 == 0:
                     print "%s: Processing %s row %d"%(self.sample, channel, iRow)
-                
+
                 if needReorder:
                     objects = self.cuts.orderLeptons(row, channel, objectTemplate)
 
@@ -191,7 +189,7 @@ class Analyzer(object):
                     if cleanAfter: # Don't save yet, still might get cleaned
                         rowCleaner.bookRow(row, iRow)
                     else:
-                        self.results.saveRow(row, channel, nested=True)
+                        self.results.saveRow(row, channel)
             else:
                 print "%s: Done with %s (%d rows)"%(self.sample, channel, iRow+1)
 
@@ -208,18 +206,18 @@ class Analyzer(object):
                         continue
                     else:
                         self.passCut(row, channel, "SelectBest")
-                        self.results.saveRow(row, channel, nested=True)
-                        
-                    
-                
-        print "%s: Done with all channels, saving results as %s"%(self.sample, self.outFile)
+                        self.results.saveRow(row, channel)
 
-        self.inFile.close()
+
+
+        print "%s: Done with all channels, saving results as %s"%(self.sample, self.outFile)
 
         self.results.save()
 
+        self.inFile.close()
+
         self.cutReport()
-                
+
 
     def passCut(self, row, channel, cut):
         '''
@@ -228,11 +226,11 @@ class Analyzer(object):
         histograms.
         '''
         self.cutsPassed[channel][cut] += 1
-        
-        
+
+
     def preCut(self, row, channel, cut):
         '''
-        Here, does nothing. In derived classes, may be used to do things like make 
+        Here, does nothing. In derived classes, may be used to do things like make
         control plots.
         '''
         pass
@@ -250,7 +248,7 @@ class Analyzer(object):
         '''
         if not objects:
             objects = mapObjects(channel)
-        
+
         if len(objects) != 4:
             return []
 
@@ -260,7 +258,7 @@ class Analyzer(object):
             ossfs.extend(objects[:2])
         if objects[2][0] == objects[3][0] and not nObjVar(row, 'SS', objects[2], objects[3]):
             ossfs.extend(objects[2:])
-            
+
         # If there's 0 or 1 Z candidate, we don't need to worry about order
         if len(ossfs) < 4:
             return ossfs
@@ -273,10 +271,10 @@ class Analyzer(object):
                 return ossfs[2:]+ossfs[:2]
         return ossfs
 
-        
+
     def cutReport(self):
         '''
-        Save a text file with cut information. 
+        Save a text file with cut information.
         Same name as outfile but .txt instead of .root.
         '''
         totals = {}
@@ -316,7 +314,7 @@ class Analyzer(object):
                     # :      %0.2f\n"%(cut, self.cutsPassed[channel][cut], expected))
                     totals[cut] += self.cutsPassed[channel][cut]
 #                     expectedTotals[cut] += expected
-                                                     
+
             if "TotalRows" in self.cutsPassed[channel]:
                 listOfCuts = ['TotalRows']+self.cutOrder
             elif "SelectBest" in self.cutsPassed[channel]:
@@ -327,7 +325,7 @@ class Analyzer(object):
 #             f.write("\n%-32s in %0.0f pb^-1\n"%('Total:',self.intLumi))
             for cut in listOfCuts:
                 f.write("%16s : %-9d\n"%(cut, totals[cut])) # :      %0.2f\n"%(cut, totals[cut], expectedTotals[cut]))
-    
+
 
 
 
@@ -337,22 +335,21 @@ class Analyzer(object):
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Running Analyzer directly just does a little test.')
     parser.add_argument("channel", nargs='?', default='zz', type=str, help='Channel(s) to test.')
     parser.add_argument("cutset", nargs='?', default='BaseCuts2016', type=str, help='Base cut set to test.')
-    parser.add_argument("infile", nargs='?', 
+    parser.add_argument("infile", nargs='?',
                         default='/data/nawoods/ntuples/zzNtuples_mc_26jan2016_0/ZZTo4L_13TeV_powheg_pythia8.root',
                         type=str, help='Single file to test on. No wildcards.')
     parser.add_argument("outfile", nargs='?', default='ZZTest.root', type=str, help='Test output file name.')
-    parser.add_argument("resultType", nargs='?', default='CopyNtuple', type=str, help='Format of output file')
     parser.add_argument("nEvents", nargs='?', type=int, default=100, help="Number of test events.")
     parser.add_argument("--cleanRows", nargs='?', type=str, default='',
                         help="Name of module to clean extra rows from each event. Without this option, no cleaning is performed.")
     parser.add_argument("--modifiers", nargs='*', type=str,
                         help="Other cut sets that modify the base cuts.")
     parser.add_argument("--ntupleDir", nargs="?", default='ntuple',
-                        type=str, 
+                        type=str,
                         help=("path to the ntuple in the root file, "
                               "relative to the channel. So the "
                               "ntuple will be channel/<this variable>"))
@@ -363,8 +360,8 @@ if __name__ == "__main__":
     else:
         mods = []
 
-    a = Analyzer(args.channel, args.cutset, args.infile, args.outfile, 
-                   args.resultType, args.nEvents, 1000, args.cleanRows,
+    a = Analyzer(args.channel, args.cutset, args.infile, args.outfile,
+                   args.nEvents, 1000, args.cleanRows,
                    cutModifiers=mods, ntupleDir=args.ntupleDir)
 
     print "TESTING Analyzer"

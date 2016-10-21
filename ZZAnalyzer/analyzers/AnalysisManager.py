@@ -41,7 +41,7 @@ def parseInputs(inputs):
     return infiles
 
 
-def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType,
+def runAnAnalyzer(channels, baseCuts, infile, outdir,
                   maxEvents, intLumi, cleanRows, cutModifiers):
     '''
     Run an Analyzer.
@@ -50,7 +50,7 @@ def runAnAnalyzer(channels, baseCuts, infile, outdir, resultType,
     outfile = outdir+'/'+(infile.split('/')[-1])
     try:
         analyzer = Analyzer(channels, baseCuts, infile, outfile,
-                            resultType, maxEvents, intLumi,
+                            maxEvents, intLumi,
                             cleanRows, cutModifiers=cutModifiers)
     # Exceptions won't print from threads without help
     except Exception as e:
@@ -178,9 +178,8 @@ class AnalysisManager(object):
         'intLumi' : 9200.,
         'cleanRows' : '',
         'cutModifiers' : [],
-        'resultType' : 'CopyNtuple',
         }
-    argVars = ['channels', 'baseCuts', 'inFile', 'outDir', 'resultType',
+    argVars = ['channels', 'baseCuts', 'inFile', 'outDir',
                'maxEvents', 'intLumi', 'cleanRows', 'cutModifiers']
 
     def submitAnalysis(self, params):

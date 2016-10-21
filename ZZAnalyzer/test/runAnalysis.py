@@ -23,15 +23,15 @@ from ZZAnalyzer.analyzers import Analyzer
 ROOT.gROOT.SetBatch(True)
 
 
-def runAnAnalyzer(channels, cutSet, infile, outdir, resultType, 
+def runAnAnalyzer(channels, cutSet, infile, outdir,
                   maxEvents, intLumi, cleanRows, mods):
     '''
     Run an Analyzer.
     Intended for use in threads, such that several processes all do this once.
     '''
     outfile = outdir+'/'+(infile.split('/')[-1])
-    analyzer = Analyzer(channels, cutSet, infile, outfile, 
-                        resultType, maxEvents, intLumi, 
+    analyzer = Analyzer(channels, cutSet, infile, outfile,
+                        maxEvents, intLumi,
                         cleanRows, cutModifiers=mods)
     analyzer.analyze()
 
@@ -45,7 +45,7 @@ def init_worker():
 assert os.environ["zza"], "Run setup.sh before running analysis"
 
 parser = argparse.ArgumentParser(description='Run the ZZ4l analyzer on multiple samples.')
-parser.add_argument('input', type=str, nargs=1, 
+parser.add_argument('input', type=str, nargs=1,
                     help='Comma separated (no spaces) list of sample locations. May contain wildcards. For a directory, all .root files will be processed.')
 parser.add_argument('channels', nargs='?', type=str, default='zz',
                     help='Comma separated (no spaces) list of channels, or keyword "zz" for eeee,mmmm,eemm')
@@ -53,8 +53,6 @@ parser.add_argument('cutSet', nargs='?', type=str, default='BaseCuts2016',
                     help='Name of cut template.')
 parser.add_argument('outdir', type=str, nargs='?', default='ZZA_NORMAL',
                     help='Directory to place output (defaults to $zza/results/<cutSet>).')
-parser.add_argument('resultType', type=str, nargs='?', default='CopyNtuple',
-                    help='Template for saving results')
 parser.add_argument('intLumi', type=float, nargs='?', default=10000,
                     help='Integrated luminosity for report in ouput text files. In pb^-1.')
 parser.add_argument('--nThreads', type=int,
@@ -122,9 +120,8 @@ pool = multiprocessing.Pool(nThreads, init_worker)
 results = []
 for infile in infiles:
     results.append(pool.apply_async(runAnAnalyzer, args=(channels, args.cutSet,
-                                                         infile, outdir, 
-                                                         args.resultType, 
-                                                         maxEvents, intLumi, 
+                                                         infile, outdir,
+                                                         maxEvents, intLumi,
                                                          args.cleanRows,
                                                          mods)))
 
@@ -144,7 +141,7 @@ else:
 print "Done!"
 
 
-                              
+
 
 
 
