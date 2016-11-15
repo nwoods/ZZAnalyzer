@@ -33,9 +33,9 @@ class SyncAnalyzer(Analyzer):
                 if not line:
                     continue
                 words = line.lstrip("< >").split(":")
-                assert len(words) == 3, "Event file improperly formatted!"
-                self.interesting[tuple(int(w) for w in words)] = -999
-                self.interestingChannels[tuple(int(w) for w in words)] = set()
+                assert len(words) >= 3, "Event file improperly formatted!"
+                self.interesting[tuple(int(w) for w in words[:3])] = -999
+                self.interestingChannels[tuple(int(w) for w in words[:3])] = set()
 
         # whether or not we care about this row (saved since lookup is slow)
         self.currentRowInfo = (-1,-1,-1)
