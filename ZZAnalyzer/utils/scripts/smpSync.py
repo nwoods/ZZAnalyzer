@@ -15,10 +15,18 @@ Author: N. Woods, U. Wisconsin
 
 '''
 
+import logging
+from rootpy import log as rlog; rlog = rlog['/smpSync']
+logging.basicConfig(level=logging.WARNING)
+rlog["/ROOT.TUnixSystem.SetDisplay"].setLevel(rlog.ERROR)
+rlog["/rootpy.tree.chain"].setLevel(rlog.WARNING)
+
 from ZZAnalyzer.utils.helpers import evVar, objVar, nObjVar, parseChannels, zMassDist
 
 from rootpy.io import root_open
+from rootpy.tree import TreeChain
 import argparse
+from glob import glob
 
 
 def getObjects(channel):
@@ -37,12 +45,12 @@ def getObjects(channel):
     return sorted(out)
 
 
-def getEventInfo(row):
-    run = evVar(row, 'run')
-    evt = evVar(row, 'evt')
-    lumi = evVar(row, 'lumi')
-
-    return ':'.join(str(n) for n in [run,lumi,evt])
+def getEventInfo(row, *args):
+    return {
+        'run' : evVar(row, 'run'),
+        'event' : evVar(row, 'evt'),
+        'lumi' : evVar(row, 'lumi'),
+        }
 
 
 def getCandInfo(row, *objects):
@@ -61,8 +69,16 @@ def getCandInfo(row, *objects):
         numbers['mZ1'] = temp
 
     numbers['nJets'] = evVar(row, 'nJets')
-    numbers['jet1pt'] = max(0,evVar(row, 'jet1Pt'))
-    numbers['jet2pt'] = max(0,evVar(row, 'jet2Pt'))
+    if numbers['nJets'] > 0:
+        numbers['jet1pt'] = evVar(row, 'jetPt').at(0)
+        if numbers['nJets'] > 1:
+            numbers['jet2pt'] = evVar(row, 'jetPt').at(1)
+        else:
+            numbers['jet2pt'] = 0
+    else:
+        numbers['jet1pt'] = 0
+        numbers['jet2pt'] = 0
+
     numbers['mjj'] = max(0,evVar(row, 'mjj'))
 
     return numbers
@@ -81,76 +97,102 @@ def getCandInfo3l(row, *objects):
     return numbers
 
 
-parser = argparse.ArgumentParser(description='Dump information about the 4l candidates in an ntuple to a text file, for synchronization.')
-parser.add_argument('input', type=str, nargs=1, help='Input root file')
-parser.add_argument('output', type=str, nargs='?', default='candSync.txt',
-                    help='Name of the text file to output.')
-parser.add_argument('channels', nargs='?', type=str, default='zz',
-                    help='Comma separated (no spaces) list of channels, or keyword indicated multiple channels')
-parser.add_argument('--listOnly', action='store_true',
-                    help='Print only run:lumi:event with no further info')
-parser.add_argument('--zPlusL', '--zPlusl', action='store_true',
-                    help='Use the Z+l control region format instead of the 4l format')
-parser.add_argument('--doGen', action='store_true',
-                    help='Also make a file for the gen-level information')
+def getAllInfo(channel, ntuple, fInfo):
+    found = set()
+    objects = getObjects(channel)
+    if channel == 'emm':
+        objects = objects[1:]+objects[:1]
+
+    for row in ntuple:
+        numbers = infoGetter(row, *objects)
+        evtID = (numbers['run'],numbers['lumi'],numbers['event'])
+        if evtID in found:
+            continue
+        found.add(evtID)
+        yield numbers
 
 
-args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Dump information about the 4l candidates in an ntuple to a text file, for synchronization.')
+    parser.add_argument('input', type=str, nargs=1, help='Input root file or glob to several')
+    parser.add_argument('output', type=str, nargs='?', default='candSync.txt',
+                        help='Name of the text file to output.')
+    parser.add_argument('channels', nargs='?', type=str, default='zz',
+                        help='Comma separated (no spaces) list of channels, or keyword indicated multiple channels')
+    parser.add_argument('--listOnly', action='store_true',
+                        help='Print only run:lumi:event with no further info')
+    parser.add_argument('--zPlusL', '--zPlusl', action='store_true',
+                        help='Use the Z+l control region format instead of the 4l format')
+    parser.add_argument('--doGen', action='store_true',
+                        help='Also make a file for the gen-level information')
 
-channels = parseChannels(args.channels)
 
-inFile = args.input[0]
+    args = parser.parse_args()
 
-outStrings = []
-outStringsGen = []
-
-if args.zPlusL:
-    if args.channels == 'zz':
+    if args.zPlusL and args.channels == 'zz':
         args.channels = 'zl'
+    channels = parseChannels(args.channels)
 
-    outTemp = ('{run}:{lumi}:{event}:{channel}:{m3l:.2f}:{mZ:.2f}:{ptL3:.2f}:'
-               '{l3Tight}\n')
-    infoGetter = getCandInfo3l
-    args.doGen = False
+    inFiles = glob(args.input[0])
 
-else:
-    outTemp = ('{run}:{lumi}:{event}:{channel}:{m4l:.2f}:{mZ1:.2f}:{mZ2:.2f}:'
-               '{nJets}:{jet1pt:.2f}:{jet2pt:.2f}:{mjj:.2f}\n')
-    infoGetter = getCandInfo
+    outStrings = []
+    outStringsGen = []
+
+    if args.listOnly:
+        outTemp = '{run}:{lumi}:{event}:{channel}\n'
+        infoGetter = getEventInfo
+    elif args.zPlusL:
+        outTemp = ('{run}:{lumi}:{event}:{channel}:{m3l:.2f}:{mZ:.2f}:{ptL3:.2f}:'
+                   '{l3Tight}\n')
+        infoGetter = getCandInfo3l
+        args.doGen = False
+
+    else:
+        outTemp = ('{run}:{lumi}:{event}:{channel}:{m4l:.2f}:{mZ1:.2f}:{mZ2:.2f}:'
+                   '{nJets}:{jet1pt:.2f}:{jet2pt:.2f}:{mjj:.2f}\n')
+        infoGetter = getCandInfo
 
 
-with root_open(inFile) as fin:
     for channel in channels:
-        objects = getObjects(channel)
         if channel == 'emm':
-            objects = objects[1:]+objects[:1]
             channelForStr = 'mme' # for sync with Torino
         else:
             channelForStr = channel
 
-        ntuple = fin.Get(channel+'/ntuple')
-        for n, row in enumerate(ntuple):
-            numbers = infoGetter(row, *objects)
-            outStrings.append(outTemp.format(channel=channelForStr,**numbers))
+        if len(inFiles) == 1:
+            with root_open(inFiles[0]) as fin:
+                n = fin.Get(channel+'/ntuple')
+                for numbers in getAllInfo(channel, n, infoGetter):
+                    outStrings.append(outTemp.format(channel=channelForStr,
+                                                     **numbers))
+                if args.doGen:
+                    n = fin.Get(channel+'Gen/ntuple')
+                    for numbers in getAllInfo(channel, n, infoGetter):
+                        outStringsGen.append(outTemp.format(channel=channelForStr,
+                                                            **numbers))
 
-        if args.doGen:
-            ntupleGen = fin.Get(channel+'Gen/ntuple')
-            for n, row in enumerate(ntupleGen):
-                numbers = infoGetter(row, *objects)
-                outStringsGen.append(outTemp.format(channel=channelForStr,**numbers))
+        else:
+            n = TreeChain(channel+'/ntuple', inFiles)
+            for numbers in getAllInfo(channel, n, infoGetter):
+                outStrings.append(outTemp.format(channel=channelForStr,
+                                                     **numbers))
+            if args.doGen:
+                n = TreeChain(channel+'Gen/ntuple', inFiles)
+                for numbers in getAllInfo(channel, n, infoGetter):
+                    outStringsGen.append(outTemp.format(channel=channelForStr,
+                                                        **numbers))
 
-
-with open(args.output, 'w') as fout:
-    for s in sorted(outStrings, key=lambda x: [int(y) for y in x.split(':')[:3]]):
-        fout.write(s)
-
-if args.doGen:
-    if '.' in args.output:
-        outputGen = 'Gen.'.join(args.output.rsplit('.',1))
-    else:
-        outputGen = args.output+'Gen'
-
-    with open(outputGen, 'w') as fout:
-        for s in sorted(outStringsGen, key=lambda x: [int(y) for y in x.split(':')[:3]]):
+    with open(args.output, 'w') as fout:
+        for s in sorted(outStrings, key=lambda x: [int(y) for y in x.split(':')[:3]]):
             fout.write(s)
+
+    if args.doGen:
+        if '.' in args.output:
+            outputGen = 'Gen.'.join(args.output.rsplit('.',1))
+        else:
+            outputGen = args.output+'Gen'
+
+        with open(outputGen, 'w') as fout:
+            for s in sorted(outStringsGen, key=lambda x: [int(y) for y in x.split(':')[:3]]):
+                fout.write(s)
 
