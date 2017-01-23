@@ -23,6 +23,7 @@ _samplesWithoutTrigger = [
     'GluGluZZ',
     'Contin',
     'WZTo3LNu',
+    'WWZ',
     ]
 
 def parseInputs(inputs):
