@@ -59,6 +59,8 @@ parser.add_argument('--nThreads', type=int, default=12,
 parser.add_argument('--assumeInputExists', action='store_true',
                     help='Only run the requested analyses, assuming the prerequisite analyses have already been done.')
 parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding to data')
+parser.add_argument('--Spring16', action='store_true',
+                    help='Skip trigger for MC samples that didn\'t have it in the Spring16 campaign.')
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
 # or else we get segfault-causing race conditions
 bar = Hist(10,0.,1.,name="foo",title="foo")
@@ -136,37 +138,43 @@ desiredZResults = ['singleZ']
 
 for sampleID in args.zzData:
     inputs = os.path.join(pathStart, "uwvvNtuples_data_"+sampleID)
-    man = AnalysisManager(zzAnalyses, inputs, pool, args.channels, args.assumeInputExists)
+    man = AnalysisManager(zzAnalyses, inputs, pool, args.channels,
+                          args.assumeInputExists, args.Spring16)
     man.addAnalyses(*desiredZZResultsData)
     managers.append(man)
 
 for sampleID in args.zlData:
     inputs = os.path.join(pathStart, "uwvvZPlusl_data_"+sampleID)
-    man = AnalysisManager(zlAnalyses, inputs, pool, '3l', args.assumeInputExists)
+    man = AnalysisManager(zlAnalyses, inputs, pool, '3l',
+                          args.assumeInputExists, args.Spring16)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
 for sampleID in args.zData:
     inputs = os.path.join(pathStart, "uwvvSingleZ_data_"+sampleID)
-    man = AnalysisManager(zAnalyses, inputs, pool, 'z', args.assumeInputExists)
+    man = AnalysisManager(zAnalyses, inputs, pool, 'z',
+                          args.assumeInputExists, args.Spring16)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
 
 for sampleID in args.zzMC:
     inputs = os.path.join(pathStart, "uwvvNtuples_mc_"+sampleID)
-    man = AnalysisManager(zzAnalyses, inputs, pool, args.channels, args.assumeInputExists)
+    man = AnalysisManager(zzAnalyses, inputs, pool, args.channels,
+                          args.assumeInputExists, args.Spring16)
     man.addAnalyses(*desiredZZResultsMC)
     managers.append(man)
 
 for sampleID in args.zlMC:
     inputs = os.path.join(pathStart, "uwvvZPlusl_mc_"+sampleID)
-    man = AnalysisManager(zlAnalyses, inputs, pool, '3l', args.assumeInputExists)
+    man = AnalysisManager(zlAnalyses, inputs, pool, '3l',
+                          args.assumeInputExists, args.Spring16)
     man.addAnalyses(*desiredZLResults)
     managers.append(man)
 
 for sampleID in args.zMC:
     inputs = os.path.join(pathStart, "uwvvSingleZ_mc_"+sampleID)
-    man = AnalysisManager(zAnalyses, inputs, pool, 'z', args.assumeInputExists)
+    man = AnalysisManager(zAnalyses, inputs, pool, 'z',
+                          args.assumeInputExists, args.Spring16)
     man.addAnalyses(*desiredZResults)
     managers.append(man)
 

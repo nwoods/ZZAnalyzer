@@ -16,7 +16,8 @@ from Analyzer import Analyzer
 
 
 # temporary hack: samples with one of these in the name will not have trigger
-# requirements applied
+# requirements applied if the AnalysisManager is told that the files are from
+# the Spring16 campaign
 _samplesWithoutTrigger = [
     'ZZTo4L',
     'ZZJJTo4L',
@@ -78,7 +79,8 @@ def runAnAnalyzer(channels, baseCuts, infile, outdir,
 
 
 class AnalysisManager(object):
-    def __init__(self, allAnalyses, inputDir, pool, channels, assumeInputExists=False):
+    def __init__(self, allAnalyses, inputDir, pool, channels,
+                 assumeInputExists=False, isSpring16=False):
         self.all = allAnalyses
         self.channels = channels
         self.inputDir = inputDir
@@ -90,6 +92,8 @@ class AnalysisManager(object):
 
         self.assumeInputExists = assumeInputExists
         self.endResults = set()
+
+        self.isSpring16 = isSpring16
 
     class FakeResult(object):
         '''
@@ -193,7 +197,7 @@ class AnalysisManager(object):
         argDict['outDir'] = os.path.join(self.inputDir, params['resultDir'])
         argDict.update(params)
 
-        if any(s in argDict['inFile'] for s in _samplesWithoutTrigger):
+        if self.isSpring16 and any(s in argDict['inFile'] for s in _samplesWithoutTrigger):
             print 'Not applying trigger requirements for {}'.format(argDict['inFile'])
             argDict['cutModifiers'] = ['NoTrigger'] + argDict['cutModifiers'][:]
 
