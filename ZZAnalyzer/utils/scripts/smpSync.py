@@ -23,10 +23,13 @@ rlog["/rootpy.tree.chain"].setLevel(rlog.WARNING)
 
 from ZZAnalyzer.utils.helpers import evVar, objVar, nObjVar, parseChannels, zMassDist
 
+from rootpy import asrootpy
 from rootpy.io import root_open
 from rootpy.tree import TreeChain
 import argparse
 from glob import glob
+from os import environ
+from os.path import join
 
 
 def getObjects(channel):
@@ -53,7 +56,7 @@ def getEventInfo(row, *args):
         }
 
 
-def getCandInfo(row, *objects):
+def getCandInfo(row, hPUWt, *objects):
     numbers = {}
     numbers['run'] = row.run
     numbers['lumi'] = row.lumi
@@ -68,23 +71,76 @@ def getCandInfo(row, *objects):
         numbers['mZ2'] = numbers['mZ1']
         numbers['mZ1'] = temp
 
-    numbers['nJets'] = evVar(row, 'nJets')
-    if numbers['nJets'] > 0:
-        numbers['jet1pt'] = evVar(row, 'jetPt').at(0)
-        if numbers['nJets'] > 1:
-            numbers['jet2pt'] = evVar(row, 'jetPt').at(1)
+    jetPts = evVar(row, 'jetPt')
+    numbers['nJets'] = jetPts.size()
+    if jetPts.size():
+        numbers['jet1pt'] = jetPts.at(0)
+        if jetPts.size() > 1:
+            numbers['jet2pt'] = jetPts.at(1)
         else:
-            numbers['jet2pt'] = 0
+            numbers['jet2pt'] = -1.
     else:
-        numbers['jet1pt'] = 0
-        numbers['jet2pt'] = 0
+        numbers['jet1pt'] = -1.
+        numbers['jet2pt'] = -1.
 
-    numbers['mjj'] = max(0,evVar(row, 'mjj'))
+    numbers['puWt'] = hPUWt.GetBinContent(hPUWt.FindBin(evVar(row, 'nTruePU')))
+    recoSF = 1.
+    selSF = 1.
+    for ob in objects:
+        if ob[0] == 'm':
+            selSF *= objVar(row, 'EffScaleFactor', ob)
+        else:
+            recoSF *= objVar(row, 'TrkRecoEffScaleFactor', ob)
+            selSF *= objVar(row, 'IDIsoEffScaleFactor', ob)
+
+    numbers['recoSF'] = recoSF
+    numbers['selSF'] = selSF
+
+    numbers['nPU'] = evVar(row, 'nTruePU')
+
+    numbers['mjj'] = max(-1.,evVar(row, 'mjj'))
 
     return numbers
 
 
-def getCandInfo3l(row, *objects):
+def getGenCandInfo(row, hPUWt, *objects):
+    numbers = {}
+    numbers['mZ1'] = nObjVar(row, 'Mass', objects[0], objects[1])
+    if numbers['mZ1'] < 60.:
+        return None
+    numbers['mZ2'] = nObjVar(row, 'Mass', objects[2], objects[3])
+    if numbers['mZ2'] < 60.:
+        return None
+
+    # eemm channel may have masses swapped
+    if zMassDist(numbers['mZ1']) > zMassDist(numbers['mZ2']):
+        temp = numbers['mZ2']
+        numbers['mZ2'] = numbers['mZ1']
+        numbers['mZ1'] = temp
+
+    numbers['run'] = row.run
+    numbers['lumi'] = row.lumi
+    numbers['event'] = row.evt
+    numbers['m4l'] = evVar(row, 'Mass')
+
+    jetPts = evVar(row, 'jetPt')
+    numbers['nJets'] = jetPts.size()
+    if jetPts.size():
+        numbers['jet1pt'] = jetPts.at(0)
+        if jetPts.size() > 1:
+            numbers['jet2pt'] = jetPts.at(1)
+        else:
+            numbers['jet2pt'] = -1.
+    else:
+        numbers['jet1pt'] = -1.
+        numbers['jet2pt'] = -1.
+
+    numbers['mjj'] = max(-1.,evVar(row, 'mjj'))
+
+    return numbers
+
+
+def getCandInfo3l(row, hPUWt, *objects):
     numbers = {}
     numbers['run'] = row.run
     numbers['lumi'] = row.lumi
@@ -97,14 +153,16 @@ def getCandInfo3l(row, *objects):
     return numbers
 
 
-def getAllInfo(channel, ntuple, fInfo):
+def getAllInfo(channel, ntuple, fInfo, hPUWt):
     found = set()
     objects = getObjects(channel)
     if channel == 'emm':
         objects = objects[1:]+objects[:1]
 
     for row in ntuple:
-        numbers = infoGetter(row, *objects)
+        numbers = fInfo(row, hPUWt, *objects)
+        if numbers is None:
+            continue
         evtID = (numbers['run'],numbers['lumi'],numbers['event'])
         if evtID in found:
             continue
@@ -125,9 +183,17 @@ if __name__ == '__main__':
                         help='Use the Z+l control region format instead of the 4l format')
     parser.add_argument('--doGen', action='store_true',
                         help='Also make a file for the gen-level information')
+    parser.add_argument('--puWeightFile', nargs='?', type=str,
+                        default='puWeight_69200_24jan2017.root',
+                        help='Name of pileup weight file, possibly relative to $zza/ZZAnalyzer/data/pileupReweighting/')
 
 
     args = parser.parse_args()
+
+    with root_open(join(environ['zza'], 'ZZAnalyzer', 'data',
+                        'pileupReweighting', args.puWeightFile)) as fPU:
+        hPUWt = asrootpy(fPU.puScaleFactor)
+        hPUWt.SetDirectory(0)
 
     if args.zPlusL and args.channels == 'zz':
         args.channels = 'zl'
@@ -149,9 +215,11 @@ if __name__ == '__main__':
 
     else:
         outTemp = ('{run}:{lumi}:{event}:{channel}:{m4l:.2f}:{mZ1:.2f}:{mZ2:.2f}:'
-                   '{nJets}:{jet1pt:.2f}:{jet2pt:.2f}:{mjj:.2f}\n')
+                   '{nJets}:{jet1pt:.2f}:{jet2pt:.2f}:{mjj:.2f}:{puWt:.4f}:{recoSF:.4f}:{selSF:.4f}:{nPU:.2f}\n')
         infoGetter = getCandInfo
 
+    outTempGen = ('{run}:{lumi}:{event}:{channel}:{m4l:.2f}:{mZ1:.2f}:{mZ2:.2f}:'
+                  '{nJets}:{jet1pt:.2f}:{jet2pt:.2f}:{mjj:.2f}\n')
 
     for channel in channels:
         if channel == 'emm':
@@ -162,25 +230,25 @@ if __name__ == '__main__':
         if len(inFiles) == 1:
             with root_open(inFiles[0]) as fin:
                 n = fin.Get(channel+'/ntuple')
-                for numbers in getAllInfo(channel, n, infoGetter):
+                for numbers in getAllInfo(channel, n, infoGetter, hPUWt):
                     outStrings.append(outTemp.format(channel=channelForStr,
                                                      **numbers))
                 if args.doGen:
                     n = fin.Get(channel+'Gen/ntuple')
-                    for numbers in getAllInfo(channel, n, infoGetter):
-                        outStringsGen.append(outTemp.format(channel=channelForStr,
-                                                            **numbers))
+                    for numbers in getAllInfo(channel, n, getGenCandInfo, hPUWt):
+                        outStringsGen.append(outTempGen.format(channel=channelForStr,
+                                                               **numbers))
 
         else:
             n = TreeChain(channel+'/ntuple', inFiles)
-            for numbers in getAllInfo(channel, n, infoGetter):
+            for numbers in getAllInfo(channel, n, infoGetter, hPUWt):
                 outStrings.append(outTemp.format(channel=channelForStr,
                                                      **numbers))
             if args.doGen:
                 n = TreeChain(channel+'Gen/ntuple', inFiles)
-                for numbers in getAllInfo(channel, n, infoGetter):
-                    outStringsGen.append(outTemp.format(channel=channelForStr,
-                                                        **numbers))
+                for numbers in getAllInfo(channel, n, getGenCandInfo, hPUWt):
+                    outStringsGen.append(outTempGen.format(channel=channelForStr,
+                                                           **numbers))
 
     with open(args.output, 'w') as fout:
         for s in sorted(outStrings, key=lambda x: [int(y) for y in x.split(':')[:3]]):
