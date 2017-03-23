@@ -35,7 +35,7 @@ class BaseCuts2016(Cutter):
 
             # Triggers
             ### We don't change out cuts by channel, but we can get the same
-            ### effect by requiring: 
+            ### effect by requiring:
             ###    (has muon AND passes mu triggers) OR
             ###    (has electron AND passes e triggers) OR
             ###    (has electron and muon AND passes cross triggers)
@@ -48,7 +48,7 @@ class BaseCuts2016(Cutter):
 #             },
 #             'ETriggers' : {
 #                 'cuts' : {
-#                     'doubleEPass' : (1, ">="), 
+#                     'doubleEPass' : (1, ">="),
 #                     'tripleEPass' : (1, ">="),
 #                 },
 #                 'logic' : 'or',
@@ -133,9 +133,9 @@ class BaseCuts2016(Cutter):
             },
             'eTightID' : {
                 'cuts' : {
-                    'ZZTightID' : (1, ">="),
+                    'ZZTightIDNoVtx' : (1, ">="),
                     # 'MVA' : 'eMVAID',
-                    # 'looseEle' : 'eLooseID',
+                    'looseEle' : 'eLooseID',
                 },
                 'objects' : 1,
             },
@@ -146,8 +146,8 @@ class BaseCuts2016(Cutter):
                 },
                 'objects' : 1,
             },
-            'mTrkOrGlob' : { 
-                'cuts' : { 
+            'mTrkOrGlob' : {
+                'cuts' : {
                     'IsGlobal' : (1, ">="),
                     'tkMu' : 'TrackerMuon',
                 },
@@ -162,7 +162,7 @@ class BaseCuts2016(Cutter):
                 'objects' : 1,
                 'logic' : 'or',
             },
-            'mLooseID' : { 
+            'mLooseID' : {
                 'cuts' : {
                     'Pt' : (5., ">="),
                     'Eta#POS' : (2.4, "<"),
@@ -242,14 +242,14 @@ class BaseCuts2016(Cutter):
                     'SS' : (1, "<"),
                 },
                 'objects' : 2,
-            },            
+            },
 
             # Isolation
-            'mIso' : { 
+            'mIso' : {
                 'cuts' : {'ZZIsoPass' : (0.5, ">")},
                 'objects' : 1,
             },
-            'eIso' : { 
+            'eIso' : {
                 'cuts' : {'ZZIsoPass' : (0.5, ">")},
                 'objects' : 1,
             },
@@ -271,7 +271,7 @@ class BaseCuts2016(Cutter):
 
             # Z mass round 1
             'ZMassLoose' : {
-                'cuts' : { 
+                'cuts' : {
                     'Mass%s#lower'%self.fsrVar : (4., '>='),
                     'Mass%s#upper'%self.fsrVar : (120., '<'),
                 },
@@ -279,7 +279,7 @@ class BaseCuts2016(Cutter):
             },
 
             # Overlap (ghost cleaning)
-            'Overlap' : { 
+            'Overlap' : {
                 'cuts' : { 'DR' : (0.02, ">="), },
                 'objects' : 'pairs',
                 'logic' : 'objand',
@@ -295,7 +295,7 @@ class BaseCuts2016(Cutter):
             },
             'eLepton2Pt' : {
                 'cuts' : {
-                    'Pt' : (10., '>='),
+                    'Pt' : (12., '>='),
                 },
                 'objects' : 1,
             },
@@ -339,7 +339,7 @@ class BaseCuts2016(Cutter):
 
             # Z1 mass
             'ZMassTight' : {
-                'cuts' : { 
+                'cuts' : {
                     'Mass%s#lower'%self.fsrVar : (40., ">="),
                     'Mass%s#upper'%self.fsrVar : (120., "<"),
                 },
@@ -385,7 +385,7 @@ class BaseCuts2016(Cutter):
         flow['QCDVeto'] = ('QCDVeto', [1,2,3,4])
         flow['Vertex'] = ('Vertex', [])
         flow['Trigger'] = ('Trigger', [])
-        
+
         return flow
 
 
