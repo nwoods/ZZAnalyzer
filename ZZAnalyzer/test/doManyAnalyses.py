@@ -61,6 +61,11 @@ parser.add_argument('--assumeInputExists', action='store_true',
 parser.add_argument('--blind', action='store_true', help='Apply HZZ blinding to data')
 parser.add_argument('--Spring16', action='store_true',
                     help='Skip trigger for MC samples that didn\'t have it in the Spring16 campaign.')
+parser.add_argument('--noSIP', action='store_true',
+                    help="Don't do lepton SIP cuts.")
+parser.add_argument('--looseSIP', action='store_true',
+                    help="Use looser lepton SIP cut (currently 10 instead of 4).")
+
 # we have to create some ROOT object to get ROOT's metadata system setup before the threads start
 # or else we get segfault-causing race conditions
 bar = Hist(10,0.,1.,name="foo",title="foo")
@@ -80,6 +85,27 @@ if (args.zzData or args.zzMC) and not (args.SR or args.CR2P2F or args.CR3P1F):
     args.SR = True
     args.CR2P2F = True
     args.CR3P1F = True
+
+if args.noSIP:
+    if args.looseSIP:
+        raise RuntimeError("I can't apply the loose SIP cut if I'm not applying any SIP cut!")
+
+    for ana in zzAnalyses:
+        if 'full' in ana.lower():
+            zzAnalyses[ana]['cutModifiers'].insert(0,'NoSIP')
+    for ana in zlAnalyses:
+        zlAnalyses[ana]['cutModifiers'].insert(0,'NoSIP')
+    for ana in zAnalyses:
+        zAnalyses[ana]['cutModifiers'].insert(0,'NoSIP')
+
+if args.looseSIP:
+    for ana in zzAnalyses:
+        if 'full' in ana.lower():
+            zzAnalyses[ana]['cutModifiers'].insert(0,'LooseSIP')
+    for ana in zlAnalyses:
+        zlAnalyses[ana]['cutModifiers'].insert(0,'LooseSIP')
+    for ana in zAnalyses:
+        zAnalyses[ana]['cutModifiers'].insert(0,'LooseSIP')
 
 desiredZZResultsData = []
 desiredZZResultsMC = []
