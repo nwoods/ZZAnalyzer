@@ -88,9 +88,9 @@ Once a set of cuts is entered, the user shouldn't need to know anything.
     results of these are booleans for whether the cut was passed or not.
 
 A few simple, common cuts are provided by default. 'true' always returns
-    True, 'SameFlavor' returns whether the objects are the same type 
+    True, 'SameFlavor' returns whether the objects are the same type
     (electron, muon etc.). 'DifferentFlavor' does the opposite.
-    'IsElectron' and 'IsMuon' tell you if the 
+    'IsElectron' and 'IsMuon' tell you if the
     object is an electron or a muon, respectively.
 
 
@@ -109,13 +109,13 @@ class Cutter(object):
     '''
     Base class for anything setting, modifying, or executing analysis cuts.
     Cutters may be combined via multiple inheritance as long as everything
-    derives from this base class and calls super() from the first three 
+    derives from this base class and calls super() from the first three
     methods here, to ensure an appropriate MRO.
     '''
     def setupCutFlow(self):
         '''
         This OrderedDict should be filled with cuts by daughter classes,
-        in the format flow[cut] = (cutName, objects), where cutName is 
+        in the format flow[cut] = (cutName, objects), where cutName is
         the name of the cut in the cut template, and objects is a list
         of (one-indexed) integers specifying the objects to pass to the cut.
         '''
@@ -136,7 +136,7 @@ class Cutter(object):
 
     def getCutTemplate(self, *args):
         '''
-        This dict should be filled with cuts in the format specified in the 
+        This dict should be filled with cuts in the format specified in the
         header comments to this file.
         '''
         assert not hasattr(super(Cutter, self), 'getCutTemplate'),\
@@ -155,7 +155,7 @@ class Cutter(object):
         self.cutFlow = self.setupCutFlow()
 
         self.cuts = self.setupCuts(self.cutSet)
-        
+
         # Add a few always-useful cuts
         if 'true' not in self.cuts:
             self.cuts['true'] = lambda *args: True
@@ -174,7 +174,7 @@ class Cutter(object):
 
     def analysisCut(self, row, cut, *objects):
         '''
-        Takes cut name and all leptons, uses self.cutFlow to figure out 
+        Takes cut name and all leptons, uses self.cutFlow to figure out
         which cut and objects to use, returns the result
         '''
         return self.cuts[self.cutFlow[cut][0]](row, *[objects[i-1] for i in self.cutFlow[cut][1]])
@@ -182,7 +182,7 @@ class Cutter(object):
 
     def doCut(self, row, cut, *objects):
         '''
-        Do a cut on exactly the objects passed (as opposed to passing all 
+        Do a cut on exactly the objects passed (as opposed to passing all
         objects and letting self.cutFlow tell us which to use as in self.doCut).
         '''
         return self.cuts[cut](row, *objects)
@@ -197,7 +197,7 @@ class Cutter(object):
 
     def setupCuts(self, *args):
         '''
-        Gets a dictionary of cut parameters from a template file or 
+        Gets a dictionary of cut parameters from a template file or
         daughter-class-specific dictionary data member and turns it
         into an dictionary of functions that perform the cuts.
         self.getCutTemplate(*args) should be changed by any daughter
@@ -208,7 +208,7 @@ class Cutter(object):
         '''
         temp = self.getCutTemplate(*args)
         cuts = {}
-        
+
         for cut, params in temp.iteritems():
             if 'logic' not in params:
                 params['logic'] = 'and'
@@ -222,22 +222,22 @@ class Cutter(object):
                     print "If is uses electron pt, for example, do something like cutTemplate[thisCut]['branches'] = ['e*Pt']"
                     raise
                 self.enableBranches(toKeep)
-                continue                
-            
+                continue
+
             cuts[cut] = self.getCutFunction(params)
-            
-                
+
+
         return cuts
 
 
     def getCutFunction(self, cutDict):
         '''
-        Return a function that does one or more object cuts. 
+        Return a function that does one or more object cuts.
         cutDict is template[cut] or at least in the same format
         '''
         objLogic = 'obj' in cutDict['logic']
         requireAll = 'and' in cutDict['logic']
-        
+
         pairwise = False
         ignoreObjects = False
         if 'objects' in cutDict:
@@ -284,22 +284,22 @@ class Cutter(object):
                     return lambda row, *obj: cutFuns[0](row, *obj)
                 return lambda row, *obj: logicFun(cut(row, *obj) for cut in cutFuns)
 
-    
+
     def getCutLegFunction(self, cutName, cutParams, nObjects, ignoreObjects=False):
         '''
         Get the function to do a single leg of a single cut. If cutName is the
-        name of a variable, the function will cut on that, and will look for 
+        name of a variable, the function will cut on that, and will look for
         parameters of the form (cutValue, wantLessThan), where cutValue is the
-        threshold at which to cut and wantLessThan is a bool or string. If 
-        wantLessThan is True, the cut passes if the value is less than the 
+        threshold at which to cut and wantLessThan is a bool or string. If
+        wantLessThan is True, the cut passes if the value is less than the
         threshold; if it is False, the cut passes if the value is greater than
-        or equal to the threshold. If wantLessThan is a string, we try to 
+        or equal to the threshold. If wantLessThan is a string, we try to
         figure out whether the user wants var < threshold or var >= threshold
         (those are the only options). If the cut parameter is
-        a string, the name doesn't matter and the paramter indicates which 
-        other cut to call. 
+        a string, the name doesn't matter and the paramter indicates which
+        other cut to call.
         '''
-        
+
         if isinstance(cutParams, str):
             # If we just want to do the cut, use doCut(row, cut).
             # If we want to negate the cut, use negateCut(row, cut)
@@ -365,7 +365,7 @@ class Cutter(object):
 
     def enableBranches(self, branches):
         '''
-        Add one or more items to the list of branches that are needed for this 
+        Add one or more items to the list of branches that are needed for this
         set of cuts.
         '''
         if isinstance(branches, str):
@@ -377,7 +377,7 @@ class Cutter(object):
 
     def cutEvVar(self, row, var, val, wantLessThan):
         '''
-        Do one cut on one final state variable. Checks to see if row.var < val if 
+        Do one cut on one final state variable. Checks to see if row.var < val if
         wantLessThan is True, row.var >= val if False
         '''
         return ((evVar(row, var) < val) == wantLessThan)
@@ -385,7 +385,7 @@ class Cutter(object):
 
     def cutObjVar(self, row, var, val, wantLessThan, obj):
         '''
-        Do one cut on one object-associated variable. Checks to see if row.objvar < val if 
+        Do one cut on one object-associated variable. Checks to see if row.objvar < val if
         wantLessThan is True, row.objvar >= val if False
         '''
         return ((objVar(row, var, obj) < val) == wantLessThan)
@@ -393,7 +393,7 @@ class Cutter(object):
 
     def cutNObjVar(self, row, var, val, wantLessThan, *obj):
         '''
-        Do one cut on one N-object composite variable. Checks to see if row.[obj1_obj2_...]_var < val if 
+        Do one cut on one N-object composite variable. Checks to see if row.[obj1_obj2_...]_var < val if
         wantLessThan is True, row.[obj1_obj2...]_var >= val if False
         '''
         return ((nObjVar(row, var, *obj) < val) == wantLessThan)
@@ -410,14 +410,14 @@ class Cutter(object):
             print "Passed"
         else:
             print "Failed"
-            
-        
+
+
     def needReorder(self, channel):
         '''
-        Return whether or not this channel should have its leptons reordered 
-        with each new row (because FSA put them in the wrong order for some 
+        Return whether or not this channel should have its leptons reordered
+        with each new row (because FSA put them in the wrong order for some
         reason).
-        By default, does this for 2e2mu channel and nothing else. Daughter 
+        By default, does this for 2e2mu channel and nothing else. Daughter
         classes may override if needed for a control region or whatever.
         '''
         return channel[0][0] != channel[-1][0]
@@ -425,17 +425,17 @@ class Cutter(object):
 
     def orderLeptons(self, row, channel, objects):
         '''
-        Put best (closest to nominal mass) Z candidate first. 
+        Put best (closest to nominal mass) Z candidate first.
         FSA does this automatically for 4e and 4mu cases.
         Assumes 4 leptons, with (l1,l2) and (l3,l4) same-flavor pairs;
         will have to be overloaded for other circumstances (CRs, etc.)
         '''
         dM1 = zCompatibility_checkSign(row,objects[0],objects[1], self.fsrVar)
         dM2 = zCompatibility_checkSign(row,objects[2],objects[3], self.fsrVar)
-        
+
         if dM1 > dM2:
             return objects[2:] + objects[:2]
         return objects
 
 
-    
+
