@@ -1,10 +1,11 @@
 
 
 cleaner = 'HZZ4l2015Cleaner'
+hzzCleaner = cleaner #'HZZ4l2016Cleaner'
 
 zzAnalyses = {
     'fullSpectrum_noclean' : {
-        'resultDir' : 'results_full_noclean',
+        'resultDir' : 'results_full',
         'cutModifiers' : [],
         },
     'fullSpectrum_blind' : {
@@ -58,28 +59,28 @@ zzAnalyses = {
         'resultDir' : 'results_hzz',
         'cutModifiers' : ['Blind', 'HZZ2016'],
         'prereq' : 'fullSpectrum_noclean',
-        'cleanRows' : 'HZZ4l2016Cleaner',
+        'cleanRows' : hzzCleaner,
         },
     'hzz' : {
         'baseCuts' : 'AllPass',
         'resultDir' : 'results_hzz',
         'cutModifiers' : ['HZZ2016'],
         'prereq' : 'fullSpectrum_noclean',
-        'cleanRows' : 'HZZ4l2016Cleaner',
+        'cleanRows' : hzzCleaner,
         },
     'hzz_2P2F' : {
         'baseCuts' : 'AllPass',
         'resultDir' : 'results_hzz_2P2F',
         'cutModifiers' : ['HZZ2016'],
         'prereq' : 'fullSpectrum_2P2F_noclean',
-        'cleanRows' : 'HZZ4l2016Cleaner',
+        'cleanRows' : hzzCleaner,
         },
     'hzz_3P1F' : {
         'baseCuts' : 'AllPass',
         'resultDir' : 'results_hzz_3P1F',
         'cutModifiers' : ['HZZ2016'],
         'prereq' : 'fullSpectrum_3P1F_noclean',
-        'cleanRows' : 'HZZ4l2016Cleaner',
+        'cleanRows' : hzzCleaner,
         },
     'z4l' : {
         'baseCuts' : 'AllPass',
